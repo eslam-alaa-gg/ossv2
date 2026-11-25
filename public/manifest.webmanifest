@@ -1,6 +1,6 @@
 {
-  "name": "LIFE OS",
-  "short_name": "LIFE OS",
+  "name": "Ukiyo",
+  "short_name": "Ukiyo",
   "description": "Your Life. Your Goals. Your Progress.",
   "start_url": "/dashboard",
   "display": "standalone",
