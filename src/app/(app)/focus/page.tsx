@@ -63,7 +63,7 @@ export default function FocusPage() {
 
   useEffect(() => {
     const t = document.title;
-    if (phase === "running") document.title = `${mmss(remaining)} · Focus`;
+    if (phase === "running") document.title = `${mmss(remaining)} · ${t("Focus")}`;
     return () => { document.title = t; };
   }, [phase, remaining]);
 
