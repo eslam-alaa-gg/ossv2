@@ -106,8 +106,8 @@ function ProfileMenu() {
   const item = "flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm hover:bg-card";
   return (
     <div ref={ref} className="relative">
-      <button onClick={() => setOpen(!open)} aria-haspopup="menu" aria-expanded={open} aria-label="Account menu" className="rounded-full transition-transform active:scale-95">
-        <Avatar size={42} ring />
+      <button onClick={() => setOpen(!open)} aria-haspopup="menu" aria-expanded={open} aria-label="Account menu" className="header-icon-btn rounded-full transition-transform active:scale-95">
+        <Avatar size={46} ring />
       </button>
       <AnimatePresence>
         {open && (
@@ -151,8 +151,8 @@ function Bell_() {
   const markAll = async () => { await api("/api/notifications", { method: "POST", body: { all: true } }); reload(); };
   return (
     <div ref={ref} className="relative">
-      <Button variant="ghost" size="icon" aria-label={`Notifications${data?.unread ? `, ${data.unread} unread` : ""}`} onClick={() => { setOpen(!open); if (!open) reload(); }}>
-        <Bell className="size-[18px]" />
+      <Button variant="ghost" size="icon" className="header-icon-btn h-10 w-10" title="Notifications" aria-label={`Notifications${data?.unread ? `, ${data.unread} unread` : ""}`} onClick={() => { setOpen(!open); if (!open) reload(); }}>
+        <Bell className="size-[19px]" />
         {!!data?.unread && <span className="absolute end-1.5 top-1.5 grid min-w-4 place-items-center rounded-full bg-accent px-1 text-[10px] font-bold text-[var(--on-accent)]">{data.unread}</span>}
       </Button>
       <AnimatePresence>
@@ -255,12 +255,12 @@ export function AppShell({ children }: { children: ReactNode }) {
     <SpotifyProvider>
       <Sidebar collapsed={collapsed} setCollapsed={toggle} />
       <div className={cn("min-h-dvh transition-[padding] duration-300", collapsed ? "lg:ps-[92px]" : "lg:ps-[272px]")}>
-        <header className="glass-panel sticky top-0 z-30 flex items-center gap-3 border-x-0 border-t-0 px-4 py-3 sm:px-6 lg:pe-8" style={{ borderRadius: "0 0 18px 18px", background: "color-mix(in srgb, var(--bg) 62%, transparent)" }}>
-          <button onClick={() => setCmd(true)} className="glass-btn btn-sm h-10 min-w-0 flex-1 justify-start gap-3 text-muted sm:max-w-md sm:flex-none sm:basis-96" aria-label="Open command menu">
-            <Search className="size-4 shrink-0" /> <span className="truncate font-normal">{t("Search")}…</span> <span className="kbd ms-auto hidden sm:inline">⌘K</span>
+        <header className="app-topbar glass-panel sticky top-2 z-30 mx-3 flex items-center gap-2 px-3 py-2.5 sm:mx-5 sm:gap-3 sm:px-4 lg:mx-6 lg:pe-6">
+          <button onClick={() => setCmd(true)} className="header-icon-btn glass-btn btn-ghost btn-icon h-10 w-10 shrink-0" aria-label="Open command menu" title={t("Search")}>
+            <Search className="size-[19px]" />
           </button>
-          <div className="ms-auto flex items-center gap-1.5">
-            <button type="button" onClick={() => patchUser({ language: lang === "ar" ? "en" : "ar" })} className="glass-btn btn-ghost btn-icon h-10 w-10" aria-label={lang === "ar" ? "Switch to English" : "التبديل إلى العربية"} title={lang === "ar" ? "English" : "العربية"}><Languages className="size-[19px]" /></button>
+          <div className="ms-auto flex min-w-0 items-center gap-1.5 sm:gap-2">
+            <button type="button" onClick={() => patchUser({ language: lang === "ar" ? "en" : "ar" })} className="header-icon-btn glass-btn btn-ghost btn-icon h-10 w-10" aria-label={lang === "ar" ? "Switch to English" : "التبديل إلى العربية"} title={lang === "ar" ? "English" : "العربية"}><Languages className="size-[19px]" /></button>
             <Link href="/tasks?new=1" className="glass-btn btn-primary btn-sm hidden h-10 sm:inline-flex"><Plus className="size-4" /> {t("Create Task")}</Link>
             <Bell_ />
             <ProfileMenu />
