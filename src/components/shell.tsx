@@ -281,10 +281,10 @@ function HabitQuickPanel() {
       setLoading(false);
     }
   }, [t]);
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { void Promise.resolve().then(load); }, [load]);
   useEffect(() => {
     if (!open) return;
-    if (!tracker) void load();
+    if (!tracker) void Promise.resolve().then(load);
     const outside = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false); };
     const escape = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
     document.addEventListener("mousedown", outside);
