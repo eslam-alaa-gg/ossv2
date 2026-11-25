@@ -26,7 +26,7 @@ export async function recentXp(a: Authed, limit=20) {
 export async function dashboardData(a: Authed) {
  const today=todayIn(a.tz), ws=weekStart(today), we=addDays(ws,6);
  const [todayTasks, openTasks, overdueTasks, upcoming, hs, logs, challenge, act, xpRows, achRows, totalXpRows, allActivity] = await Promise.all([
-  db.select().from(tasks).where(and(eq(tasks.userId,a.id),eq(tasks.status,"completed"),gte(tasks.completedAt,new Date(today+"T00:00:00Z")),lte(tasks.completedAt,new Date(today+"T23:59:59.999Z")))),
+  db.select().from(tasks).where(and(eq(tasks.userId,a.id),eq(tasks.status,"completed"),gte(tasks.completedAt,new Date(addDays(today,-1)+"T00:00:00Z")),lte(tasks.completedAt,new Date(addDays(today,1)+"T23:59:59.999Z")))),
   db.select().from(tasks).where(and(eq(tasks.userId,a.id),sql`${tasks.status} in ('todo','in_progress')`)),
   db.select({id:tasks.id}).from(tasks).where(and(eq(tasks.userId,a.id),sql`${tasks.status} in ('todo','in_progress')`,lte(tasks.dueDate,addDays(today,-1)))),
   db.select({id:tasks.id,title:tasks.title,dueDate:tasks.dueDate,dueTime:tasks.dueTime,priority:tasks.priority}).from(tasks).where(and(eq(tasks.userId,a.id),sql`${tasks.status} in ('todo','in_progress')`,gte(tasks.dueDate,today),lte(tasks.dueDate,addDays(today,7)))).orderBy(tasks.dueDate).limit(8),
@@ -52,7 +52,7 @@ export async function dashboardData(a: Authed) {
  const challengeToday=challenge[0]??null;
  const weekValues=Object.values(act);
  return {
-  today,score,dailyGoal:a.user.dailyGoal,completedToday:todayTasks.length,remaining:openTasks.filter(t=>t.dueDate===today).length,overdue:overdueTasks.length,openTotal:openTasks.length,
+  today,score,dailyGoal:a.user.dailyGoal,completedToday:todayTasks.filter(t=>t.completedAt && todayIn(a.tz,t.completedAt)===today).length,remaining:openTasks.filter(t=>t.dueDate===today).length,overdue:overdueTasks.length,openTotal:openTasks.length,
   habits:{done:habitsDone.length,total:scheduled.length,list:scheduled.map(h=>({id:h.id,name:h.name,icon:h.icon,done:doneIds.has(h.id)}))},
   challenge:challengeToday?{id:challengeToday.id,title:challengeToday.title,minutes:challengeToday.minutes,xp:challengeToday.xp,difficulty:challengeToday.difficulty,completedAt:challengeToday.completedAt?.toISOString()??null}:null,
   streak,weeklyStreak:weeklyStreak(activeDays,today),focusMinutes:act[today]?.focusMinutes??0,weekFocusMinutes:weekValues.reduce((s,d)=>s+d.focusMinutes,0),
