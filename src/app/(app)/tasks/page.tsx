@@ -64,7 +64,7 @@ function Inner() {
             <PriorityBadge p={task.priority} />
             <Badge>{task.category}</Badge>
             {task.status === "in_progress" && <Badge tone="blue">{t("In progress")}</Badge>}
-            {task.dueDate && <Badge tone={overdue ? "red" : task.dueDate === today ? "amber" : undefined}><CalendarClock className="size-3" />{overdue ? "Overdue · " : ""}{task.dueDate === today ? "Today" : fmtShort(task.dueDate, lang)}{task.dueTime ? ` ${task.dueTime}` : ""}</Badge>}
+            {task.dueDate && <Badge tone={overdue ? "red" : task.dueDate === today ? "amber" : undefined}><CalendarClock className="size-3" />{overdue ? `${t("Overdue")} · ` : ""}{task.dueDate === today ? t("Today") : fmtShort(task.dueDate, lang)}{task.dueTime ? ` ${task.dueTime}` : ""}</Badge>}
             {task.recurrence !== "none" && <Badge><Repeat2 className="size-3" />{task.recurrence}</Badge>}
             {task.tags.map((x) => <Badge key={x}>#{x}</Badge>)}
           </div>
@@ -86,7 +86,7 @@ function Inner() {
             {view === "list" && <select className="input w-auto" value={status} onChange={(e) => setStatus(e.target.value)} aria-label={t("Status filter")}><option value="active">{t("Active")}</option><option value="all">{t("All")}</option>{Object.entries(STATUS_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>}
             <select className="input w-auto" value={cat} onChange={(e) => setCat(e.target.value)} aria-label={t("Category filter")}><option value="all">{t("All categories")}</option>{cats.map((c) => <option key={c}>{c}</option>)}</select>
             <select className="input w-auto" value={pri} onChange={(e) => setPri(e.target.value)} aria-label={t("Priority filter")}><option value="all">{t("Any priority")}</option>{["urgent", "high", "medium", "low"].map((p) => <option key={p} value={p}>{p}</option>)}</select>
-            <select className="input w-auto" value={sort} onChange={(e) => setSort(e.target.value)} aria-label={t("Sort")}><option value="due">Sort: due date</option><option value="priority">Sort: priority</option><option value="created">Sort: newest</option><option value="title">Sort: title</option></select>
+            <select className="input w-auto" value={sort} onChange={(e) => setSort(e.target.value)} aria-label={t("Sort")}><option value="due">{t("Sort: due date")}</option><option value="priority">{t("Sort: priority")}</option><option value="created">{t("Sort: newest")}</option><option value="title">{t("Sort: title")}</option></select>
           </>
         )}
       </div>
