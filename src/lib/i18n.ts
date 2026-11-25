@@ -2,6 +2,19 @@
 export type Lang = "en" | "ar";
 
 const ar: Record<string, string> = {
+  "Focus background": "خلفية التركيز",
+  "Upload background image": "رفع صورة للخلفية",
+  "Images are automatically compressed to a maximum of 400 KB and blurred in full-screen focus.": "يتم ضغط الصور تلقائيًا إلى 400 كيلوبايت كحد أقصى مع إضافة تمويه في وضع التركيز الكامل.",
+  "Tap": "اضغط",
+  "here": "هنا",
+  "to reduce image quality before uploading.": "لخفض جودة الصورة قبل رفعها.",
+  "Choose an image file.": "اختار ملف صورة.",
+  "Background image saved. It appears in full-screen focus.": "تم حفظ صورة الخلفية. ستظهر في وضع التركيز الكامل.",
+  "Background image removed.": "تمت إزالة صورة الخلفية.",
+  "Image upload failed.": "فشل رفع الصورة.",
+  "The image could not be reduced below 400 KB. Try a smaller image.": "تعذر ضغط الصورة إلى أقل من 400 كيلوبايت. جرّب صورة أصغر.",
+  "Remove background": "إزالة الخلفية",
+  "Ready": "جاهز",
   "Habit quick tracker": "متابعة العادات السريعة",
   "Quick habit tracker": "متابعة سريعة للعادات",
   "Your daily targets": "أهدافك اليومية",
