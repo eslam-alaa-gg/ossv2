@@ -4,6 +4,7 @@ import { and, eq, inArray, lte } from "drizzle-orm";
 import { db } from "@/db";
 import { dailyChallenges, habitLogs, habits, notifications, pushSubscriptions, tasks } from "@/db/schema";
 import { dow, todayIn } from "@/lib/dates";
+import { translate } from "@/lib/i18n";
 import type { Authed } from "./auth";
 
 type NotifyUser = Pick<Authed, "id" | "tz" | "prefs"> & { user?: Authed["user"] };
@@ -26,6 +27,7 @@ function pushClientReady() {
 export async function generateNotifications(a: NotifyUser) {
   if (!a.prefs.notifications.inApp && !a.prefs.notifications.push) return [];
   const today = todayIn(a.tz);
+  const language = a.user?.language === "ar" ? "ar" : "en";
   const [openTasks, allHabits, completedHabits, challenges] = await Promise.all([
     db.select({ id: tasks.id, title: tasks.title, dueDate: tasks.dueDate, priority: tasks.priority })
       .from(tasks).where(and(eq(tasks.userId, a.id), inArray(tasks.status, ["todo", "in_progress"]), lte(tasks.dueDate, today))).limit(40),
@@ -43,7 +45,7 @@ export async function generateNotifications(a: NotifyUser) {
     candidates.push({
       userId: a.id,
       kind: overdue ? "task_overdue" : "task_due",
-      title: overdue ? "Task overdue" : "Task due today",
+      title: translate(language, overdue ? "Task overdue" : "Task due today"),
       body: task.title,
       href: "/tasks",
       dedupeKey: `task:${task.id}:${today}`,
@@ -54,8 +56,8 @@ export async function generateNotifications(a: NotifyUser) {
       candidates.push({
         userId: a.id,
         kind: "habit_reminder",
-        title: "Habit reminder",
-        body: `Remember your habit: ${habit.name}`,
+        title: translate(language, "Habit reminder"),
+        body: `${translate(language, "Remember your habit:")} ${translate(language, habit.name)}` ,
         href: "/habits",
         dedupeKey: `habit:${habit.id}:${today}`,
       });
@@ -65,8 +67,8 @@ export async function generateNotifications(a: NotifyUser) {
     if (!challenge.completedAt) candidates.push({
       userId: a.id,
       kind: "challenge_reminder",
-      title: "Daily challenge",
-      body: challenge.title,
+      title: translate(language, "Daily challenge"),
+      body: translate(language, challenge.title),
       href: "/challenge",
       dedupeKey: `challenge:${challenge.id}:${today}`,
     });
