@@ -32,6 +32,7 @@ export const users = ossv2.table("users", {
   id: uuid("id").primaryKey().defaultRandom(),
   email: text("email").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
+  googleAuthId: text("google_auth_id").unique(),
   displayName: text("display_name").notNull(),
   language: text("language").notNull().default("en"),
   timezone: text("timezone").notNull().default("UTC"),
