@@ -524,6 +524,8 @@ const ar: Record<string, string> = {
   "Finance": "مالية",
   "Career": "المسار المهني",
   "Creativity": "إبداع"
+  "Switch to English": "التبديل إلى الإنجليزية",
+  "Switch to Arabic": "التبديل إلى العربية"
 };
 
 export function translate(lang: Lang, s: string): string {
