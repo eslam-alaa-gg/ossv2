@@ -263,7 +263,7 @@ export function UIProvider({ children, lang }: { children: ReactNode; lang: Lang
         return undefined;
       }
     },
-    [toast],
+    [toast, lang],
   );
   const confirm = useCallback<UICtx["confirm"]>((text, label = t("Confirm")) => new Promise((resolve) => setConf({ text: t(text), label: t(label), resolve })), [lang]);
   const icon = { success: <CheckCircle2 className="size-4 text-emerald-400" />, error: <AlertTriangle className="size-4 text-red-400" />, info: <Info className="size-4 text-sky-400" /> };
