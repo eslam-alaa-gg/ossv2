@@ -1,7 +1,7 @@
 "use client";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  BarChart3, Bell, BookMarked, CalendarCheck, CalendarDays, CheckSquare, ChevronsLeft, ChevronsRight, LayoutDashboard, LogOut, Menu, Music2, Palette, Plus, Repeat, Search, Settings, Target, Timer,
+  BarChart3, Bell, BookMarked, CalendarCheck, CalendarDays, CheckSquare, ChevronsLeft, ChevronsRight, Languages, LayoutDashboard, LogOut, Menu, Music2, Palette, Plus, Repeat, Search, Settings, Target, Timer,
   Trophy, User as UserIcon, X, Zap,
 } from "lucide-react";
 import Link from "next/link";
@@ -107,7 +107,7 @@ function ProfileMenu() {
   return (
     <div ref={ref} className="relative">
       <button onClick={() => setOpen(!open)} aria-haspopup="menu" aria-expanded={open} aria-label="Account menu" className="rounded-full transition-transform active:scale-95">
-        <Avatar size={36} ring />
+        <Avatar size={42} ring />
       </button>
       <AnimatePresence>
         {open && (
@@ -235,7 +235,7 @@ function CommandMenu({ open, onClose }: { open: boolean; onClose: () => void }) 
 
 export function AppShell({ children }: { children: ReactNode }) {
   const path = usePathname();
-  const { t } = useApp();
+  const { t, lang, patchUser } = useApp();
   const [collapsed, setCollapsed] = useState(false);
   const [drawer, setDrawer] = useState(false);
   const [cmd, setCmd] = useState(false);
@@ -255,11 +255,12 @@ export function AppShell({ children }: { children: ReactNode }) {
     <SpotifyProvider>
       <Sidebar collapsed={collapsed} setCollapsed={toggle} />
       <div className={cn("min-h-dvh transition-[padding] duration-300", collapsed ? "lg:ps-[92px]" : "lg:ps-[272px]")}>
-        <header className="sticky top-0 z-30 flex items-center gap-3 px-4 py-3 sm:px-6 lg:pe-8">
+        <header className="glass-panel sticky top-0 z-30 flex items-center gap-3 border-x-0 border-t-0 px-4 py-3 sm:px-6 lg:pe-8" style={{ borderRadius: "0 0 18px 18px", background: "color-mix(in srgb, var(--bg) 62%, transparent)" }}>
           <button onClick={() => setCmd(true)} className="glass-btn btn-sm h-10 min-w-0 flex-1 justify-start gap-3 text-muted sm:max-w-md sm:flex-none sm:basis-96" aria-label="Open command menu">
             <Search className="size-4 shrink-0" /> <span className="truncate font-normal">{t("Search")}…</span> <span className="kbd ms-auto hidden sm:inline">⌘K</span>
           </button>
           <div className="ms-auto flex items-center gap-1.5">
+            <button type="button" onClick={() => patchUser({ language: lang === "ar" ? "en" : "ar" })} className="glass-btn btn-ghost btn-icon h-10 w-10" aria-label={lang === "ar" ? "Switch to English" : "التبديل إلى العربية"} title={lang === "ar" ? "English" : "العربية"}><Languages className="size-[19px]" /></button>
             <Link href="/tasks?new=1" className="glass-btn btn-primary btn-sm hidden h-10 sm:inline-flex"><Plus className="size-4" /> {t("Create Task")}</Link>
             <Bell_ />
             <ProfileMenu />
