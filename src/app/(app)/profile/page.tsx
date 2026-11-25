@@ -26,7 +26,7 @@ async function compress(file: File): Promise<Blob> {
 }
 
 export default function ProfilePage() {
-  const { user, patchUser, setAvatarVersion, lang, refresh } = useApp();
+  const { user, patchUser, setAvatarVersion, lang, refresh, t } = useApp();
   const { run, toast, confirm } = useUI();
   const router = useRouter();
   const [editing, setEditing] = useState(false);
@@ -102,49 +102,49 @@ export default function ProfilePage() {
   const first = trimmed || user.displayName;
   return (
     <>
-      <PageHeader title="Profile" subtitle="How you appear across LIFE OS." />
+      <PageHeader title={t("Profile")} subtitle={t("How you appear across LIFE OS.")} />
       <div className="grid gap-[var(--gap)] lg:grid-cols-[360px_1fr]">
         <Card className="flex flex-col items-center py-8 text-center">
-          <button onClick={() => setPic(true)} className="group relative rounded-full" aria-label="Change profile picture">
+          <button onClick={() => setPic(true)} className="group relative rounded-full" aria-label={t("Change profile picture")}>
             <Avatar size={132} ring />
             <span className="absolute inset-0 grid place-items-center rounded-full bg-black/50 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"><Camera className="size-7 text-white" /></span>
           </button>
           {editing ? (
             <div className="mt-5 w-full space-y-3 text-start">
-              <Field label="Display name" error={nameErr} hint={`${trimmed.length}/40`}><input className="input" value={name} onChange={(e) => { setName(e.target.value); setNameErr(null); }} onKeyDown={(e) => { if (e.key === "Enter") saveName(); if (e.key === "Escape") setEditing(false); }} maxLength={60} autoFocus aria-label="Display name" /></Field>
-              <p className="text-xs text-muted">Preview: <b className="text-fg">{first}</b> — only your display name changes; your email and sign-in stay the same.</p>
-              <div className="flex gap-2"><Button className="flex-1" onClick={() => { setEditing(false); setNameErr(null); }}>Cancel</Button><Button variant="primary" className="flex-1" loading={saving} onClick={saveName}>Save</Button></div>
+              <Field label={t("Display name")} error={nameErr} hint={`${trimmed.length}/40`}><input className="input" value={name} onChange={(e) => { setName(e.target.value); setNameErr(null); }} onKeyDown={(e) => { if (e.key === "Enter") saveName(); if (e.key === "Escape") setEditing(false); }} maxLength={60} autoFocus aria-label="Display name" /></Field>
+              <p className="text-xs text-muted">{t("Preview:")} <b className="text-fg">{first}</b> — only your display name changes; your email and sign-in stay the same.</p>
+              <div className="flex gap-2"><Button className="flex-1" onClick={() => { setEditing(false); setNameErr(null); }}>{t("Cancel")}</Button><Button variant="primary" className="flex-1" loading={saving} onClick={saveName}>{t("Save")}</Button></div>
             </div>
           ) : (
             <>
               <h2 className="mt-5 text-2xl font-semibold">{user.displayName}</h2>
               <p className="text-sm text-muted">{user.isDemo ? "Demo account" : user.email}</p>
-              <div className="mt-5 flex flex-wrap justify-center gap-2"><Button variant="primary" onClick={() => setEditing(true)}><Pencil className="size-4" /> Edit Profile</Button><Button onClick={() => setPic(true)}><Camera className="size-4" /> Change Picture</Button></div>
+              <div className="mt-5 flex flex-wrap justify-center gap-2"><Button variant="primary" onClick={() => setEditing(true)}><Pencil className="size-4" /> {t("Edit Profile")}</Button><Button onClick={() => setPic(true)}><Camera className="size-4" /> {t("Change Picture")}</Button></div>
             </>
           )}
         </Card>
         <div className="space-y-[var(--gap)]">
           <Card>
-            <h2 className="mb-4 text-sm font-medium text-muted">Account</h2>
+            <h2 className="mb-4 text-sm font-medium text-muted">{t("Account")}</h2>
             <dl className="divide-y divide-[var(--border)] text-sm">
-              <div className="flex items-center justify-between gap-4 py-3"><dt className="flex items-center gap-2 text-muted"><Pencil className="size-4" /> Display name</dt><dd className="flex items-center gap-2">{user.displayName}<Button size="sm" variant="ghost" onClick={() => setEditing(true)}>Change Name</Button></dd></div>
-              <div className="flex items-center justify-between gap-4 py-3"><dt className="flex items-center gap-2 text-muted"><Mail className="size-4" /> Email</dt><dd className="flex items-center gap-2 truncate">{user.isDemo ? "—" : user.email}{!user.isDemo && <Badge tone={user.emailVerified ? "green" : "amber"}>{user.emailVerified ? "Verified" : "Unverified"}</Badge>}<Badge>read-only</Badge></dd></div>
-              <div className="flex items-center justify-between gap-4 py-3"><dt className="flex items-center gap-2 text-muted"><Calendar className="size-4" /> Member since</dt><dd>{fmtLong(user.createdAt.slice(0, 10), lang)}</dd></div>
-              <div className="flex items-center justify-between gap-4 py-3"><dt className="flex items-center gap-2 text-muted"><Globe className="size-4" /> Timezone</dt><dd>{user.timezone}</dd></div>
+              <div className="flex items-center justify-between gap-4 py-3"><dt className="flex items-center gap-2 text-muted"><Pencil className="size-4" /> {t("Display name")}</dt><dd className="flex items-center gap-2">{user.displayName}<Button size="sm" variant="ghost" onClick={() => setEditing(true)}>{t("Change Name")}</Button></dd></div>
+              <div className="flex items-center justify-between gap-4 py-3"><dt className="flex items-center gap-2 text-muted"><Mail className="size-4" /> {t("Email")}</dt><dd className="flex items-center gap-2 truncate">{user.isDemo ? "—" : user.email}{!user.isDemo && <Badge tone={user.emailVerified ? "green" : "amber"}>{t(user.emailVerified ? "Verified" : "Unverified")}</Badge>}<Badge>{t("read-only")}</Badge></dd></div>
+              <div className="flex items-center justify-between gap-4 py-3"><dt className="flex items-center gap-2 text-muted"><Calendar className="size-4" /> {t("Member since")}</dt><dd>{fmtLong(user.createdAt.slice(0, 10), lang)}</dd></div>
+              <div className="flex items-center justify-between gap-4 py-3"><dt className="flex items-center gap-2 text-muted"><Globe className="size-4" /> {t("Timezone")}</dt><dd>{user.timezone}</dd></div>
             </dl>
           </Card>
           <PrefsCard />
         </div>
       </div>
 
-      <Modal open={pic} onClose={closePic} title="Profile picture" footer={<><Button onClick={closePic} disabled={prog !== null}>Cancel</Button><Button variant="primary" disabled={!blob || prog !== null} loading={prog !== null} onClick={upload}><Upload className="size-4" /> Save picture</Button></>}>
+      <Modal open={pic} onClose={closePic} title={t("Profile picture")} footer={<><Button onClick={closePic} disabled={prog !== null}>{t("Cancel")}</Button><Button variant="primary" disabled={!blob || prog !== null} loading={prog !== null} onClick={upload}><Upload className="size-4" /> {t("Save picture")}</Button></>}>
         <div className="flex flex-col items-center gap-4">
           <div className="relative"><Avatar size={160} ring previewUrl={preview} />{prog !== null && <div className="absolute inset-0 grid place-items-center rounded-full bg-black/55 text-sm font-medium text-white">{prog}%</div>}</div>
           {prog !== null && <Progress value={prog} className="w-full" />}
           <input ref={input} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(e) => { pick(e.target.files?.[0]); e.target.value = ""; }} aria-label="Choose image" />
-          <div className="flex flex-wrap justify-center gap-2"><Button onClick={() => input.current?.click()} disabled={prog !== null}><Camera className="size-4" /> {preview ? "Choose another" : user.avatarVersion ? "Replace picture" : "Choose picture"}</Button>{user.avatarVersion && !preview && <Button variant="danger" onClick={remove}><Trash2 className="size-4" /> Remove</Button>}</div>
+          <div className="flex flex-wrap justify-center gap-2"><Button onClick={() => input.current?.click()} disabled={prog !== null}><Camera className="size-4" /> {preview ? t("Choose another") : user.avatarVersion ? t("Replace picture") : t("Choose picture")}</Button>{user.avatarVersion && !preview && <Button variant="danger" onClick={remove}><Trash2 className="size-4" /> {t("Remove")}</Button>}</div>
           {fileErr && <p role="alert" className="text-sm text-red-400">{fileErr}</p>}
-          <p className="text-center text-xs text-faint">JPG, PNG or WebP. Maximum size after optimisation: 600 KB. Images are cropped to a square and optimised in your browser before upload.</p>
+          <p className="text-center text-xs text-faint">{t("JPG, PNG or WebP. Maximum size after optimisation: 600 KB. Images are cropped to a square and optimised in your browser before upload.")}</p>
         </div>
       </Modal>
       <span className="hidden">{String(!!refresh)}</span>
