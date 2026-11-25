@@ -1,7 +1,7 @@
 "use client";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  BarChart3, Bell, BookMarked, CalendarCheck, CalendarDays, CheckSquare, ChevronsLeft, ChevronsRight, Languages, LayoutDashboard, LogOut, Music2, Palette, Plus, Repeat, Search, Settings, Target, Timer,
+  BarChart3, Bell, BookMarked, BookOpen, CalendarCheck, CalendarDays, Check, CheckSquare, ChevronsLeft, ChevronsRight, Droplets, Languages, LayoutDashboard, Lightbulb, LogOut, Minus, Music2, Palette, Plus, Repeat, Search, Settings, Target, Timer,
   Trophy, User as UserIcon, X, Zap,
 } from "lucide-react";
 import Link from "next/link";
@@ -236,6 +236,124 @@ function CommandMenu({ open, onClose }: { open: boolean; onClose: () => void }) 
   );
 }
 
+
+type QuickHabit = { id: string; name: string; kind: "standard" | "water" | "reading" | "learning"; target: number; todayAmount: number; todayDone: boolean; unit: string };
+type QuickTrackers = { water: { goal: number; total: number }; reading: { target: number; todayPages: number }; learning: { entries: { id: string; date: string; title: string }[] } };
+
+function HabitQuickPanel() {
+  const { t, lang } = useApp();
+  const { run, toast } = useUI();
+  const [open, setOpen] = useState(false);
+  const [habits, setHabits] = useState<QuickHabit[]>([]);
+  const [tracker, setTracker] = useState<QuickTrackers | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [book, setBook] = useState("");
+  const [pages, setPages] = useState("5");
+  const [learnTitle, setLearnTitle] = useState("");
+  const [message, setMessage] = useState("");
+  const ref = useRef<HTMLDivElement>(null);
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [h, tr] = await Promise.all([
+        api<{ habits: QuickHabit[] }>("/api/habits"),
+        api<QuickTrackers>("/api/trackers"),
+      ]);
+      setHabits(h.habits);
+      setTracker(tr);
+      setMessage("");
+    } catch (e) {
+      setMessage(e instanceof Error ? e.message : t("Could not load habit progress."));
+    } finally {
+      setLoading(false);
+    }
+  }, [t]);
+  useEffect(() => {
+    if (!open) return;
+    void load();
+    const outside = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false); };
+    const escape = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    document.addEventListener("mousedown", outside);
+    document.addEventListener("keydown", escape);
+    return () => { document.removeEventListener("mousedown", outside); document.removeEventListener("keydown", escape); };
+  }, [open, load]);
+  const act = async (fn: () => Promise<unknown>, success?: string) => {
+    setBusy(true);
+    const result = await run(fn, success);
+    setBusy(false);
+    if (result !== undefined) await load();
+  };
+  const special = habits.filter((h) => h.kind !== "standard");
+  const standard = habits.filter((h) => h.kind === "standard" && h.target > 1);
+  const cup = 250;
+  const waterCups = tracker ? Math.floor(tracker.water.total / cup) : 0;
+  const waterGoal = tracker ? Math.ceil(tracker.water.goal / cup) : 0;
+  const reading = special.find((h) => h.kind === "reading");
+  const learning = special.find((h) => h.kind === "learning");
+  const water = special.find((h) => h.kind === "water");
+  const addWater = () => act(() => api("/api/trackers/water", { body: { ml: cup } }), t("Water logged"));
+  const addReading = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const n = Number(pages);
+    if (!book.trim() || !Number.isInteger(n) || n < 1) return;
+    await act(() => api("/api/trackers/reading", { body: { book, pages: n } }), t("Reading logged"));
+    setPages("5");
+  };
+  const addLearning = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!learnTitle.trim()) return;
+    await act(() => api("/api/trackers/learning", { body: { title: learnTitle, explanation: "" } }), t("Learning saved"));
+    setLearnTitle("");
+  };
+  const logStandard = (h: QuickHabit, amount: number) => act(async () => {
+    const r = await api<{ completed: boolean; xp: number }>(`/api/habits/${h.id}/log`, { body: { amount } });
+    if (r.completed) toast("success", t("Habit complete"));
+    return r;
+  });
+  return (
+    <div ref={ref} className="relative">
+      <button type="button" onClick={() => setOpen((v) => !v)} className="header-icon-btn glass-btn btn-ghost btn-icon h-9 w-9" aria-label={t("Habit quick tracker")} title={t("Habit quick tracker")} aria-expanded={open}>
+        <Droplets className="size-[19px]" />
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.div initial={{ opacity: 0, y: -7, scale: .97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -5, scale: .98 }} transition={{ duration: .16 }} className="popover absolute end-0 top-12 z-[80] w-[min(92vw,340px)] p-3 shadow-2xl">
+            <div className="mb-3 flex items-center justify-between"><div><p className="text-sm font-semibold">{t("Quick habit tracker")}</p><p className="text-[11px] text-faint">{t("Your daily targets")}</p></div><button type="button" onClick={() => setOpen(false)} aria-label={t("Close")} className="rounded-lg p-1.5 hover:bg-card"><X className="size-4" /></button></div>
+            {loading && !tracker ? <p className="py-5 text-center text-xs text-muted">{t("Loading…")}</p> : message ? <p role="alert" className="text-xs text-muted">{message}</p> : (
+              <div className="max-h-[min(65vh,430px)] space-y-2 overflow-y-auto">
+                {water && tracker && <div className="rounded-xl border border-line bg-card p-3">
+                  <div className="flex items-center gap-2"><Droplets className="size-4 text-accent" /><p className="flex-1 text-sm font-medium">{t("Drink Water")}</p><span className="text-xs tabular-nums text-muted">{waterCups}/{waterGoal} {t("cups")}</span></div>
+                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[var(--input)]"><div className="h-full rounded-full bg-accent transition-all" style={{ width: `${Math.min(100, waterGoal ? (100 * waterCups) / waterGoal : 0)}%` }} /></div>
+                  <button type="button" disabled={busy} onClick={addWater} className="glass-btn btn-secondary mt-2 h-8 w-full text-xs"><Plus className="size-3.5" /> {t("Add one cup")}</button>
+                  {waterCups < waterGoal && <p className="mt-1 text-[11px] text-faint">{t("Goal not reached yet.")}</p>}
+                </div>}
+                {reading && tracker && <div className="rounded-xl border border-line bg-card p-3">
+                  <div className="mb-2 flex items-center gap-2"><BookOpen className="size-4 text-accent" /><p className="flex-1 text-sm font-medium">{t("Read Books")}</p><span className="text-xs tabular-nums text-muted">{tracker.reading.todayPages}/{reading.target} {t("pages")}</span></div>
+                  <form onSubmit={addReading} className="flex gap-1.5"><input className="input min-w-0 flex-1 text-xs" value={book} onChange={(e) => setBook(e.target.value)} placeholder={t("Book name")} maxLength={120} required /><input className="input w-14 text-xs" type="number" min={1} max={2000} value={pages} onChange={(e) => setPages(e.target.value)} aria-label={t("Pages read")} required /><button type="submit" disabled={busy} className="glass-btn btn-primary h-9 w-9 shrink-0 justify-center" aria-label={t("Log reading")}><Plus className="size-4" /></button></form>
+                  {tracker.reading.todayPages < reading.target && <p className="mt-1 text-[11px] text-faint">{t("Goal not reached yet.")}</p>}
+                </div>}
+                {learning && tracker && <div className="rounded-xl border border-line bg-card p-3">
+                  <div className="mb-2 flex items-center gap-2"><Lightbulb className="size-4 text-accent" /><p className="flex-1 text-sm font-medium">{t("Learn Something New")}</p><span className="text-xs tabular-nums text-muted">{tracker.learning.entries.filter((x) => x.date === new Date().toISOString().slice(0,10)).length}/{learning.target}</span></div>
+                  <form onSubmit={addLearning} className="flex gap-1.5"><input className="input min-w-0 flex-1 text-xs" value={learnTitle} onChange={(e) => setLearnTitle(e.target.value)} placeholder={t("What did you learn?")} maxLength={120} required /><button type="submit" disabled={busy} className="glass-btn btn-primary h-9 w-9 shrink-0 justify-center" aria-label={t("Save entry")}><Plus className="size-4" /></button></form>
+                  {tracker.learning.entries.length === 0 && <p className="mt-1 text-[11px] text-faint">{t("Goal not reached yet.")}</p>}
+                </div>}
+                {standard.map((h) => <div key={h.id} className="rounded-xl border border-line bg-card p-3">
+                  <div className="flex items-center gap-2"><p className="min-w-0 flex-1 truncate text-sm font-medium">{t(h.name)}</p><span className="text-xs tabular-nums text-muted">{h.todayAmount}/{h.target} {t(h.unit)}</span></div>
+                  <div className="mt-2 flex items-center gap-2"><button type="button" disabled={busy || h.todayAmount <= 0} onClick={() => logStandard(h, h.todayAmount - 1)} aria-label={t("Decrease")} className="rounded-lg border border-line p-1.5 disabled:opacity-40"><Minus className="size-3.5" /></button><div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[var(--input)]"><div className="h-full rounded-full bg-accent" style={{ width: `${Math.min(100, 100 * h.todayAmount / h.target)}%` }} /></div><button type="button" disabled={busy || h.todayAmount >= h.target} onClick={() => logStandard(h, h.todayAmount + 1)} aria-label={t("Increase")} className="rounded-lg border border-line p-1.5 disabled:opacity-40"><Plus className="size-3.5" /></button></div>
+                  {h.todayAmount < h.target && <p className="mt-1 text-[11px] text-faint">{t("Goal not reached yet.")}</p>}
+                </div>)}
+                {!special.length && !standard.length && <p className="py-5 text-center text-xs text-muted">{t("Add a habit with a daily target to see it here.")}</p>}
+              </div>
+            )}
+            <div className="mt-3 border-t border-line pt-2"><Link href="/habits" onClick={() => setOpen(false)} className="block text-center text-xs text-accent">{t("Open all habits")}</Link></div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 export function AppShell({ children }: { children: ReactNode }) {
   const path = usePathname();
   const { t, lang, patchUser } = useApp();
@@ -261,6 +379,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <button onClick={() => setCmd(true)} className="header-icon-btn glass-btn btn-ghost btn-icon h-9 w-9 shrink-0" aria-label={t("Open command menu")} title={t("Search")}>
             <Search className="size-[19px]" />
           </button>
+          <HabitQuickPanel />
           <div className="ms-auto flex min-w-0 items-center gap-1.5 sm:gap-2">
             <button type="button" onClick={() => patchUser({ language: lang === "ar" ? "en" : "ar" })} className="header-icon-btn glass-btn btn-ghost btn-icon h-9 w-9" aria-label={lang === "ar" ? t("Switch to English") : t("Switch to Arabic")} title={lang === "ar" ? t("English") : t("Arabic")}><Languages className="size-[19px]" /></button>
             <Link href="/tasks?new=1" className="glass-btn btn-primary btn-sm hidden h-10 sm:inline-flex"><Plus className="size-4" /> {t("Create Task")}</Link>
