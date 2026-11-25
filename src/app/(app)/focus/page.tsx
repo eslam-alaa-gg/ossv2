@@ -47,7 +47,7 @@ export default function FocusPage() {
     if (finishing.current) return;
     finishing.current = true;
     const r = await run(() => api<{ xp: number; unlocked: string[] }>(`/api/focus/${id}`, { body: { action: "complete" } }));
-    if (r) { toast("success", r.xp ? ` ${t("Focus session complete")} · +${r.xp} XP` : t("Session complete")); r.unlocked.forEach((u) => toast("success", `🏆 ${u}`)); }
+    if (r) { toast("success", r.xp ? ` ${t("Focus session complete")} · +${r.xp} XP` : t("Session complete")); r.unlocked.forEach((u) => toast("success", `🏆 ${t(u)}`)); }
     setPhase("idle"); setSid(null); setRemaining(minutes * 60); finishing.current = false; reload();
   }, [run, toast, minutes, reload]);
 
