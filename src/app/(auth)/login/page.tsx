@@ -5,9 +5,10 @@ import { AuthShell, GoogleSignInButton } from "@/components/auth";
 import { Button, Field } from "@/components/ui";
 import { api } from "@/lib/client";
 import { useApp } from "@/components/providers";
+import { translateError } from "@/lib/i18n";
 
 export default function LoginPage() {
-  const { t } = useApp();
+  const { t, lang } = useApp();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -21,7 +22,7 @@ export default function LoginPage() {
       await api("/api/auth/login", { body: { email, password } });
       window.location.href = "/dashboard";
     } catch (err) {
-      setError(err instanceof Error ? t(err.message) : t("Couldn't sign in."));
+      setError(err instanceof Error ? translateError(lang, err.message) : t("Something went wrong."));
       setBusy(false);
     }
   }
