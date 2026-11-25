@@ -2043,9 +2043,31 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
+        },
+        "google_auth_id": {
+          "name": "google_auth_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
-      "indexes": {},
+      "indexes": {
+        "users_google_auth_id_unique": {
+          "name": "users_google_auth_id_unique",
+          "columns": [
+            {
+              "expression": "google_auth_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
