@@ -71,16 +71,16 @@ export default function SettingsPage() {
             <Field label={t("Challenge reminder")}><input className="input" type="time" value={n.challengeTime} onChange={(e) => e.target.value && setN({ challengeTime: e.target.value })} aria-label={t("Challenge reminder")} /></Field>
             <Field label={t("Habit reminder")}><input className="input" type="time" value={n.habitTime} onChange={(e) => e.target.value && setN({ habitTime: e.target.value })} aria-label={t("Habit reminder")} /></Field>
           </div>
-          <p className="mt-4 text-xs text-faint">In-app reminders are generated from your real tasks and habits whenever you use LIFE OS. Background push/email delivery runs only when the server's scheduler (<code>/api/cron/notify</code>) and provider keys are configured — see the setup guide.</p>
+          <p className="mt-4 text-xs text-faint">{t("In-app reminders are generated from your real tasks and habits whenever you use LIFE OS. Background push/email delivery runs only when the server's scheduler (")}<code>/api/cron/notify</code>{t(") and provider keys are configured — see the setup guide.")}</p>
         </Card>
 
         <div className="space-y-[var(--gap)]">
           <Card>
             <h2 className="mb-2 flex items-center gap-2 text-sm font-medium text-muted"><KeyRound className="size-4" /> {t("Account")}</h2>
-            {user.isDemo ? <p className="rounded-xl bg-card p-4 text-sm text-muted">You're in <b className="text-fg">Demo Mode</b>. Password changes, email verification, account deletion and push notifications are disabled. <Link href="/signup" className="text-accent underline">Create a free account</Link> to unlock them.</p> : (
+            {user.isDemo ? <p className="rounded-xl bg-card p-4 text-sm text-muted">{t("You're in ")}<b className="text-fg">{t("Demo Mode")}</b>{t(". Password changes, email verification, account deletion and push notifications are disabled.")} <Link href="/signup" className="text-accent underline">{t("Create a free account")}</Link>{t(" to unlock them.")}</p> : (
               <>
-                <Row title={user.email} hint="Email address cannot be changed here"><Badge tone={user.emailVerified ? "green" : "amber"}>{user.emailVerified ? "Verified" : "Unverified"}</Badge></Row>
-                {!user.emailVerified && <Button size="sm" onClick={async () => { const r = await run(() => api<{ emailSent: boolean }>("/api/auth/resend", { body: {} })); if (r) toast(r.emailSent ? "success" : "info", r.emailSent ? "Verification email sent" : "Email delivery isn't configured on this server."); }}><Mail className="size-4" /> Resend verification</Button>}
+                <Row title={user.email} hint={t("Email address cannot be changed here")}><Badge tone={user.emailVerified ? "green" : "amber"}>{user.emailVerified ? "Verified" : "Unverified"}</Badge></Row>
+                {!user.emailVerified && <Button size="sm" onClick={async () => { const r = await run(() => api<{ emailSent: boolean }>("/api/auth/resend", { body: {} })); if (r) toast(r.emailSent ? "success" : "info", r.emailSent ? "Verification email sent" : "Email delivery isn't configured on this server."); }}><Mail className="size-4" /> {t("Resend verification")}</Button>}
                 <form className="mt-4 space-y-3" onSubmit={async (e) => { e.preventDefault(); if (await run(() => api("/api/me/account", { body: { current: pw.current, next: pw.next } }), t("Password changed"))) setPw({ current: "", next: "" }); }}>
                   {user.hasPassword && <Field label={t("Current password")}><input className="input" type="password" autoComplete="current-password" value={pw.current} onChange={(e) => setPw({ ...pw, current: e.target.value })} aria-label="Current password" /></Field>}
                   <Field label={user.hasPassword ? "New password" : "Set a password"} hint={t("At least 8 characters")}><input className="input" type="password" autoComplete="new-password" minLength={8} value={pw.next} onChange={(e) => setPw({ ...pw, next: e.target.value })} aria-label={t("New password")} /></Field>
@@ -95,14 +95,14 @@ export default function SettingsPage() {
           </Card>
           <Card>
             <h2 className="mb-2 flex items-center gap-2 text-sm font-medium text-muted"><Download className="size-4" /> {t("Your data")}</h2>
-            <p className="mb-3 text-sm text-muted">Download everything LIFE OS stores about you as JSON.</p>
+            <p className="mb-3 text-sm text-muted">{t("Download everything LIFE OS stores about you as JSON.")}</p>
             <a href="/api/export" className="glass-btn"><Download className="size-4" /> {t("Export my data")}</a>
           </Card>
-          {!user.isDemo && <Card className="border-red-400/30"><h2 className="mb-2 flex items-center gap-2 text-sm font-medium text-red-400"><ShieldAlert className="size-4" /> {t("Danger zone")}</h2><p className="mb-3 text-sm text-muted">Permanently delete your account and all associated data. This can't be undone.</p><Button variant="danger" onClick={() => setDel(true)}><Trash2 className="size-4" /> {t("Delete account")}</Button></Card>}
+          {!user.isDemo && <Card className="border-red-400/30"><h2 className="mb-2 flex items-center gap-2 text-sm font-medium text-red-400"><ShieldAlert className="size-4" /> {t("Danger zone")}</h2><p className="mb-3 text-sm text-muted">{t("Permanently delete your account and all associated data. This can't be undone.")}</p><Button variant="danger" onClick={() => setDel(true)}><Trash2 className="size-4" /> {t("Delete account")}</Button></Card>}
         </div>
       </div>
       <Modal open={del} onClose={() => setDel(false)} title={t("Delete account")} footer={<><Button onClick={() => setDel(false)}>{t("Cancel")}</Button><Button variant="danger" disabled={!delPw} onClick={async () => { if (await run(() => api("/api/me/account", { method: "DELETE", body: { password: delPw } }))) window.location.href = "/signup"; }}>{t("Delete permanently")}</Button></>}>
-        <p className="mb-3 text-sm text-muted">All tasks, habits, goals, notes, journal entries and your profile will be erased. Enter your password to confirm.</p>
+        <p className="mb-3 text-sm text-muted">{t("All tasks, habits, goals, notes, journal entries and your profile will be erased. Enter your password to confirm.")}</p>
         <input className="input" type="password" value={delPw} onChange={(e) => setDelPw(e.target.value)} aria-label={t("Password")} placeholder={t("Password")} />
       </Modal>
     </>
