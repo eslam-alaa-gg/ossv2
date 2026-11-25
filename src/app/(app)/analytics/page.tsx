@@ -33,6 +33,18 @@ export default function AnalyticsPage() {
   if (error && !data) return <><PageHeader title={t("Analytics")} /><ErrorState message={error} retry={reload} /></>;
   if (!data) return <><PageHeader title={t("Analytics")} /><div className="grid gap-4 md:grid-cols-3">{[0, 1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-28" />)}</div><Skeleton className="mt-4 h-64" /></>;
   const empty = data.annual.activeDays === 0 && data.trend.every((d) => d.score === 0);
+  const insightText = (value: string) => {
+    if (value.startsWith("Not enough activity yet")) return t("Not enough activity yet for trends — insights appear once you have at least 5 active days across a week.");
+    const best = value.match(/^Your highest average activity is on (\w+)s \(([\d.]+) points, from (\d+) active days\)\.$/);
+    if (best) return `${t("Your highest average activity is on")} ${t(best[1])} (${best[2]} ${t("points")}, ${t("from")} ${best[3]} ${t("active days")}).`;
+    const week = value.match(/^This week's score is (up|down) (\d+)% vs last week \((\d+) vs (\d+) points\)\.$/);
+    if (week) return `${t("This week's score is")} ${t(week[1])} ${week[2]}% ${t("vs last week")} (${week[3]} ${t("vs")} ${week[4]} ${t("points")}).`;
+    const active = value.match(/^You were active on (\d+) of the last 30 days\.$/);
+    if (active) return `${t("You were active on")} ${active[1]} ${t("of the last 30 days")}.`;
+    const habit = value.match(/^Most consistent habit \(30 days\): (.+) at (\d+)%\.$/);
+    if (habit) return `${t("Most consistent habit (30 days)")}: ${habit[1]} ${t("at")} ${habit[2]}%.`;
+    return t(value);
+  };
   return (
     <>
       <PageHeader title={t("Analytics")} subtitle={t("Everything here is computed from your completed records.")} />
@@ -57,7 +69,7 @@ export default function AnalyticsPage() {
 
       <Card className="mt-[var(--gap)]">
         <h2 className="mb-3 flex items-center gap-2 font-semibold"><Lightbulb className="size-4 text-accent" /> {t("Insights")}</h2>
-        <ul className="space-y-1.5 text-sm text-muted">{data.insights.map((i) => <li key={i}>• {i}</li>)}</ul>
+        <ul className="space-y-1.5 text-sm text-muted">{data.insights.map((i) => <li key={i}>• {insightText(i)}</li>)}</ul>
       </Card>
 
       {empty && <p className="mt-4 text-center text-sm text-muted">{t("No completed activity yet — charts will populate as you finish tasks, habits, challenges and focus sessions.")}</p>}
