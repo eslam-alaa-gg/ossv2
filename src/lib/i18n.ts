@@ -764,6 +764,14 @@ const ar: Record<string, string> = {
   "Today:": "اليوم:",
   "Milestone reached": "تم الوصول إلى مرحلة",
   "No milestones on the timeline": "لا توجد مراحل في الجدول الزمني",
+  "Loading": "جارٍ التحميل",
+  "Try again": "حاول مرة أخرى",
+  "Close": "إغلاق",
+  "Demo accounts have limited access.": "الحسابات التجريبية لها صلاحيات محدودة.",
+  "Create account": "إنشاء حساب",
+  "Something went wrong.": "حدث خطأ ما.",
+  "Confirm": "تأكيد",
+  "Are you sure?": "هل أنت متأكد؟",
 };
 
 export function translate(lang: Lang, s: string): string {
