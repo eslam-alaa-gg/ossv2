@@ -2,6 +2,7 @@
 export type Lang = "en" | "ar";
 
 const ar: Record<string, string> = {
+  "Set by tracker": "يحدده المتتبع",
   "Customize": "تخصيص",
   "Done": "تم",
   "entries today": "إدخالات اليوم",
