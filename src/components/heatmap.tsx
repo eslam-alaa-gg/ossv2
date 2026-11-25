@@ -37,7 +37,7 @@ export function Heatmap({ year, days, today }: { year: number; days: HeatDay[]; 
                   if (!inYear) return <span key={date} className="size-3" />;
                   const d = map.get(date);
                   const future = date > today;
-                  return <button key={date} role="gridcell" tabIndex={-1} aria-label={detail(d, date)} onMouseEnter={() => setTip(d ?? { date, score: 0, level: 0, tasks: 0, habits: 0, challenges: 0, focus: 0, focusMinutes: 0, milestones: 0 })} onFocus={() => setTip(d ?? { date, score: 0, level: 0, tasks: 0, habits: 0, challenges: 0, focus: 0, focusMinutes: 0, milestones: 0 })} onClick={() => setTip(d ?? { date, score: 0, level: 0, tasks: 0, habits: 0, challenges: 0, focus: 0, focusMinutes: 0, milestones: 0 })} onBlur={() => setTip(null)} tabIndex={0} className={cn("hm", `hm-${d?.level ?? 0}`, future && "opacity-30", date === today && "ring-1 ring-[var(--fg)]")} />;
+                  return <button key={date} role="gridcell" aria-label={detail(d, date)} onMouseEnter={() => setTip(d ?? { date, score: 0, level: 0, tasks: 0, habits: 0, challenges: 0, focus: 0, focusMinutes: 0, milestones: 0 })} onFocus={() => setTip(d ?? { date, score: 0, level: 0, tasks: 0, habits: 0, challenges: 0, focus: 0, focusMinutes: 0, milestones: 0 })} onClick={() => setTip(d ?? { date, score: 0, level: 0, tasks: 0, habits: 0, challenges: 0, focus: 0, focusMinutes: 0, milestones: 0 })} onBlur={() => setTip(null)} tabIndex={0} className={cn("hm", `hm-${d?.level ?? 0}`, future && "opacity-30", date === today && "ring-1 ring-[var(--fg)]")} />;
                 })}
               </div>
             ))}
