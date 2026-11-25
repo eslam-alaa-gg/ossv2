@@ -171,7 +171,7 @@ function Bell_() {
                   <span className={cn("mt-1.5 size-2 shrink-0 rounded-full", n.readAt ? "bg-transparent" : "bg-accent")} />
                   <span className="min-w-0">
                     <span className="block text-sm font-medium">{t(n.title)}</span>
-                    {n.body && <span className="block truncate text-xs text-muted">{n.kind === "habit_reminder" ? `${t("Remember your habit:")} ${t(n.body.replace("Remember your habit: ", ""))}` : n.kind === "challenge_reminder" ? t(n.body) : n.body}</span>}
+                    {n.body && <span className="block truncate text-xs text-muted">{n.kind === "habit_reminder" ? (n.body.startsWith("تذكّر عادتك: ") ? n.body : `${t("Remember your habit:")} ${t(n.body.replace("Remember your habit: ", ""))}`) : n.kind === "challenge_reminder" ? t(n.body) : n.body}</span>}
                   </span>
                 </button>
               ))}
