@@ -82,7 +82,7 @@ export function AppProvider({ initialUser, initialPrefs, children }: { initialUs
   return (
     <AppCtx.Provider value={value}>
       <style dangerouslySetInnerHTML={{ __html: css }} />
-      <UIProvider>{children}</UIProvider>
+      <UIProvider lang={lang}>{children}</UIProvider>
     </AppCtx.Provider>
   );
 }
