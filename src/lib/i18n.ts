@@ -934,6 +934,21 @@ const ar: Record<string, string> = {
   "Review saved": "تم حفظ المراجعة",
   "Theme applied and saved": "تم تطبيق السمة وحفظها",
   "Custom theme saved": "تم حفظ السمة المخصصة",
+  "Midnight": "منتصف الليل",
+  "Ocean": "المحيط",
+  "Rose": "وردي",
+  "Sunrise": "شروق الشمس",
+  "Monochrome": "أحادي اللون",
+  "Aurora": "الشفق القطبي",
+  "Sunset": "غروب الشمس",
+  "Soft radial": "تدرج شعاعي ناعم",
+  "Mesh": "شبكي",
+  "Film grain": "تحبب سينمائي",
+  "Mouse light": "إضاءة تتبع المؤشر",
+  "Direction": "الاتجاه",
+  "Forward": "للأمام",
+  "Reverse": "عكسي",
+  "Alternate": "بالتناوب",
 };
 
 export function translate(lang: Lang, s: string): string {
