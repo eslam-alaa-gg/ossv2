@@ -257,11 +257,11 @@ export function AppShell({ children }: { children: ReactNode }) {
       <Sidebar collapsed={collapsed} setCollapsed={toggle} />
       <div className={cn("min-h-dvh transition-[padding] duration-300", collapsed ? "lg:ps-[92px]" : "lg:ps-[272px]")}>
         <header className="app-topbar glass-panel sticky top-2 z-30 mx-3 flex items-center gap-2 px-3 py-2.5 sm:mx-5 sm:gap-3 sm:px-4 lg:mx-6 lg:pe-6">
-          <button onClick={() => setCmd(true)} className="header-icon-btn glass-btn btn-ghost btn-icon h-10 w-10 shrink-0" aria-label="Open command menu" title={t("Search")}>
+          <button onClick={() => setCmd(true)} className="header-icon-btn glass-btn btn-ghost btn-icon h-10 w-10 shrink-0" aria-label={t("Open command menu")} title={t("Search")}>
             <Search className="size-[19px]" />
           </button>
           <div className="ms-auto flex min-w-0 items-center gap-1.5 sm:gap-2">
-            <button type="button" onClick={() => patchUser({ language: lang === "ar" ? "en" : "ar" })} className="header-icon-btn glass-btn btn-ghost btn-icon h-10 w-10" aria-label={lang === "ar" ? "Switch to English" : "التبديل إلى العربية"} title={lang === "ar" ? "English" : "العربية"}><Languages className="size-[19px]" /></button>
+            <button type="button" onClick={() => patchUser({ language: lang === "ar" ? "en" : "ar" })} className="header-icon-btn glass-btn btn-ghost btn-icon h-10 w-10" aria-label={lang === "ar" ? t("Switch to English") : t("Switch to Arabic")} title={lang === "ar" ? t("English") : t("Arabic")}><Languages className="size-[19px]" /></button>
             <Link href="/tasks?new=1" className="glass-btn btn-primary btn-sm hidden h-10 sm:inline-flex"><Plus className="size-4" /> {t("Create Task")}</Link>
             <Bell_ />
             <ProfileMenu />
