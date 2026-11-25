@@ -34,7 +34,7 @@ export default function DashboardPage() {
   const saveDashboard = (nextOrder = order, nextSizes = sizes, nextWidgets = w) => run(() => savePrefs({ dashboard: { widgets: nextWidgets, order: nextOrder, sizes: nextSizes } }), "Dashboard layout saved.");
   const moveWidget = (key: string, delta: number) => { const next = [...order]; const from = next.indexOf(key); const to = Math.max(0, Math.min(next.length - 1, from + delta)); if (from < 0 || from === to) return; next.splice(from, 1); next.splice(to, 0, key); void saveDashboard(next); };
   const dropWidget = (target: string) => { if (!dragging || dragging === target) return; const next = [...order]; const from = next.indexOf(dragging); const to = next.indexOf(target); if (from < 0 || to < 0) return; next.splice(from, 1); next.splice(to, 0, dragging); setDragging(null); void saveDashboard(next); };
-  const widgetProps = (key: string) => ({ className: "dashboard-widget dashboard-widget-" + key + " dashboard-size-" + (sizes[key] ?? "standard"), draggable: true, onDragStart: (event: DragEvent<HTMLDivElement>) => { setDragging(key); event.dataTransfer.effectAllowed = "move"; event.dataTransfer.setData("text/plain", key); }, onDragOver: (event: DragEvent<HTMLDivElement>) => event.preventDefault(), onDrop: (event: DragEvent<HTMLDivElement>) => { event.preventDefault(); dropWidget(key); }, onDragEnd: () => setDragging(null) });
+  const widgetProps = (key: string) => ({ className: "dashboard-widget dashboard-widget-" + key + " dashboard-size-" + (sizes[key] ?? "standard") + (key === "challenge" ? " flex flex-col" : ""), draggable: true, onDragStart: (event: DragEvent<HTMLDivElement>) => { setDragging(key); event.dataTransfer.effectAllowed = "move"; event.dataTransfer.setData("text/plain", key); }, onDragOver: (event: DragEvent<HTMLDivElement>) => event.preventDefault(), onDrop: (event: DragEvent<HTMLDivElement>) => { event.preventDefault(); dropWidget(key); }, onDragEnd: () => setDragging(null) });
   const show = (k: string) => w[k] !== false;
   const hour = hourIn(user?.timezone);
   const greet = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
@@ -60,7 +60,7 @@ export default function DashboardPage() {
             <Link href="/focus" className="glass-btn"><Timer className="size-4" />{t("Start Focus")}</Link>
             <Link href="/vault?new=1" className="glass-btn"><BookMarked className="size-4" />{t("Create Note")}</Link>
             <Link href="/goals?new=1" className="glass-btn"><Target className="size-4" />{t("Add Goal")}</Link>
-            <Button variant="ghost" size="icon" onClick={() => setCustom(true)} aria-label="Customize dashboard"><SlidersHorizontal className="size-4" /></Button>
+            <Button variant="ghost" size="icon" onClick={() => setCustom(true)} aria-label={t("Customize dashboard")}><SlidersHorizontal className="size-4" /></Button>
           </div>
         </div>
       </div>
@@ -78,12 +78,12 @@ export default function DashboardPage() {
                 <h2 className="mb-4 text-sm font-medium text-muted">{t("Today's progress")}</h2>
                 <div className="flex items-center gap-5">
                   <Ring value={(data.score / data.dailyGoal) * 100} size={104}>
-                    <div><p className="text-2xl font-semibold tabular-nums">{data.score}</p><p className="text-[10px] text-faint">of {data.dailyGoal} pts</p></div>
+                    <div><p className="text-2xl font-semibold tabular-nums">{data.score}</p><p className="text-[10px] text-faint">{t("of")} {data.dailyGoal} {t("pts")}</p></div>
                   </Ring>
                   <div className="space-y-2 text-sm">
                     <p><span className="font-semibold tabular-nums">{data.completedToday}</span> <span className="text-muted">{t("Completed tasks").toLowerCase()}</span></p>
                     <p><span className="font-semibold tabular-nums">{data.remaining}</span> <span className="text-muted">{t("Remaining").toLowerCase()} due</span></p>
-                    {data.overdue > 0 && <p className="text-xs text-red-400">{data.overdue} overdue</p>}
+                    {data.overdue > 0 && <p className="text-xs text-red-400">{data.overdue} {t("overdue")}</p>}
                   </div>
                 </div>
               </Card>
@@ -108,14 +108,14 @@ export default function DashboardPage() {
               </Card>
             )}
             {show("challenge") && (
-              <Card {...widgetProps("challenge")} className={"flex flex-col dashboard-widget dashboard-widget-challenge dashboard-size-" + (sizes.challenge ?? "standard")}>
+              <Card {...widgetProps("challenge")}>
                 <div className="mb-3 flex items-center justify-between"><h2 className="text-sm font-medium text-muted">{t("Daily Challenge")}</h2><Zap className="size-4 text-accent" /></div>
                 {data.challenge ? (
                   <>
                     <p className="text-lg font-semibold leading-snug">{data.challenge.title}</p>
                     <p className="mt-1 text-sm text-muted">{data.challenge.minutes} min · {data.challenge.difficulty} · +{data.challenge.xp} XP</p>
                     <div className="mt-auto pt-4">
-                      {data.challenge.completedAt ? <p className="flex items-center gap-2 text-sm text-emerald-400"><CheckCircle2 className="size-4" /> Completed today</p> : <Link href="/challenge" className="glass-btn btn-primary btn-sm">{t("Open challenge")}</Link>}
+                      {data.challenge.completedAt ? <p className="flex items-center gap-2 text-sm text-emerald-400"><CheckCircle2 className="size-4" /> {t("Completed today")}</p> : <Link href="/challenge" className="glass-btn btn-primary btn-sm">{t("Open challenge")}</Link>}
                     </div>
                   </>
                 ) : null}
@@ -127,7 +127,7 @@ export default function DashboardPage() {
             {show("streak") && (
               <Card {...widgetProps("streak")}>
                 <h2 className="mb-3 text-sm font-medium text-muted">{t("Current streak")}</h2>
-                <div className="flex items-end gap-2"><Flame className="mb-1 size-7 text-orange-400" /><span className="text-4xl font-semibold tabular-nums">{data.streak.current}</span><span className="mb-1.5 text-sm text-muted">day{data.streak.current === 1 ? "" : "s"}</span></div>
+                <div className="flex items-end gap-2"><Flame className="mb-1 size-7 text-orange-400" /><span className="text-4xl font-semibold tabular-nums">{data.streak.current}</span><span className="mb-1.5 text-sm text-muted">{t(data.streak.current === 1 ? "day" : "days")}</span></div>
                 <p className="mt-1 text-xs text-faint">Best {data.streak.longest} · {data.weeklyStreak} week streak</p>
                 <div className="mt-4 flex items-center justify-between text-xs"><span className="font-medium">Level {data.level.level}</span><span className="text-faint">{data.level.into}/{data.level.span} XP</span></div>
                 <Progress value={(100 * data.level.into) / data.level.span} className="mt-1.5" />
@@ -137,7 +137,7 @@ export default function DashboardPage() {
               <Card {...widgetProps("focus")}>
                 <h2 className="mb-3 text-sm font-medium text-muted">{t("Focus time")}</h2>
                 <p className="text-4xl font-semibold tabular-nums">{minutesLabel(data.focusMinutes)}</p>
-                <p className="mt-1 text-xs text-faint">today · {minutesLabel(data.weekFocusMinutes)} this week</p>
+                <p className="mt-1 text-xs text-faint">{t("today")} · {minutesLabel(data.weekFocusMinutes)} {t("this week")}</p>
                 <Link href="/focus" className="glass-btn btn-sm mt-4"><Timer className="size-4" /> {t("Start Focus")}</Link>
               </Card>
             )}
