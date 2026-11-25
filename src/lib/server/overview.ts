@@ -36,7 +36,7 @@ export async function dashboardData(a: Authed) {
   activityByDay(a.id,a.tz,ws,today,a.user.dailyGoal),
   db.select().from(xpTransactions).where(eq(xpTransactions.userId,a.id)).orderBy(desc(xpTransactions.createdAt)).limit(5),
   db.select().from(userAchievements).where(eq(userAchievements.userId,a.id)).orderBy(desc(userAchievements.unlockedAt)).limit(5),
-  db.execute(sql`select coalesce(sum(xp),0)::int total from xp_transactions where user_id=${a.id}`),
+  db.execute(sql`select coalesce(sum(xp),0)::int total from ossv2.xp_transactions where user_id=${a.id}`),
   activityByDay(a.id,a.tz,addDays(today,-400),today,a.user.dailyGoal),
  ]);
  const scheduled=hs.filter(h=>h.days.includes(dow(today)));
