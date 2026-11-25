@@ -949,6 +949,8 @@ const ar: Record<string, string> = {
   "Forward": "للأمام",
   "Reverse": "عكسي",
   "Alternate": "بالتناوب",
+  "Gradient type": "نوع التدرج",
+  "Density": "الكثافة",
 };
 
 export function translate(lang: Lang, s: string): string {
