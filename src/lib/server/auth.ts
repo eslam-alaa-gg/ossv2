@@ -81,7 +81,7 @@ export const getSessionUser = cache(async (): Promise<DbUser | null> => {
     .select({ u: users })
     .from(sessions)
     .innerJoin(users, eq(users.id, sessions.userId))
-    .where(and(eq(sessions.tokenHash, sha256(token)), gt(sessions.expiresAt, new Date())))
+    .where(and(eq(sessions.tokenHash, sha256(token)), gt(sessions.expiresAt, new Date()), eq(users.isDemo, false)))
     .limit(1);
   return rows[0]?.u ?? null;
 });
