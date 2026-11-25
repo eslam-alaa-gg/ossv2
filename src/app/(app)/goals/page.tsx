@@ -71,7 +71,7 @@ function Inner() {
       <div className="mb-5"><Segmented value={tab} onChange={setTab} label={t("Goal views")} options={[{ value: "dashboard", label: "Dashboard" }, { value: "timeline", label: "Timeline" }, { value: "progress", label: "Progress" }, { value: "milestones", label: "Milestones" }, { value: "completed", label: `Completed${done.length ? ` (${done.length})` : ""}` }, { value: "wishlist", label: "Wishlist" }]} /></div>
 
       {tab !== "wishlist" && (error && !data ? <ErrorState message={error} retry={reload} /> : loading && !data ? <ListSkeleton /> : null)}
-      {tab === "dashboard" && data && (active.length === 0 ? <EmptyState icon={<Target className="size-6" />} title={t("Set your first goal")} text="Break something meaningful into milestones and watch the journey fill in." action={<Button variant="primary" onClick={() => setEdit("new")}>{t("New goal")}</Button>} /> : <div className="grid gap-[var(--gap)] md:grid-cols-2 xl:grid-cols-3">{active.map((g) => <GoalCard key={g.id} g={g} />)}</div>)}
+      {tab === "dashboard" && data && (active.length === 0 ? <EmptyState icon={<Target className="size-6" />} title={t("Set your first goal")} text={t("Break something meaningful into milestones and watch the journey fill in.")} action={<Button variant="primary" onClick={() => setEdit("new")}>{t("New goal")}</Button>} /> : <div className="grid gap-[var(--gap)] md:grid-cols-2 xl:grid-cols-3">{active.map((g) => <GoalCard key={g.id} g={g} />)}</div>)}
       {tab === "timeline" && data && (
         <div className="relative space-y-4 ps-6 before:absolute before:inset-y-2 before:start-[7px] before:w-px before:bg-[var(--border-strong)]">
           {[...goals].sort((a, b) => (a.targetDate ?? "9999").localeCompare(b.targetDate ?? "9999")).map((g) => (
@@ -84,11 +84,11 @@ function Inner() {
       {tab === "progress" && data && (goals.length === 0 ? <EmptyState icon={<Target className="size-6" />} title={t("No goals yet")} /> : <div className="space-y-3">{goals.map((g) => <Card key={g.id}><div className="mb-2 flex items-center justify-between"><p className="font-medium">{g.title}</p><span className="text-sm tabular-nums">{g.progress}%</span></div><Progress value={g.progress} /><div className="mt-4"><Journey g={g} /></div></Card>)}</div>)}
       {tab === "milestones" && data && (() => {
         const all = active.flatMap((g) => g.milestones.map((m) => ({ ...m, goal: g.title }))).sort((a, b) => (a.deadline ?? "9999").localeCompare(b.deadline ?? "9999"));
-        return all.length === 0 ? <EmptyState icon={<Check className="size-6" />} title={t("No milestones yet")} text="Open a goal and add the first step." /> : (
+        return all.length === 0 ? <EmptyState icon={<Check className="size-6" />} title={t("No milestones yet")} text={t("Open a goal and add the first step.")} /> : (
           <Card pad={false}><ul className="divide-y divide-[var(--border)]">{all.map((m) => <li key={m.id} className="flex items-center gap-3 px-4 py-3"><Checkbox checked={!!m.completedAt} onChange={() => toggleMs(m)} label={`Toggle ${m.title}`} /><span className="min-w-0 flex-1"><span className={cn("block truncate text-sm", m.completedAt && "text-muted line-through")}>{m.title}</span><span className="text-xs text-faint">{m.goal}</span></span>{m.deadline && <Badge tone={m.deadline < today && !m.completedAt ? "red" : undefined}>{fmtShort(m.deadline, lang)}</Badge>}</li>)}</ul></Card>
         );
       })()}
-      {tab === "completed" && data && (done.length === 0 ? <EmptyState icon={<Check className="size-6" />} title={t("No completed goals yet")} text="Finished goals are celebrated here." /> : <div className="grid gap-[var(--gap)] md:grid-cols-2 xl:grid-cols-3">{done.map((g) => <GoalCard key={g.id} g={g} />)}</div>)}
+      {tab === "completed" && data && (done.length === 0 ? <EmptyState icon={<Check className="size-6" />} title={t("No completed goals yet")} text={t("Finished goals are celebrated here.")} /> : <div className="grid gap-[var(--gap)] md:grid-cols-2 xl:grid-cols-3">{done.map((g) => <GoalCard key={g.id} g={g} />)}</div>)}
       {tab === "wishlist" && <Wishlist wish={wish} />}
 
       <GoalModal goal={edit} onClose={() => setEdit(null)} onSaved={reload} />
@@ -163,7 +163,7 @@ function Wishlist({ wish }: { wish: ReturnType<typeof useFetch<{ items: Wish[] }
           <Button type="submit" variant="primary" className="w-full">{t("Add")}</Button>
         </form>
       </Card>
-      <div>{wish.error ? <ErrorState message={wish.error} retry={wish.reload} /> : !wish.data ? <ListSkeleton rows={3} /> : wish.data.items.length === 0 ? <EmptyState icon={<Gift className="size-6" />} title={t("Your wishlist is empty")} text="Things you'd love to own, learn or experience." /> : (
+      <div>{wish.error ? <ErrorState message={wish.error} retry={wish.reload} /> : !wish.data ? <ListSkeleton rows={3} /> : wish.data.items.length === 0 ? <EmptyState icon={<Gift className="size-6" />} title={t("Your wishlist is empty")} text={t("Things you'd love to own, learn or experience.")} /> : (
         <Card pad={false}><ul className="divide-y divide-[var(--border)]">{wish.data.items.map((w) => <li key={w.id} className="flex items-center gap-3 px-4 py-3"><Checkbox checked={!!w.acquiredAt} label={`Mark ${w.title} as acquired`} onChange={async (v) => { await run(() => api(`/api/wishlist?id=${w.id}`, { method: "PATCH", body: { acquired: v } })); wish.reload(); }} /><span className="min-w-0 flex-1"><span className={cn("block truncate text-sm", w.acquiredAt && "text-muted line-through")}>{w.title}</span>{w.note && <span className="block truncate text-xs text-faint">{w.note}</span>}</span>{w.url && <a href={w.url} target="_blank" rel="noopener noreferrer nofollow" aria-label={t("Open link")} className="glass-btn btn-icon btn-ghost"><ExternalLink className="size-4" /></a>}<Button variant="ghost" size="icon" aria-label={t("Delete")} onClick={async () => { await run(() => api(`/api/wishlist?id=${w.id}`, { method: "DELETE" })); wish.reload(); }}><Trash2 className="size-4" /></Button></li>)}</ul></Card>
       )}</div>
     </div>
