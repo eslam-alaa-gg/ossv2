@@ -20,3 +20,7 @@ jobs:
       - run: npm install --no-audit --no-fund --no-package-lock
       - run: npm run typecheck
       - run: npx eslint . --rule "react-hooks/set-state-in-effect: warn"
+      - run: npm run build
+        env:
+          DATABASE_URL: postgresql://ci:ci@127.0.0.1:5432/ci
+          NEXT_TELEMETRY_DISABLED: "1"
