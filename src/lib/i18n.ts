@@ -14,6 +14,7 @@ const ar: Record<string, string> = {
   "Calendar": "التقويم",
   "Analytics": "التحليلات",
   "Music Hub": "مركز الموسيقى",
+  "Music Detection": "التعرّف على الموسيقى",
   "Theme Studio": "استوديو المظهر",
   "Settings": "الإعدادات",
   "Profile": "الملف الشخصي",

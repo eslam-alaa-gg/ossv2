@@ -19,6 +19,10 @@ const ERRORS: Record<string, string> = {
 type Device = { id: string; name: string; type: string; active: boolean; restricted: boolean; volume: number | null };
 type Recent = { playedAt: string; track: NPTrack }[];
 
+function MusicBridgeLink({ label }: { label: string }) {
+  return <a href="/music-bridge" className="glass-btn btn-secondary inline-flex h-10 items-center gap-2 px-4 text-sm"><Smartphone className="size-4" />{label}</a>;
+}
+
 function DeviceIcon({ type }: { type: string }) {
   const t = type.toLowerCase();
   return t.includes("phone") ? <Smartphone className="size-4" /> : t.includes("speaker") ? <Speaker className="size-4" /> : <Monitor className="size-4" />;
@@ -59,7 +63,7 @@ function Inner() {
   if (!status?.configured) {
     return (
       <>
-        <PageHeader title={t("Music Hub")} subtitle={t("Your Spotify, inside LIFE OS.")} />
+        <PageHeader title={t("Music Hub")} subtitle={t("Your Spotify, inside LIFE OS.")} actions={<MusicBridgeLink label={lang === "ar" ? "ربط جهاز بدون Spotify" : "Connect device without Spotify"} />} />
         <Card className="mx-auto max-w-xl py-10 text-center">
           <span className="mx-auto mb-4 grid size-16 place-items-center rounded-3xl bg-card text-muted"><Music2 className="size-8" /></span>
           <h2 className="text-xl font-semibold">{lang === "ar" ? "Spotify غير متاح حاليًا" : "Spotify is temporarily unavailable"}</h2>
@@ -72,7 +76,7 @@ function Inner() {
   if (!connected) {
     return (
       <>
-        <PageHeader title={t("Music Hub")} subtitle={t("Your Spotify, inside LIFE OS.")} />
+        <PageHeader title={t("Music Hub")} subtitle={t("Your Spotify, inside LIFE OS.")} actions={<MusicBridgeLink label={lang === "ar" ? "ربط جهاز بدون Spotify" : "Connect device without Spotify"} />} />
         {(urlError || errorCode === "expired") && <p role="alert" className="mb-4 rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">{errorCode === "expired" ? t("Your Spotify authorization expired. Please reconnect.") : t(ERRORS[urlError!] ?? "Spotify returned an error: {error}").replace("{error}", urlError ?? "")}</p>}
         <Card className="mx-auto max-w-xl py-10 text-center">
           <span className="mx-auto mb-4 grid size-16 place-items-center rounded-3xl bg-card text-accent"><Music2 className="size-8" /></span>
@@ -89,7 +93,7 @@ function Inner() {
   const ctl = "glass-btn btn-icon h-12 w-12";
   return (
     <>
-      <PageHeader title={t("Music Hub")} subtitle={t("Now playing from your Spotify account.")} actions={<><Badge tone="green"><span className="size-1.5 rounded-full bg-emerald-400" /> {t("Connected")}</Badge><OpenInSpotify url={track?.url} /></>} />
+      <PageHeader title={t("Music Hub")} subtitle={t("Now playing from your Spotify account.")} actions={<><MusicBridgeLink label={lang === "ar" ? "ربط جهاز بدون Spotify" : "Connect device without Spotify"} /><Badge tone="green"><span className="size-1.5 rounded-full bg-emerald-400" /> {t("Connected")}</Badge><OpenInSpotify url={track?.url} /></>} />
       {error && errorCode !== "rate_limited" && <p role="alert" className="mb-4 rounded-xl border border-amber-400/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-300">{error} <button className="underline" onClick={() => refresh().catch(() => {})}>{t("Retry")}</button></p>}
       {errorCode === "rate_limited" && <p role="status" className="mb-4 text-xs text-amber-300">{error}</p>}
 
