@@ -21,7 +21,7 @@ export default function ChallengePage() {
     setBusy(c.id);
     const r = await run(() => api<{ xp: number; unlocked: string[] }>(`/api/challenges/${c.id}/complete`, { method: "POST", body: {} }));
     setBusy(null);
-    if (r) { toast("success", `Challenge complete · +${r.xp} XP`); r.unlocked.forEach((u) => toast("success", `🏆 ${u}`)); reload(); }
+    if (r) { toast("success", `${t("Challenge complete")} · +${r.xp} XP`); r.unlocked.forEach((u) => toast("success", `🏆 ${u}`)); reload(); }
   }
   const main = data?.today.filter((c) => !c.isCustom) ?? [];
   const custom = data?.today.filter((c) => c.isCustom) ?? [];
@@ -29,9 +29,9 @@ export default function ChallengePage() {
     <Card className={hero ? "relative overflow-hidden" : ""}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <div className="mb-2 flex flex-wrap gap-2"><Badge tone={TONE[c.difficulty as keyof typeof TONE]} className="capitalize">{c.difficulty}</Badge><Badge><Clock className="size-3" />{c.minutes} min</Badge><Badge tone="accent">+{c.xp} XP</Badge>{c.isCustom && <Badge>{t("custom")}</Badge>}</div>
-          <h3 className={hero ? "text-2xl font-semibold" : "text-base font-semibold"}>{c.title}</h3>
-          {c.description && <p className="mt-2 max-w-xl text-sm text-muted">{c.description}</p>}
+          <div className="mb-2 flex flex-wrap gap-2"><Badge tone={TONE[c.difficulty as keyof typeof TONE]} >{t(c.difficulty)}</Badge><Badge><Clock className="size-3" />{c.minutes} min</Badge><Badge tone="accent">+{c.xp} XP</Badge>{c.isCustom && <Badge>{t("custom")}</Badge>}</div>
+          <h3 className={hero ? "text-2xl font-semibold" : "text-base font-semibold"}>{t(c.title)}</h3>
+          {c.description && <p className="mt-2 max-w-xl text-sm text-muted">{t(c.description)}</p>}
         </div>
         {c.completedAt ? <span className="flex items-center gap-2 text-sm text-emerald-400"><CheckCircle2 className="size-5" /> {t("Completed")}</span> : <Button variant="primary" loading={busy === c.id} onClick={() => complete(c)}>{t("Mark complete")}</Button>}
       </div>
@@ -44,11 +44,11 @@ export default function ChallengePage() {
         <div className="space-y-[var(--gap)]">
           {main.map((c) => <Item key={c.id} c={c} hero />)}
           {custom.length > 0 && <div className="space-y-3"><h2 className="text-sm font-medium text-muted">{t("Your custom challenges today")}</h2>{custom.map((c) => <Item key={c.id} c={c} />)}</div>}
-          <p className="text-xs text-faint">Custom challenges (max 3 per day) earn half XP. Reminder time: {prefs.notifications.challengeTime} — change it in Settings → Notifications. {data.completedTotal} challenges completed overall.</p>
+          <p className="text-xs text-faint">{t("Custom challenges (max 3 per day) earn half XP. Reminder time:")} {prefs.notifications.challengeTime} — {t("change it in Settings → Notifications.")} {data.completedTotal} {t("challenges completed overall.")}</p>
           <div>
             <h2 className="mb-3 text-sm font-medium text-muted">{t("History")}</h2>
             {data.history.length === 0 ? <EmptyState icon={<Zap className="size-5" />} title={t("No history yet")} text={t("Past challenges will appear here.")} /> : (
-              <Card pad={false}><ul className="divide-y divide-[var(--border)]">{data.history.map((c) => <li key={c.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm"><span className="min-w-0"><span className="block truncate">{c.title}</span><span className="text-xs text-faint">{fmtShort(c.date)} · {c.difficulty}</span></span>{c.completedAt ? <span className="flex shrink-0 items-center gap-1.5 text-xs text-emerald-400"><CheckCircle2 className="size-4" />+{c.xp} XP</span> : <span className="text-xs text-faint">{t("Missed — no penalty")}</span>}</li>)}</ul></Card>
+              <Card pad={false}><ul className="divide-y divide-[var(--border)]">{data.history.map((c) => <li key={c.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm"><span className="min-w-0"><span className="block truncate">{t(c.title)}</span><span className="text-xs text-faint">{fmtShort(c.date)} · {t(c.difficulty)}</span></span>{c.completedAt ? <span className="flex shrink-0 items-center gap-1.5 text-xs text-emerald-400"><CheckCircle2 className="size-4" />+{c.xp} XP</span> : <span className="text-xs text-faint">{t("Missed — no penalty")}</span>}</li>)}</ul></Card>
             )}
           </div>
         </div>
