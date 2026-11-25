@@ -82,7 +82,7 @@ export default function DashboardPage() {
                   </Ring>
                   <div className="space-y-2 text-sm">
                     <p><span className="font-semibold tabular-nums">{data.completedToday}</span> <span className="text-muted">{t("Completed tasks").toLowerCase()}</span></p>
-                    <p><span className="font-semibold tabular-nums">{data.remaining}</span> <span className="text-muted">{t("Remaining").toLowerCase()} due</span></p>
+                    <p><span className="font-semibold tabular-nums">{data.remaining}</span> <span className="text-muted">{t("Remaining").toLowerCase()} {t("due")}</span></p>
                     {data.overdue > 0 && <p className="text-xs text-red-400">{data.overdue} {t("overdue")}</p>}
                   </div>
                 </div>
@@ -90,7 +90,7 @@ export default function DashboardPage() {
             )}
             {show("habits") && (
               <Card {...widgetProps("habits")}>
-                <div className="mb-3 flex items-center justify-between"><h2 className="text-sm font-medium text-muted">{t("Habits")}</h2><span className="text-xs text-faint">{data.habits.done}/{data.habits.total} today</span></div>
+                <div className="mb-3 flex items-center justify-between"><h2 className="text-sm font-medium text-muted">{t("Habits")}</h2><span className="text-xs text-faint">{data.habits.done}/{data.habits.total} {t("today")}</span></div>
                 {data.habits.total === 0 ? <EmptyState icon={<Repeat className="size-5" />} title={t("No habits scheduled today")} action={<Link href="/habits?new=1" className="glass-btn btn-sm">{t("Add habit")}</Link>} /> : (
                   <>
                     <Progress value={data.habits.total ? (100 * data.habits.done) / data.habits.total : 0} className="mb-3" />
