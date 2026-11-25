@@ -106,29 +106,30 @@ function Inner() {
           </Card>
         </div>
       )}
-      {tab === "reading" && trackers.data && <ReadingTab t={trackers.data} reload={reloadAll} />}
-      {tab === "learning" && trackers.data && <LearningTab t={trackers.data} reload={reloadAll} />}
+      {tab === "reading" && trackers.data && <ReadingTab tracker={trackers.data} reload={reloadAll} />}
+      {tab === "learning" && trackers.data && <LearningTab tracker={trackers.data} reload={reloadAll} />}
       {tab !== "habits" && !trackers.data && (trackers.error ? <ErrorState message={trackers.error} retry={trackers.reload} /> : <ListSkeleton />)}
       <HabitModal open={!!modal} habit={modal?.habit} onClose={() => setModal(null)} onSaved={reloadAll} existing={habits.data?.habits ?? []} />
     </>
   );
 }
 
-function ReadingTab({ t, reload }: { t: Trackers; reload: () => void }) {
+function ReadingTab({ tracker, reload }: { tracker: Trackers; reload: () => void }) {
+  const { t } = useApp();
   const { run } = useUI();
   const [book, setBook] = useState("");
   const [pages, setPages] = useState("");
   return (
     <div className="grid gap-[var(--gap)] md:grid-cols-2">
       <Card>
-        <div className="mb-4 flex items-center gap-3"><BookOpen className="size-5 text-accent" /><div className="flex-1"><p className="font-medium">Today: {t.reading.todayPages} / {t.reading.target} pages</p><Progress value={(100 * t.reading.todayPages) / t.reading.target} className="mt-2" /></div></div>
+        <div className="mb-4 flex items-center gap-3"><BookOpen className="size-5 text-accent" /><div className="flex-1"><p className="font-medium">Today: {tracker.reading.todayPages} / {t.reading.target} pages</p><Progress value={(100 * t.reading.todayPages) / t.reading.target} className="mt-2" /></div></div>
         <form className="space-y-3" onSubmit={async (e) => { e.preventDefault(); if (await run(() => api("/api/trackers/reading", { body: { book, pages: Number(pages) } }), "Reading logged")) { setPages(""); reload(); } }}>
           <Field label={t("Book name")}><input className="input" value={book} onChange={(e) => setBook(e.target.value)} maxLength={120} required aria-label={t("Book name")} list="books" /><datalist id="books">{[...new Set(t.reading.entries.map((e) => e.book))].map((b) => <option key={b} value={b} />)}</datalist></Field>
           <Field label={t("Pages read")}><input className="input" type="number" min={1} max={2000} value={pages} onChange={(e) => setPages(e.target.value)} required aria-label={t("Pages read")} /></Field>
           <Button type="submit" variant="primary" className="w-full">{t("Log reading")}</Button>
         </form>
         <h3 className="mb-2 mt-5 text-sm font-medium text-muted">{t("Last 14 days")}</h3>
-        <Bars days={t.reading.days} today={t.today} max={Math.max(t.reading.target, ...t.reading.days.map((d) => d.v))} unit="pages" />
+        <Bars days={t.reading.days} today={tracker.today} max={Math.max(t.reading.target, ...t.reading.days.map((d) => d.v))} unit="pages" />
       </Card>
       <Card>
         <h3 className="mb-3 text-sm font-medium text-muted">{t("Reading history")}</h3>
@@ -138,7 +139,8 @@ function ReadingTab({ t, reload }: { t: Trackers; reload: () => void }) {
   );
 }
 
-function LearningTab({ t, reload }: { t: Trackers; reload: () => void }) {
+function LearningTab({ tracker, reload }: { tracker: Trackers; reload: () => void }) {
+  const { t } = useApp();
   const { run } = useUI();
   const [title, setTitle] = useState("");
   const [text, setText] = useState("");
@@ -154,13 +156,14 @@ function LearningTab({ t, reload }: { t: Trackers; reload: () => void }) {
       </Card>
       <Card>
         <h3 className="mb-3 text-sm font-medium text-muted">{t("Learning log")}</h3>
-        {t.learning.entries.length === 0 ? <EmptyState icon={<Lightbulb className="size-5" />} title={t("Nothing recorded yet")} /> : <ul className="space-y-3">{t.learning.entries.map((l) => <li key={l.id} className="rounded-xl border border-line bg-card p-3 text-sm"><div className="flex items-start justify-between gap-2"><p className="font-medium">{l.title}</p><Button variant="ghost" size="icon" aria-label={t("Remove entry")} onClick={async () => { await run(() => api(`/api/trackers/learning?id=${l.id}`, { method: "DELETE" })); reload(); }}><Trash2 className="size-3.5" /></Button></div>{l.explanation && <p className="mt-1 text-muted">{l.explanation}</p>}<p className="mt-1 text-xs text-faint">{fmtShort(l.date)}</p></li>)}</ul>}
+        {tracker.learning.entries.length === 0 ? <EmptyState icon={<Lightbulb className="size-5" />} title={t("Nothing recorded yet")} /> : <ul className="space-y-3">{t.learning.entries.map((l) => <li key={l.id} className="rounded-xl border border-line bg-card p-3 text-sm"><div className="flex items-start justify-between gap-2"><p className="font-medium">{l.title}</p><Button variant="ghost" size="icon" aria-label={t("Remove entry")} onClick={async () => { await run(() => api(`/api/trackers/learning?id=${l.id}`, { method: "DELETE" })); reload(); }}><Trash2 className="size-3.5" /></Button></div>{l.explanation && <p className="mt-1 text-muted">{l.explanation}</p>}<p className="mt-1 text-xs text-faint">{fmtShort(l.date)}</p></li>)}</ul>}
       </Card>
     </div>
   );
 }
 
 function HabitModal({ open, habit, onClose, onSaved, existing }: { open: boolean; habit?: Habit; onClose: () => void; onSaved: () => void; existing: Habit[] }) {
+  const { t } = useApp();
   const { run } = useUI();
   const [f, setF] = useState({ name: "", description: "", icon: "sparkles", days: [0, 1, 2, 3, 4, 5, 6], target: 1, unit: "", reminderTime: "" });
   const [kind, setKind] = useState<"standard" | "water" | "reading" | "learning">("standard");
