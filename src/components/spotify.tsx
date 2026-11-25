@@ -124,7 +124,7 @@ export async function extractColors(url: string): Promise<[string, string]> {
     const r = px[i], g = px[i + 1], b = px[i + 2];
     const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
     const sat = mx === 0 ? 0 : (mx - mn) / mx;
-    if (mx < 40 || (mx > {tr("245 && sat")} < 0.1)) continue;
+    if (mx < 40 || (mx > 245 && sat < 0.1)) continue;
     const key = ((r >> 5) << 6) | ((g >> 5) << 3) | (b >> 5);
     const e = buckets.get(key) ?? { r: 0, g: 0, b: 0, n: 0, w: 0 };
     e.r += r; e.g += g; e.b += b; e.n++; e.w += 0.4 + sat;
