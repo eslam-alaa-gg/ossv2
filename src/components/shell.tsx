@@ -293,9 +293,13 @@ function HabitQuickPanel() {
   }, [open, load, tracker]);
   const act = async (fn: () => Promise<unknown>, success?: string) => {
     setBusy(true);
-    const result = await run(fn, success);
-    setBusy(false);
-    if (result !== undefined) await load();
+    try {
+      const result = await run(fn, success);
+      if (result !== undefined) await load();
+      return result;
+    } finally {
+      setBusy(false);
+    }
   };
   const special = habits.filter((h) => h.kind !== "standard");
   const standard = habits.filter((h) => h.kind === "standard");
@@ -374,7 +378,7 @@ function HabitQuickPanel() {
                   </div>
                   {h.todayAmount < h.target && <p className="mt-1 text-[11px] text-faint">{t("Goal not reached yet.")}</p>}
                 </div>)}
-                {!reading && !learning && !standard.some((h) => !hiddenIds.includes(h.id)) && <p className="py-5 text-center text-xs text-muted">{t("Add a habit with a daily target to see it here.")}</p>}
+                {!waterVisible && !reading && !learning && !standard.some((h) => !hiddenIds.includes(h.id)) && <p className="py-5 text-center text-xs text-muted">{t("Add a habit with a daily target to see it here.")}</p>}
               </div>
             )}
             <div className="mt-3 border-t border-line pt-2"><Link href="/habits" onClick={() => setOpen(false)} className="block text-center text-xs text-accent">{t("Open all habits")}</Link></div>
