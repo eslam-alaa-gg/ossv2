@@ -787,6 +787,11 @@ const ar: Record<string, string> = {
   "weekly": "أسبوعي",
   "monthly": "شهري",
   "none": "بدون تكرار",
+  "left to right": "من اليسار إلى اليمين",
+  "right to left": "من اليمين إلى اليسار",
+  "dark": "داكن",
+  "light": "فاتح",
+  "system": "حسب النظام",
 };
 
 export function translate(lang: Lang, s: string): string {
