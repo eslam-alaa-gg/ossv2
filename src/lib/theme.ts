@@ -32,7 +32,7 @@ export const PRESETS = [
 ] as const;
 export const DEFAULT_THEME: Theme = {
  preset:"midnight",mode:"dark",accent:"#8b7cff",glassOpacity:7,blur:22,borderOpacity:11,brightness:100,glow:15,cardOpacity:7,
- background:"ambient",noise:true,mouseLight:true,radius:20,density:"comfortable",font:"sniglet",animation:70,speed:100,reducedMotion:false,
+ background:"ambient",noise:true,mouseLight:false,radius:20,density:"comfortable",font:"sniglet",animation:70,speed:100,reducedMotion:false,
  gradientPreset:"aurora",gradient:{kind:"linear",angle:135,stops:[{color:"#6d5dfc",pos:0},{color:"#2f6bff",pos:100}],intensity:35,opacity:18,blend:"soft-light",animated:false,animSpeed:30,animIntensity:25,animDirection:"alternate"},
  targets:{app:false,dashboard:false,cards:false,buttons:false,accent:false,progress:false,charts:false,nav:false,profile:false},
 };
