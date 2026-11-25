@@ -62,7 +62,7 @@ function Inner() {
   async function toggleMs(m: Milestone) {
     const r = await run(() => api<{ xp: number; unlocked: string[] }>(`/api/milestones/${m.id}`, { method: "PATCH", body: { completed: !m.completedAt } }));
     if (r?.xp) toast("success", `Milestone reached · +${r.xp} XP`);
-    r?.unlocked.forEach((u) => toast("success", `🏆 ${t(u)}`));
+    r?.unlocked.forEach((u) => toast("success", t(u)));
     reload();
   }
 
