@@ -1018,6 +1018,12 @@ const ar: Record<string, string> = {
   "Daily target (set by tracker)": "الهدف اليومي (يُحدد من صفحة المتابعة)",
   "e.g. glasses": "مثال: أكواب",
   "Mark {title} as acquired": "تحديد {title} كمُتحقق",
+  "If an account exists for": "إذا كان هناك حساب مرتبط بعنوان البريد الإلكتروني",
+  "a reset link has been sent.": "فقد أرسلنا رابط إعادة التعيين.",
+  "Email delivery isn't configured on this server (RESEND_API_KEY missing), so no email can be sent. See the setup guide.": "لم يتم إعداد إرسال البريد الإلكتروني على هذا الخادم، لذلك لا يمكن إرسال رسالة. راجع دليل الإعداد.",
+  "This link is missing its token. Request a new reset email.": "هذا الرابط لا يحتوي على رمز التأكيد. اطلب رسالة إعادة تعيين جديدة.",
+  "Password updated. All other sessions were signed out.": "تم تحديث كلمة المرور وتسجيل الخروج من جميع الجلسات الأخرى.",
+  "Couldn't reset the password.": "تعذّر إعادة تعيين كلمة المرور.",
 };
 
 export function translate(lang: Lang, s: string): string {
