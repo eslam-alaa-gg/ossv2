@@ -39,16 +39,16 @@ function Inner() {
       .sort((a, b) => sort === "priority" ? PRI[b.priority] - PRI[a.priority] : sort === "created" ? b.createdAt.localeCompare(a.createdAt) : sort === "title" ? a.title.localeCompare(b.title) : (a.dueDate ?? "9999").localeCompare(b.dueDate ?? "9999") || PRI[b.priority] - PRI[a.priority]);
   }, [tasks, q, status, cat, pri, sort]);
 
-  async function patch(t: Task, body: Partial<Task>, msg?: string) {
-    const r = await run(() => api<{ task: Task; xp: number; unlocked: string[] }>(`/api/tasks/${t.id}`, { method: "PATCH", body }), msg);
+  async function patch(task: Task, body: Partial<Task>, msg?: string) {
+    const r = await run(() => api<{ task: Task; xp: number; unlocked: string[] }>(`/api/tasks/${task.id}`, { method: "PATCH", body }), msg);
     if (!r) return;
-    setData((d) => d && { tasks: d.tasks.map((x) => (x.id === t.id ? r.task : x)) });
+    setData((d) => d && { tasks: d.tasks.map((x) => (x.id === task.id ? r.task : x)) });
     if (r.xp) toast("success", `${t("Task completed")} · +${r.xp} XP`);
     r.unlocked?.forEach((u) => toast("success", `🏆 ${t("Achievement unlocked")}: ${t(u)}`));
     if (body.status === "completed") reload();
   }
-  async function del(t: Task) {
-    if (!(await confirm(t("Delete {title} permanently?").replace("{title}", t.title), t("Delete")))) return;
+  async function del(task: Task) {
+    if (!(await confirm(t("Delete {title} permanently?").replace("{title}", task.title), t("Delete")))) return;
     if (await run(() => api(`/api/tasks/${t.id}`, { method: "DELETE" }), t("Task deleted"))) { setModal(null); reload(); }
   }
 
