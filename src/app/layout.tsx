@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
+import { headers } from "next/headers";
 import "./globals.css";
 import { AppProvider } from "@/components/providers";
 import { Backdrop } from "@/components/effects";
@@ -25,9 +26,12 @@ const FONTS =
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const u = await getSessionUser();
+  const requestHeaders = await headers();
+  const preferredLanguage = requestHeaders.get("accept-language") ?? "";
+  const initialLang = u?.language === "ar" ? "ar" : u?.language === "en" ? "en" : /^ar(?:-|,|;|$)/i.test(preferredLanguage) ? "ar" : "en";
   const prefs = u ? parsePrefs(u.preferences) : DEFAULT_PREFS;
   const th = prefs.theme;
-  const lang = u?.language === "ar" ? "ar" : "en";
+  const lang = initialLang;
   return (
     <html lang={lang} dir={lang === "ar" ? "rtl" : "ltr"} data-mode={th.mode === "light" ? "light" : "dark"} data-mode-setting={th.mode} data-motion={th.reducedMotion || th.animation === 0 ? "off" : "on"} suppressHydrationWarning>
       <head>
@@ -37,7 +41,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <script dangerouslySetInnerHTML={{ __html: `try{var d=document.documentElement;if(d.dataset.modeSetting==='system'){d.dataset.mode=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}}catch(e){}` }} />
       </head>
       <body>
-        <AppProvider initialUser={u ? publicUser(u) : null} initialPrefs={prefs}>
+        <AppProvider initialUser={u ? publicUser(u) : null} initialPrefs={prefs} initialLang={initialLang}>
           <Backdrop />
           <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:start-3 focus:top-3 focus:z-[200] focus:rounded-lg focus:bg-accent focus:px-3 focus:py-2 focus:text-[var(--on-accent)]">
             Skip to content
