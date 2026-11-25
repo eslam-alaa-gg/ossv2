@@ -62,9 +62,9 @@ export default function FocusPage() {
   }, [phase, sid, complete]);
 
   useEffect(() => {
-    const t = document.title;
+    const originalTitle = document.title;
     if (phase === "running") document.title = `${mmss(remaining)} · ${t("Focus")}`;
-    return () => { document.title = t; };
+    return () => { document.title = originalTitle; };
   }, [phase, remaining]);
 
   // ambient audio — only after explicit user action, never autoplay
