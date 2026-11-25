@@ -25,7 +25,7 @@ type SpotifyTokenResponse = {
 type TokenResult = { ok: true; data: SpotifyTokenResponse; status: number } | { ok: false; data: Record<string, unknown>; status: number };
 
 export function spotifyConfigured() {
-  return !!process.env.SPOTIFY_CLIENT_ID;
+  return !!process.env.SPOTIFY_CLIENT_ID && !!process.env.APP_SECRET && process.env.APP_SECRET.length >= 32;
 }
 
 export async function appOrigin() {
