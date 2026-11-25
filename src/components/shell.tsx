@@ -252,7 +252,7 @@ function HabitQuickPanel() {
   const [pages, setPages] = useState("5");
   const [learnTitle, setLearnTitle] = useState("");
   const [message, setMessage] = useState("");
-  const [hiddenIds, setVisibleIds] = useState<string[]>([]);
+  const [hiddenIds, setHiddenIds] = useState<string[]>([]);
   const [customizing, setCustomizing] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const load = useCallback(async () => {
@@ -267,14 +267,13 @@ function HabitQuickPanel() {
       try {
         const saved = localStorage.getItem("ukiyo.habit-quick.hidden");
         if (saved === null) {
-          const all = h.habits.map((item) => item.id);
-          setVisibleIds(all);
-          localStorage.setItem("ukiyo.habit-quick.hidden", JSON.stringify(all));
+          setHiddenIds([]);
+          localStorage.setItem("ukiyo.habit-quick.hidden", "[]");
         } else {
           const parsed: unknown = JSON.parse(saved);
-          setVisibleIds(Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === "string" && h.habits.some((item) => item.id === id)) : h.habits.map((item) => item.id));
+          setHiddenIds(Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === "string" && h.habits.some((item) => item.id === id)) : []);
         }
-      } catch { setVisibleIds(h.habits.map((item) => item.id)); }
+      } catch { setHiddenIds([]); }
       setMessage("");
     } catch (e) {
       setMessage(e instanceof Error ? e.message : t("Could not load habit progress."));
@@ -310,7 +309,7 @@ function HabitQuickPanel() {
   const waterProgress = tracker ? Math.min(100, tracker.water.goal ? (100 * tracker.water.total) / tracker.water.goal : 0) : 0;
   const toggleVisible = (id: string) => {
     const next = hiddenIds.includes(id) ? hiddenIds.filter((x) => x !== id) : [...hiddenIds, id];
-    setVisibleIds(next);
+    setHiddenIds(next);
     try { localStorage.setItem("ukiyo.habit-quick.hidden", JSON.stringify(next)); } catch { /* storage may be unavailable */ }
   };
   const addWater = () => act(() => api("/api/trackers/water", { body: { ml: cup } }), t("Water logged"));
