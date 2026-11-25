@@ -5,12 +5,14 @@ import {
   index,
   integer,
   jsonb,
-  pgTable,
+  pgSchema,
   text,
   timestamp,
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
+
+const ossv2 = pgSchema("ossv2");
 
 const bytea = customType<{ data: Buffer; driverData: Buffer }>({
   dataType() {
@@ -26,7 +28,7 @@ const userRef = () =>
     .references(() => users.id, { onDelete: "cascade" });
 
 /* ---------------------------------- identity --------------------------------- */
-export const users = pgTable("users", {
+export const users = ossv2.table("users", {
   id: uuid("id").primaryKey().defaultRandom(),
   email: text("email").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
@@ -43,7 +45,7 @@ export const users = pgTable("users", {
   updatedAt: ts("updated_at").notNull().defaultNow(),
 });
 
-export const avatars = pgTable("avatars", {
+export const avatars = ossv2.table("avatars", {
   userId: uuid("user_id")
     .primaryKey()
     .references(() => users.id, { onDelete: "cascade" }),
@@ -52,7 +54,7 @@ export const avatars = pgTable("avatars", {
   updatedAt: ts("updated_at").notNull().defaultNow(),
 });
 
-export const sessions = pgTable(
+export const sessions = ossv2.table(
   "sessions",
   {
     id: uuid("id").primaryKey().defaultRandom(),
@@ -64,7 +66,7 @@ export const sessions = pgTable(
   (t) => [index("sessions_user_idx").on(t.userId)],
 );
 
-export const authTokens = pgTable("auth_tokens", {
+export const authTokens = ossv2.table("auth_tokens", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: userRef(),
   type: text("type").notNull(), // reset | verify
@@ -75,7 +77,7 @@ export const authTokens = pgTable("auth_tokens", {
 });
 
 /* ----------------------------------- goals ----------------------------------- */
-export const goals = pgTable(
+export const goals = ossv2.table(
   "goals",
   {
     id: uuid("id").primaryKey().defaultRandom(),
@@ -95,7 +97,7 @@ export const goals = pgTable(
   (t) => [index("goals_user_idx").on(t.userId)],
 );
 
-export const goalMilestones = pgTable(
+export const goalMilestones = ossv2.table(
   "goal_milestones",
   {
     id: uuid("id").primaryKey().defaultRandom(),
@@ -114,7 +116,7 @@ export const goalMilestones = pgTable(
 );
 
 /* ----------------------------------- tasks ----------------------------------- */
-export const tasks = pgTable(
+export const tasks = ossv2.table(
   "tasks",
   {
     id: uuid("id").primaryKey().defaultRandom(),
@@ -139,7 +141,7 @@ export const tasks = pgTable(
 );
 
 /* ---------------------------------- habits ----------------------------------- */
-export const habits = pgTable(
+export const habits = ossv2.table(
   "habits",
   {
     id: uuid("id").primaryKey().defaultRandom(),
@@ -159,7 +161,7 @@ export const habits = pgTable(
   (t) => [index("habits_user_idx").on(t.userId)],
 );
 
-export const habitLogs = pgTable(
+export const habitLogs = ossv2.table(
   "habit_logs",
   {
     id: uuid("id").primaryKey().defaultRandom(),
@@ -175,7 +177,7 @@ export const habitLogs = pgTable(
   (t) => [uniqueIndex("habit_logs_unique").on(t.habitId, t.date), index("habit_logs_user_date_idx").on(t.userId, t.date)],
 );
 
-export const waterLogs = pgTable(
+export const waterLogs = ossv2.table(
   "water_logs",
   {
     id: uuid("id").primaryKey().defaultRandom(),
@@ -187,7 +189,7 @@ export const waterLogs = pgTable(
   (t) => [index("water_user_date_idx").on(t.userId, t.date)],
 );
 
-export const readingLogs = pgTable(
+export const readingLogs = ossv2.table(
   "reading_logs",
   {
     id: uuid("id").primaryKey().defaultRandom(),
@@ -200,7 +202,7 @@ export const readingLogs = pgTable(
   (t) => [index("reading_user_date_idx").on(t.userId, t.date)],
 );
 
-export const learningEntries = pgTable(
+export const learningEntries = ossv2.table(
   "learning_entries",
   {
     id: uuid("id").primaryKey().defaultRandom(),
@@ -214,7 +216,7 @@ export const learningEntries = pgTable(
 );
 
 /* -------------------------------- challenges --------------------------------- */
-export const dailyChallenges = pgTable(
+export const dailyChallenges = ossv2.table(
   "daily_challenges",
   {
     id: uuid("id").primaryKey().defaultRandom(),
@@ -234,7 +236,7 @@ export const dailyChallenges = pgTable(
 );
 
 /* ----------------------------------- focus ----------------------------------- */
-export const focusSessions = pgTable(
+export const focusSessions = ossv2.table(
   "focus_sessions",
   {
     id: uuid("id").primaryKey().defaultRandom(),
@@ -251,7 +253,7 @@ export const focusSessions = pgTable(
 );
 
 /* ------------------------------------ notes ---------------------------------- */
-export const notes = pgTable(
+export const notes = ossv2.table(
   "notes",
   {
     id: uuid("id").primaryKey().defaultRandom(),
@@ -270,7 +272,7 @@ export const notes = pgTable(
   (t) => [index("notes_user_idx").on(t.userId, t.updatedAt)],
 );
 
-export const journalEntries = pgTable(
+export const journalEntries = ossv2.table(
   "journal_entries",
   {
     id: uuid("id").primaryKey().defaultRandom(),
@@ -283,7 +285,7 @@ export const journalEntries = pgTable(
   (t) => [uniqueIndex("journal_unique").on(t.userId, t.date)],
 );
 
-export const wishlistItems = pgTable(
+export const wishlistItems = ossv2.table(
   "wishlist_items",
   {
     id: uuid("id").primaryKey().defaultRandom(),
@@ -298,7 +300,7 @@ export const wishlistItems = pgTable(
 );
 
 /* --------------------------------- gamification ------------------------------ */
-export const userAchievements = pgTable(
+export const userAchievements = ossv2.table(
   "user_achievements",
   {
     id: uuid("id").primaryKey().defaultRandom(),
@@ -309,7 +311,7 @@ export const userAchievements = pgTable(
   (t) => [uniqueIndex("user_achievements_unique").on(t.userId, t.key)],
 );
 
-export const xpTransactions = pgTable(
+export const xpTransactions = ossv2.table(
   "xp_transactions",
   {
     id: uuid("id").primaryKey().defaultRandom(),
@@ -324,7 +326,7 @@ export const xpTransactions = pgTable(
   (t) => [uniqueIndex("xp_unique_source").on(t.userId, t.source, t.sourceId)],
 );
 
-export const weeklyReviews = pgTable(
+export const weeklyReviews = ossv2.table(
   "weekly_reviews",
   {
     id: uuid("id").primaryKey().defaultRandom(),
@@ -340,7 +342,7 @@ export const weeklyReviews = pgTable(
 );
 
 /* ------------------------------- notifications ------------------------------- */
-export const notifications = pgTable(
+export const notifications = ossv2.table(
   "notifications",
   {
     id: uuid("id").primaryKey().defaultRandom(),
@@ -356,7 +358,7 @@ export const notifications = pgTable(
   (t) => [uniqueIndex("notifications_dedupe").on(t.userId, t.dedupeKey)],
 );
 
-export const pushSubscriptions = pgTable("push_subscriptions", {
+export const pushSubscriptions = ossv2.table("push_subscriptions", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: userRef(),
   endpoint: text("endpoint").notNull().unique(),
@@ -366,7 +368,7 @@ export const pushSubscriptions = pgTable("push_subscriptions", {
 });
 
 /* ---------------------------------- spotify ---------------------------------- */
-export const spotifyConnections = pgTable("spotify_connections", {
+export const spotifyConnections = ossv2.table("spotify_connections", {
   userId: uuid("user_id")
     .primaryKey()
     .references(() => users.id, { onDelete: "cascade" }),
