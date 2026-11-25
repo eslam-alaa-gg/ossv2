@@ -43,13 +43,13 @@ function Inner() {
     const r = await run(() => api<{ task: Task; xp: number; unlocked: string[] }>(`/api/tasks/${t.id}`, { method: "PATCH", body }), msg);
     if (!r) return;
     setData((d) => d && { tasks: d.tasks.map((x) => (x.id === t.id ? r.task : x)) });
-    if (r.xp) toast("success", `Task completed · +${r.xp} XP`);
+    if (r.xp) toast("success", `${t("Task completed")} · +${r.xp} XP`);
     r.unlocked?.forEach((u) => toast("success", `🏆 Achievement unlocked: ${u}`));
     if (body.status === "completed") reload();
   }
   async function del(t: Task) {
-    if (!(await confirm(`Delete “${t.title}” permanently?`, "Delete"))) return;
-    if (await run(() => api(`/api/tasks/${t.id}`, { method: "DELETE" }), "Task deleted")) { setModal(null); reload(); }
+    if (!(await confirm(t("Delete {title} permanently?").replace("{title}", t.title), t("Delete")))) return;
+    if (await run(() => api(`/api/tasks/${t.id}`, { method: "DELETE" }), t("Task deleted"))) { setModal(null); reload(); }
   }
 
   const Row = ({ task }: { task: Task }) => {
@@ -62,14 +62,14 @@ function Inner() {
           <p className={cn("truncate text-sm font-medium", done && "text-muted line-through")}>{task.title}</p>
           <div className="mt-1 flex flex-wrap items-center gap-1.5">
             <PriorityBadge p={task.priority} />
-            <Badge>{task.category}</Badge>
+            <Badge>{t(task.category)}</Badge>
             {task.status === "in_progress" && <Badge tone="blue">{t("In progress")}</Badge>}
             {task.dueDate && <Badge tone={overdue ? "red" : task.dueDate === today ? "amber" : undefined}><CalendarClock className="size-3" />{overdue ? `${t("Overdue")} · ` : ""}{task.dueDate === today ? t("Today") : fmtShort(task.dueDate, lang)}{task.dueTime ? ` ${task.dueTime}` : ""}</Badge>}
-            {task.recurrence !== "none" && <Badge><Repeat2 className="size-3" />{task.recurrence}</Badge>}
+            {task.recurrence !== "none" && <Badge><Repeat2 className="size-3" />{t(task.recurrence)}</Badge>}
             {task.tags.map((x) => <Badge key={x}>#{x}</Badge>)}
           </div>
         </button>
-        {task.status === "archived" ? <Button size="sm" onClick={() => patch(task, { status: "todo" }, "Task restored")}><RotateCcw className="size-3.5" /> {t("Restore")}</Button> : <Button variant="ghost" size="icon" aria-label={t("Archive task")} onClick={() => patch(task, { status: "archived" }, "Task archived")}><Archive className="size-4" /></Button>}
+        {task.status === "archived" ? <Button size="sm" onClick={() => patch(task, { status: "todo" }, t("Task restored"))}><RotateCcw className="size-3.5" /> {t("Restore")}</Button> : <Button variant="ghost" size="icon" aria-label={t("Archive task")} onClick={() => patch(task, { status: "archived" }, t("Task archived"))}><Archive className="size-4" /></Button>}
       </div>
     );
   };
@@ -77,7 +77,7 @@ function Inner() {
   const cols: { key: Task["status"]; label: string }[] = [{ key: "todo", label: t("To Do") }, { key: "in_progress", label: t("In Progress") }, { key: "completed", label: t("Completed") }];
   return (
     <>
-      <PageHeader title={t("Tasks")} subtitle={`${tasks.filter((t) => t.status === "todo" || t.status === "in_progress").length} open · ${tasks.filter((t) => t.status === "completed").length} completed`} actions={<Button variant="primary" onClick={() => setModal({})}><Plus className="size-4" /> {t("New task")}</Button>} />
+      <PageHeader title={t("Tasks")} subtitle={`${tasks.filter((t) => t.status === "todo" || t.status === "in_progress").length} {t("open")} · ${tasks.filter((t) => t.status === "completed").length} {t("completed")}`} actions={<Button variant="primary" onClick={() => setModal({})}><Plus className="size-4" /> {t("New task")}</Button>} />
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <Segmented value={view} onChange={setView} label={t("View")} options={[{ value: "list", label: t("List") }, { value: "board", label: t("Board") }, { value: "calendar", label: t("Calendar") }]} />
         {view !== "calendar" && (
