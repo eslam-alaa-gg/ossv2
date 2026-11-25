@@ -144,7 +144,7 @@ export default function ProfilePage() {
           <input ref={input} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(e) => { pick(e.target.files?.[0]); e.target.value = ""; }} aria-label={t("Choose image")} />
           <div className="flex flex-wrap justify-center gap-2"><Button onClick={() => input.current?.click()} disabled={prog !== null}><Camera className="size-4" /> {preview ? t("Choose another") : user.avatarVersion ? t("Replace picture") : t("Choose picture")}</Button>{user.avatarVersion && !preview && <Button variant="danger" onClick={remove}><Trash2 className="size-4" /> {t("Remove")}</Button>}</div>
           {fileErr && <p role="alert" className="text-sm text-red-400">{fileErr}</p>}
-          <p className="text-center text-xs text-faint">{t("{t("JPG, PNG or WebP. Maximum size after optimisation: 600 KB. Images are cropped to a square and optimised in your browser before upload.")}")}</p>
+          <p className="text-center text-xs text-faint">{t("JPG, PNG or WebP. Maximum size after optimisation: 600 KB. Images are cropped to a square and optimised in your browser before upload.")}</p>
         </div>
       </Modal>
       <span className="hidden">{String(!!refresh)}</span>
