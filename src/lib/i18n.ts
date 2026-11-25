@@ -414,6 +414,19 @@ const ar: Record<string, string> = {
   "SPOTIFY_CLIENT_ID": "SPOTIFY_CLIENT_ID",
   "SPOTIFY_REDIRECT_URI": "SPOTIFY_REDIRECT_URI",
   "custom": "مخصص"
+  "No goals yet": "لسه مفيش أهداف",
+  "focus": "تركيز",
+  "Previous": "السابق",
+  "Next": "التالي",
+  "Calendar view": "طريقة عرض التقويم",
+  "Month": "شهر",
+  "Week": "أسبوع",
+  "Day": "يوم",
+  "Nothing scheduled. Add a task for this day.": "مفيش حاجة متجدولة. ضيف مهمة لليوم ده.",
+  "Add task on": "إضافة مهمة يوم",
+  "more": "أكتر",
+  "Dates follow your timezone": "التواريخ حسب المنطقة الزمنية بتاعتك",
+  "Weeks start Monday.": "الأسبوع بيبدأ يوم الاثنين."
 };
 
 export function translate(lang: Lang, s: string): string {
