@@ -44,14 +44,14 @@ export default function ProfilePage() {
   if (!user) return null;
 
   const trimmed = name.replace(/\s+/g, " ").trim();
-  const validate = (v: string) => (v.length < 2 ? "Name must be at least 2 characters." : v.length > 40 ? "Name must be 40 characters or fewer." : null);
+  const validate = (v: string) => (v.length < 2 ? t("Name must be at least 2 characters.") : v.length > 40 ? t("Name must be 40 characters or fewer.") : null);
 
   async function saveName() {
     const e = validate(trimmed);
     setNameErr(e);
     if (e) return;
     setSaving(true);
-    const ok = await run(() => patchUser({ displayName: trimmed }), "Name updated");
+    const ok = await run(() => patchUser({ displayName: trimmed }), t("Name updated"));
     setSaving(false);
     if (ok !== undefined || trimmed === user!.displayName) { setEditing(false); router.refresh(); }
   }
@@ -59,15 +59,15 @@ export default function ProfilePage() {
   async function pick(f?: File) {
     setFileErr(null);
     if (!f) return;
-    if (!TYPES.includes(f.type)) return setFileErr("Please choose a JPG, PNG or WebP image.");
-    if (f.size > 10 * 1024 * 1024) return setFileErr("That image is over 10 MB. Choose a smaller one.");
+    if (!TYPES.includes(f.type)) return setFileErr(t("Please choose a JPG, PNG or WebP image."));
+    if (f.size > 10 * 1024 * 1024) return setFileErr(t("That image is over 10 MB. Choose a smaller one."));
     try {
       const b = await compress(f);
       if (b.size > 600 * 1024) return setFileErr("الصورة بعد الضغط لازم تكون أقل من 600 كيلوبايت. جرّب صورة تانية.");
       setBlob(b);
       setPreview(URL.createObjectURL(b));
     } catch {
-      setFileErr("We couldn't read that image. It may be corrupted.");
+      setFileErr(t("We couldn't read that image. It may be corrupted."));
     }
   }
 
@@ -79,23 +79,23 @@ export default function ProfilePage() {
     const xhr = new XMLHttpRequest();
     xhr.open("POST", "/api/me/avatar");
     xhr.upload.onprogress = (e) => e.lengthComputable && setProg(Math.round((e.loaded / e.total) * 90));
-    xhr.onerror = () => { setProg(null); toast("error", "Upload failed — check your connection."); };
+    xhr.onerror = () => { setProg(null); toast("error", t("Upload failed — check your connection.")); };
     xhr.onload = () => {
       setProg(null);
       let d: { avatarVersion?: number; error?: string } = {};
       try { d = JSON.parse(xhr.responseText); } catch { /* ignore */ }
       if (xhr.status >= 200 && xhr.status < 300 && d.avatarVersion) {
         setAvatarVersion(d.avatarVersion); // only after the server confirmed the save
-        toast("success", "Profile picture updated");
+        toast("success", t("Profile picture updated"));
         closePic(); router.refresh();
-      } else toast("error", d.error ?? "Upload failed.");
+      } else toast("error", d.error ?? t("Upload failed."));
     };
     xhr.send(fd);
   }
   function closePic() { setPic(false); setBlob(null); setPreview(null); setFileErr(null); }
   async function remove() {
-    if (!(await confirm("Remove your profile picture?", "Remove"))) return;
-    const r = await run(() => fetch("/api/me/avatar", { method: "DELETE" }).then((x) => { if (!x.ok) throw new Error("Couldn't remove the picture."); return x.json(); }), "Picture removed");
+    if (!(await confirm(t("Remove your profile picture?"), "Remove"))) return;
+    const r = await run(() => fetch("/api/me/avatar", { method: "DELETE" }).then((x) => { if (!x.ok) throw new Error(t("Couldn't remove the picture.")); return x.json(); }), t("Picture removed"));
     if (r) { setAvatarVersion(null); closePic(); router.refresh(); }
   }
 
@@ -111,14 +111,14 @@ export default function ProfilePage() {
           </button>
           {editing ? (
             <div className="mt-5 w-full space-y-3 text-start">
-              <Field label={t("Display name")} error={nameErr} hint={`${trimmed.length}/40`}><input className="input" value={name} onChange={(e) => { setName(e.target.value); setNameErr(null); }} onKeyDown={(e) => { if (e.key === "Enter") saveName(); if (e.key === "Escape") setEditing(false); }} maxLength={60} autoFocus aria-label="Display name" /></Field>
-              <p className="text-xs text-muted">{t("Preview:")} <b className="text-fg">{first}</b> — only your display name changes; your email and sign-in stay the same.</p>
+              <Field label={t("Display name")} error={nameErr} hint={`${trimmed.length}/40`}><input className="input" value={name} onChange={(e) => { setName(e.target.value); setNameErr(null); }} onKeyDown={(e) => { if (e.key === "Enter") saveName(); if (e.key === "Escape") setEditing(false); }} maxLength={60} autoFocus aria-label={t("Display name")} /></Field>
+              <p className="text-xs text-muted">{t("Preview:")} <b className="text-fg">{first}</b> — {t(" — only your display name changes; your email and sign-in stay the same.")}</p>
               <div className="flex gap-2"><Button className="flex-1" onClick={() => { setEditing(false); setNameErr(null); }}>{t("Cancel")}</Button><Button variant="primary" className="flex-1" loading={saving} onClick={saveName}>{t("Save")}</Button></div>
             </div>
           ) : (
             <>
               <h2 className="mt-5 text-2xl font-semibold">{user.displayName}</h2>
-              <p className="text-sm text-muted">{user.isDemo ? "Demo account" : user.email}</p>
+              <p className="text-sm text-muted">{user.isDemo ? t("Demo account") : user.email}</p>
               <div className="mt-5 flex flex-wrap justify-center gap-2"><Button variant="primary" onClick={() => setEditing(true)}><Pencil className="size-4" /> {t("Edit Profile")}</Button><Button onClick={() => setPic(true)}><Camera className="size-4" /> {t("Change Picture")}</Button></div>
             </>
           )}
@@ -141,10 +141,10 @@ export default function ProfilePage() {
         <div className="flex flex-col items-center gap-4">
           <div className="relative"><Avatar size={160} ring previewUrl={preview} />{prog !== null && <div className="absolute inset-0 grid place-items-center rounded-full bg-black/55 text-sm font-medium text-white">{prog}%</div>}</div>
           {prog !== null && <Progress value={prog} className="w-full" />}
-          <input ref={input} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(e) => { pick(e.target.files?.[0]); e.target.value = ""; }} aria-label="Choose image" />
+          <input ref={input} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(e) => { pick(e.target.files?.[0]); e.target.value = ""; }} aria-label={t("Choose image")} />
           <div className="flex flex-wrap justify-center gap-2"><Button onClick={() => input.current?.click()} disabled={prog !== null}><Camera className="size-4" /> {preview ? t("Choose another") : user.avatarVersion ? t("Replace picture") : t("Choose picture")}</Button>{user.avatarVersion && !preview && <Button variant="danger" onClick={remove}><Trash2 className="size-4" /> {t("Remove")}</Button>}</div>
           {fileErr && <p role="alert" className="text-sm text-red-400">{fileErr}</p>}
-          <p className="text-center text-xs text-faint">{t("JPG, PNG or WebP. Maximum size after optimisation: 600 KB. Images are cropped to a square and optimised in your browser before upload.")}</p>
+          <p className="text-center text-xs text-faint">{t("{t("JPG, PNG or WebP. Maximum size after optimisation: 600 KB. Images are cropped to a square and optimised in your browser before upload.")}")}</p>
         </div>
       </Modal>
       <span className="hidden">{String(!!refresh)}</span>
