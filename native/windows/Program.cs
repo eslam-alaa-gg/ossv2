@@ -34,7 +34,7 @@ while (!stop.IsCancellationRequested)
             var playback = session.GetPlaybackInfo();
             var timeline = session.GetTimelineProperties();
             payload.Title = media.Title ?? "";
-            payload.Artist = string.Join(", ", media.Artist ?? "");
+            payload.Artist = media.Artist ?? "";
             payload.Album = media.AlbumTitle ?? "";
             payload.IsPlaying = playback.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing;
             payload.PositionMs = Math.Max(0, (long)timeline.Position.TotalMilliseconds);
