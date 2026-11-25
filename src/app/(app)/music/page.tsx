@@ -65,8 +65,8 @@ function Inner() {
           <p className="text-sm text-muted">{t("The integration is fully implemented (Authorization Code Flow with PKCE) but needs a Spotify app. The server administrator should:")}</p>
           <ol className="list-decimal space-y-1.5 ps-5 text-sm text-muted">
             <li>{t("Create an app at")} <a className="text-accent underline" href="https://developer.spotify.com/dashboard" target="_blank" rel="noreferrer">{t("developer.spotify.com/dashboard")}</a>.</li>
-            <li>Add this Redirect URI: <code className="rounded bg-[var(--input)] px-1.5 py-0.5 text-xs text-fg">{status?.redirectUri}</code> {t("(must be HTTPS, or http://127.0.0.1 for local development).")}</li>
-            <li>{t("Set")} <code className="text-fg">{t("SPOTIFY_CLIENT_ID")}</code> (and optionally <code className="text-fg">{t("SPOTIFY_REDIRECT_URI")}</code>) in the server environment and restart.</li>
+            <li>{t("Add this Redirect URI:")} <code className="rounded bg-[var(--input)] px-1.5 py-0.5 text-xs text-fg">{status?.redirectUri}</code> {t("(must be HTTPS, or http://127.0.0.1 for local development).")}</li>
+            <li>{t("Set")} <code className="text-fg">{t("SPOTIFY_CLIENT_ID")}</code> {t("(and optionally")} <code className="text-fg">{t("SPOTIFY_REDIRECT_URI")}</code>) {t("in the server environment and restart.")}</li>
           </ol>
           <p className="text-xs text-faint">{t("No client secret is needed or used — PKCE keeps the flow secret-free. Tokens are encrypted at rest and never reach the browser.")}</p>
         </Card>
@@ -120,7 +120,7 @@ function Inner() {
                 </motion.div>
               </AnimatePresence>
             ) : (
-              <div><h2 className="text-2xl font-semibold">{t("Nothing playing")}</h2><p className="mt-2 text-sm text-muted">{t("Start playing something in Spotify on any device — it will appear here within a few seconds.")}</p>{np?.idle && np.device && <p className="mt-2 text-xs text-faint">Last device: {np.device.name}</p>}</div>
+              <div><h2 className="text-2xl font-semibold">{t("Nothing playing")}</h2><p className="mt-2 text-sm text-muted">{t("Start playing something in Spotify on any device — it will appear here within a few seconds.")}</p>{np?.idle && np.device && <p className="mt-2 text-xs text-faint">{t("Last device")}: {np.device.name}</p>}</div>
             )}
             <div className="mt-6">
               {premium ? (
@@ -130,7 +130,7 @@ function Inner() {
                   <Button className={ctl} onClick={() => control("next")} disabled={busy || !track} aria-label={t("Next track")}><SkipForward className="size-5" /></Button>
                 </div>
               ) : (
-                <div className="rounded-xl border border-line bg-card p-4 text-sm text-muted"><p>{t("Playback controls are available with")} <b className="text-fg">{t("Spotify Premium")}</b> (a Spotify API requirement){status?.profile?.product ? ` — your plan is “${status.profile.product}”` : ""}. Use Spotify to control playback.</p><div className="mt-3"><OpenInSpotify /></div></div>
+                <div className="rounded-xl border border-line bg-card p-4 text-sm text-muted"><p>{t("Playback controls are available with")} <b className="text-fg">{t("Spotify Premium")}</b> {t("(a Spotify API requirement)")}{status?.profile?.product ? ` — your plan is “${status.profile.product}”` : ""}. {t("Use Spotify to control playback.")}</p><div className="mt-3"><OpenInSpotify /></div></div>
               )}
             </div>
           </div>
@@ -144,7 +144,7 @@ function Inner() {
         </Card>
         <Card>
           <h3 className="mb-3 text-sm font-medium text-muted">{t("Artist")}</h3>
-          {track && artist.data ? <div className="flex items-start gap-3">{artist.data.image && <img src={artist.data.image} alt="" className="size-14 rounded-full object-cover" />}<div className="min-w-0 text-sm"><p className="font-medium">{artist.data.name}</p>{artist.data.genres.length > 0 && <p className="mt-1 flex flex-wrap gap-1">{artist.data.genres.slice(0, 3).map((g) => <Badge key={g}>{g}</Badge>)}</p>}{artist.data.followers !== null && <p className="mt-1 text-muted">{artist.data.followers.toLocaleString()} followers</p>}{artist.data.url && <div className="pt-3"><OpenInSpotify url={artist.data.url} label={t("Open artist")} /></div>}</div></div> : track ? <p className="text-sm text-muted">{artist.loading ? t("Loading…") : artist.error ?? track.artists.map((a) => a.name).join(", ")}</p> : <p className="text-sm text-muted">{t("Play something to see artist details.")}</p>}
+          {track && artist.data ? <div className="flex items-start gap-3">{artist.data.image && <img src={artist.data.image} alt="" className="size-14 rounded-full object-cover" />}<div className="min-w-0 text-sm"><p className="font-medium">{artist.data.name}</p>{artist.data.genres.length > 0 && <p className="mt-1 flex flex-wrap gap-1">{artist.data.genres.slice(0, 3).map((g) => <Badge key={g}>{g}</Badge>)}</p>}{artist.data.followers !== null && <p className="mt-1 text-muted">{artist.data.followers.toLocaleString()} {t("followers")}</p>}{artist.data.url && <div className="pt-3"><OpenInSpotify url={artist.data.url} label={t("Open artist")} /></div>}</div></div> : track ? <p className="text-sm text-muted">{artist.loading ? t("Loading…") : artist.error ?? track.artists.map((a) => a.name).join(", ")}</p> : <p className="text-sm text-muted">{t("Play something to see artist details.")}</p>}
         </Card>
         <Card>
           <h3 className="mb-3 text-sm font-medium text-muted">{t("Spotify profile")}</h3>
