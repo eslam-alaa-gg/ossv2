@@ -13,7 +13,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const preferredLanguage = requestHeaders.get("accept-language") ?? "";
   const ar = u?.language === "ar" || (!u && /^ar(?:-|,|;|$)/i.test(preferredLanguage));
   return {
-    title: { default: "LIFE OS", template: "%s · LIFE OS" },
+    title: { default: "Ukiyo", template: "%s · Ukiyo" },
     description: ar
       ? "مساحة شخصية لتنظيم المهام والعادات والأهداف والتركيز ومتابعة التقدم."
       : "A personal space for tasks, habits, goals, focus and progress.",
