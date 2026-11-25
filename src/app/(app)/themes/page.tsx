@@ -41,7 +41,7 @@ function Preview({ theme }: { theme: Theme }) {
 }
 
 export default function ThemesPage() {
-  const { theme, setDraft, hasDraft, savePrefs, prefs, t } = useApp();
+  const { theme, setDraft, hasDraft, savePrefs, prefs, lang, t } = useApp();
   const { run, toast, confirm } = useUI();
   const [tab, setTab] = useState("presets");
   const [hex, setHex] = useState<string | null>(null);
