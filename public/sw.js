@@ -1,8 +1,8 @@
-// LIFE OS service worker: Web Push delivery + notification click handling (no offline caching).
+// Ukiyo service worker: Web Push delivery + notification click handling (no offline caching).
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (e) => e.waitUntil(self.clients.claim()));
 self.addEventListener("push", (event) => {
-  let data = { title: "LIFE OS", body: "", href: "/dashboard" };
+  let data = { title: "Ukiyo", body: "", href: "/dashboard" };
   try { data = { ...data, ...event.data.json() }; } catch (e) {}
   event.waitUntil(self.registration.showNotification(data.title, { body: data.body, icon: "/icon.svg", badge: "/icon.svg", data: { href: data.href || "/dashboard" } }));
 });
