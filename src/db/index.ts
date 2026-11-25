@@ -15,6 +15,7 @@ export const pool =
   globalForDb.__arenaNextJsPostgresqlPool ??
   new Pool({
     connectionString: databaseUrl,
+    options: "-c search_path=ossv2,pg_catalog",
   });
 
 if (process.env.NODE_ENV !== "production") {
