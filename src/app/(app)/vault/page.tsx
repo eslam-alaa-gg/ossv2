@@ -14,6 +14,7 @@ const PROMPTS: { key: string; q: string }[] = [{ key: "accomplished", q: "What d
 const MOODS = ["😞", "😕", "😐", "🙂", "😄"];
 
 function Editor({ note, onChange, onDeleted }: { note: Note; onChange: (n: Note) => void; onDeleted: () => void }) {
+  const { t } = useApp();
   const { run, confirm } = useUI();
   const [d, setD] = useState({ title: note.title, content: note.content, type: note.type, collection: note.collection, tags: note.tags.join(", ") });
   const [state, setState] = useState<"saved" | "saving" | "error" | "dirty">("saved");
@@ -75,6 +76,7 @@ function Editor({ note, onChange, onDeleted }: { note: Note; onChange: (n: Note)
 }
 
 function Journal() {
+  const { t } = useApp();
   const { run } = useUI();
   const { data, error, reload } = useFetch<{ entries: { date: string; mood: number | null; answers: Record<string, string> }[]; today: string }>("/api/journal");
   const [date, setDate] = useState<string | null>(null);
@@ -98,6 +100,7 @@ function Journal() {
 }
 
 function Notes() {
+  const { t } = useApp();
   const { run } = useUI();
   const sp = useSearchParams();
   const { data, error, loading, reload, setData } = useFetch<{ notes: Note[] }>("/api/notes");
