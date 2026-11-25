@@ -92,8 +92,9 @@ export default function FocusPage() {
       const img = new Image();
       img.src = objectUrl;
       await img.decode();
-      let width = Math.min(img.naturalWidth, 1920);
-      let height = Math.round(img.naturalHeight * (width / img.naturalWidth));
+      const scale = Math.min(1, 1920 / img.naturalWidth, 1920 / img.naturalHeight);
+      let width = Math.round(img.naturalWidth * scale);
+      let height = Math.round(img.naturalHeight * scale);
       let quality = 0.84;
       let result: Blob | null = null;
       const canvas = document.createElement("canvas");
