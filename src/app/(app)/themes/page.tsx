@@ -38,7 +38,7 @@ function Preview({ theme }: { theme: Theme }) {
 }
 
 export default function ThemesPage() {
-  const { theme, setDraft, hasDraft, savePrefs, prefs } = useApp();
+  const { theme, setDraft, hasDraft, savePrefs, prefs, t } = useApp();
   const { run, toast, confirm } = useUI();
   const [tab, setTab] = useState("presets");
   const [hex, setHex] = useState<string | null>(null);
@@ -53,15 +53,15 @@ export default function ThemesPage() {
 
   return (
     <>
-      <PageHeader title="Theme Studio" subtitle="Changes preview live across the whole app. Press Apply to save them to your account." actions={<>
-        <Button onClick={async () => { if (await confirm("Load the default theme? (You still need to press Apply to save it.)", "Load defaults")) { setDraft(DEFAULT_THEME); toast("info", "Defaults loaded — press Apply to save."); } }}><RotateCcw className="size-4" /> Reset Theme</Button>
-        {hasDraft && <Button onClick={() => setDraft(null)}><X className="size-4" /> Discard</Button>}
-        <Button variant="primary" disabled={!hasDraft} onClick={() => run(() => savePrefs({ theme }), "Theme applied and saved")}><Check className="size-4" /> Apply Theme</Button>
+      <PageHeader title={t("Theme Studio")} subtitle={t("Changes preview live across the whole app. Press Apply to save them to your account.")} actions={<>
+        <Button onClick={async () => { if (await confirm("Load the default theme? (You still need to press Apply to save it.)", "Load defaults")) { setDraft(DEFAULT_THEME); toast("info", "Defaults loaded — press Apply to save."); } }}><RotateCcw className="size-4" /> {t("Reset Theme")}</Button>
+        {hasDraft && <Button onClick={() => setDraft(null)}><X className="size-4" /> {t("Discard")}</Button>}
+        <Button variant="primary" disabled={!hasDraft} onClick={() => run(() => savePrefs({ theme }), "Theme applied and saved")}><Check className="size-4" /> {t("Apply Theme")}</Button>
       </>} />
-      {hasDraft && <p role="status" className="mb-4 rounded-xl border border-amber-400/30 bg-amber-500/10 px-4 py-2 text-sm text-amber-300">Previewing unsaved changes.</p>}
+      {hasDraft && <p role="status" className="mb-4 rounded-xl border border-amber-400/30 bg-amber-500/10 px-4 py-2 text-sm text-amber-300">{t("Previewing unsaved changes.")}</p>}
       <div className="grid gap-[var(--gap)] lg:grid-cols-[1fr_380px]">
         <div className="min-w-0 space-y-4">
-          <Segmented value={tab} onChange={setTab} label="Theme sections" options={[{ value: "presets", label: "Presets" }, { value: "color", label: "Color" }, { value: "glass", label: "Glass" }, { value: "background", label: "Background" }, { value: "gradients", label: "Gradients" }, { value: "fonts", label: "Fonts" }, { value: "interface", label: "Interface" }, { value: "saved", label: "My themes" }]} />
+          <Segmented value={tab} onChange={setTab} label={t("Theme sections")} options={[{ value: "presets", label: t("Presets") }, { value: "color", label: t("Color") }, { value: "glass", label: t("Glass") }, { value: "background", label: t("Background") }, { value: "gradients", label: t("Gradients") }, { value: "fonts", label: t("Fonts") }, { value: "interface", label: t("Interface") }, { value: "saved", label: t("My themes") }]} />
 
           {tab === "presets" && (
             <Card>
@@ -152,7 +152,7 @@ export default function ThemesPage() {
 
           {tab === "fonts" && (
             <Card className="space-y-4">
-              <div><h2 className="text-base font-semibold">Fonts</h2><p className="mt-1 text-sm text-muted">اختار الخط اللي يريح عينك. العربي بيستخدم Playpen Sans Arabic تلقائيًا علشان الحروف والمسافات تطلع مظبوطة.</p></div>
+              <div><h2 className="text-base font-semibold">{t("Fonts")}</h2><p className="mt-1 text-sm text-muted">{t("Choose the font that feels right. Arabic uses Playpen Sans Arabic automatically for clear shaping and spacing.")}</p></div>
               <div className="grid gap-3 sm:grid-cols-2">
                 {FONTS.map(([key, label]) => <button key={key} type="button" onClick={() => set({ font: key as Theme["font"] })} aria-pressed={theme.font === key} className={cn("rounded-2xl border p-4 text-start transition-all", theme.font === key ? "border-accent bg-accent/10" : "border-line bg-card hover:bg-card-hover")}>
                   <span className="flex items-center justify-between gap-2"><span className="text-sm font-semibold">{label}</span>{theme.font === key && <Check className="size-4 text-accent" />}</span>
@@ -160,7 +160,7 @@ export default function ThemesPage() {
                   <span className="mt-1 block text-xs text-muted">Aa · LIFE OS</span>
                 </button>)}
               </div>
-              <div className="rounded-xl border border-line bg-card p-4"><p className="text-sm font-medium">Arabic font · Playpen Sans Arabic</p><p className="mt-2 text-lg leading-loose" style={{ fontFamily: "'Playpen Sans Arabic','Cairo',sans-serif" }}>أهلاً بيك في LIFE OS — رتّب يومك وحقق أهدافك</p><p className="mt-2 text-xs text-muted">بيتم تطبيق الخط العربي تلقائيًا عند اختيار اللغة العربية، بشكل مستقل عن خط الإنجليزي.</p></div>
+              <div className="rounded-xl border border-line bg-card p-4"><p className="text-sm font-medium">{t("Arabic font · Playpen Sans Arabic")}</p><p className="mt-2 text-lg leading-loose" style={{ fontFamily: "'Playpen Sans Arabic','Cairo',sans-serif" }}>أهلاً بيك في LIFE OS — رتّب يومك وحقق أهدافك</p><p className="mt-2 text-xs text-muted">{t("Arabic font applies automatically when Arabic is selected, independently from the English font.")}</p></div>
             </Card>
           )}
 
