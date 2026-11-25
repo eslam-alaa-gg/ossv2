@@ -6,7 +6,6 @@ import { db } from "@/db";
 import { authTokens, sessions, users } from "@/db/schema";
 import { ApiError, body, handle } from "@/lib/server/api";
 import { clientIp, createSession, destroySession, getSessionUser, hashPassword, rateLimit, sha256, verifyPassword } from "@/lib/server/auth";
-import { cleanupDemoUsers, createDemoUser } from "@/lib/server/demo";
 import { sendEmail } from "@/lib/server/secure";
 import { DEFAULT_PREFS } from "@/lib/prefs";
 import { safeTz } from "@/lib/dates";
@@ -52,24 +51,11 @@ export const POST = handle<{ action: string }>(async (req, { action }) => {
       rateLimit(`login:${ip}:${d.email}`, 8, 15 * 60000);
       const [u] = await db.select().from(users).where(eq(users.email, d.email)).limit(1);
       const ok = verifyPassword(d.password, u?.passwordHash ?? DUMMY_HASH);
-      if (!u || !ok || u.isDemo) throw new ApiError(401, "Incorrect email or password.");
+      if (!u || !u.hasPassword || !ok) throw new ApiError(401, "Incorrect email or password.");
       await createSession(u.id);
       return { ok: true };
     }
-    case "demo": {
-      rateLimit(`demo:${ip}`, 20, 3600000);
-      const existing = await getSessionUser();
-      if (existing?.isDemo) return { ok: true, reused: true };
-      const d = await body(req, z.object({ timezone: z.string().optional() })).catch(() => ({ timezone: undefined }));
-      await cleanupDemoUsers();
-      const u = await createDemoUser(d.timezone);
-      await createSession(u.id, 1);
-      return { ok: true };
-    }
     case "logout": {
-      const u = await getSessionUser();
-      // Exiting demo discards that visitor's private demo workspace entirely.
-      if (u?.isDemo) await db.delete(users).where(eq(users.id, u.id));
       await destroySession();
       return { ok: true };
     }
@@ -77,7 +63,7 @@ export const POST = handle<{ action: string }>(async (req, { action }) => {
       rateLimit(`forgot:${ip}`, 5, 3600000);
       const d = await body(req, z.object({ email }));
       const [u] = await db.select().from(users).where(eq(users.email, d.email)).limit(1);
-      if (u && !u.isDemo) {
+      if (u) {
         const token = await issueToken(u.id, "reset", 1);
         const link = `${await origin()}/reset-password?token=${token}`;
         await sendEmail(u.email, "Reset your LIFE OS password", `<p><a href="${link}">Reset your password</a> (valid for 1 hour)</p>`, link);
@@ -93,7 +79,7 @@ export const POST = handle<{ action: string }>(async (req, { action }) => {
         .where(and(eq(authTokens.tokenHash, sha256(d.token)), eq(authTokens.type, "reset"), isNull(authTokens.usedAt), gt(authTokens.expiresAt, new Date())))
         .limit(1);
       if (!t) throw new ApiError(400, "This reset link is invalid or has expired.");
-      await db.update(users).set({ passwordHash: hashPassword(d.password), updatedAt: new Date() }).where(eq(users.id, t.userId));
+      await db.update(users).set({ passwordHash: hashPassword(d.password), hasPassword: true, updatedAt: new Date() }).where(eq(users.id, t.userId));
       await db.update(authTokens).set({ usedAt: new Date() }).where(eq(authTokens.id, t.id));
       await db.delete(sessions).where(eq(sessions.userId, t.userId));
       return { ok: true };
@@ -113,7 +99,6 @@ export const POST = handle<{ action: string }>(async (req, { action }) => {
     case "resend": {
       const u = await getSessionUser();
       if (!u) throw new ApiError(401, "Please sign in.");
-      if (u.isDemo) throw new ApiError(403, "Not available in Demo Mode.", "demo");
       rateLimit(`resend:${u.id}`, 3, 3600000);
       const token = await issueToken(u.id, "verify", 48);
       const link = `${await origin()}/verify-email?token=${token}`;

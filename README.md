@@ -2,36 +2,55 @@
 
 A premium personal operating system: tasks, habits, daily challenges, focus room, life goals, memory vault, achievements, weekly review, analytics, calendar, notifications, a **Spotify Music Hub**, a full **Theme Studio** (presets, accent, glass, gradients), a **Profile** system with avatar upload, and a **one-click Demo mode**.
 
-## Stack & an honest note about Supabase
+## Stack & data isolation
 
-The product brief names Supabase. This repository runs on **Next.js 16 (App Router) + PostgreSQL via Drizzle ORM** and has no Supabase project available, so the equivalent capabilities were implemented natively and **nothing is claimed to be Supabase**:
-
-| Brief (Supabase) | What is implemented here |
-| --- | --- |
-| Supabase Auth | Own auth: scrypt password hashes, random session tokens stored **hashed** in `sessions`, `HttpOnly` + `SameSite=Lax` (+`Secure` on HTTPS) cookie, reset/verify tokens, rate limiting |
-| RLS (`auth.uid()`) | **Application-layer authorization**: the user id is *only* taken from the verified session (never the request); every query is filtered by it; every foreign id (goal/task/milestone/…) is ownership-checked. Cross-user isolation is covered by `tests/e2e.mjs`. *Postgres RLS is not enabled* (single DB role). If you move to Supabase, port these tables and add `auth.uid() = user_id` policies. |
-| Storage | Avatars are validated (magic bytes, ≤1.5 MB, JPG/PNG/WebP), compressed client-side to 512 px, stored in the `avatars` table and served **only to their owner** from `/api/me/avatar` |
-| Edge Functions / scheduling | `GET /api/cron/notify` (Bearer `CRON_SECRET`) for any external scheduler |
-| Transactional email | Resend REST API when `RESEND_API_KEY` is set |
-
-Libraries: React 19, Tailwind 4, Framer Motion, Recharts, Lucide, Zod, date-fns (installed), web-push. Notes use a safe in-house Markdown renderer (HTML is escaped first) with a formatting toolbar instead of a heavy editor dependency.
+- Next.js 16, React 19, TypeScript, PostgreSQL and Drizzle ORM.
+- OSSv2 tables live in the dedicated PostgreSQL schema **ossv2** inside the connected Supabase database. The charity application's existing **public** schema is separate and untouched.
+- The OSSv2 schema contains application profiles, sessions, goals, tasks, habits, trackers, achievements, notifications, notes, journal entries, Spotify connections and related records.
+- Each application user has a stable OSSv2 user ID. Every personal record is linked to that ID, and authenticated API handlers derive the ID from the verified HttpOnly session cookie—not from request payloads. Queries and foreign-record mutations are scoped to the owner.
+- The schema is private to the server-side PostgreSQL connection and is not exposed through the Supabase Data API. This app currently uses Drizzle with a server-side database connection; **Postgres RLS policies are not yet the enforcement mechanism**. Do not expose the ossv2 schema or grant Data API access to it without first migrating the app's database access to a per-user JWT/RLS context.
+- Email/password accounts use scrypt password hashes and hashed random session tokens. Google sign-in uses Supabase Auth OAuth, then maps the verified Google identity to an OSSv2 profile. Google identity records live in the shared Supabase Auth service, while OSSv2 profile and progress records remain in the private ossv2 schema.
+- A separate PostgreSQL database per user is intentionally not created. User data is isolated per owner within the application schema, which scales more safely than provisioning a database for every account.
 
 ## Setup
 
-```bash
-cp .env.example .env        # fill in what you need
-npm install
-npx drizzle-kit push        # apply schema (SQL migration also in ./drizzle)
-npm run build && npm start  # or: npm run dev
-```
-`DATABASE_URL` and (recommended) `APP_SECRET` are required. Everything else is optional and degrades honestly (the UI says what is not configured).
+1. Copy .env.example to .env.local.
+2. Set DATABASE_URL to the Supabase Postgres connection string (prefer the pooler connection string from the Supabase Connect dialog).
+3. Set APP_SECRET to a long random secret. Never commit it or expose it in a NEXT_PUBLIC_ variable.
+4. Install and run:
 
-### Tests
-```bash
-npm run build && PORT=3100 npm start &       # in one shell
-BASE_URL=http://127.0.0.1:3100 node tests/e2e.mjs
-```
-28 checks: registration/login/logout/session persistence, protected routes, **cross-user isolation (list + IDOR by id)**, client-supplied `user_id` ignored, CSRF, duplicate-reward prevention (tasks, habits, challenges), focus-session server validation, heatmap uses verified records only, per-user preferences, profile + avatar isolation, demo mode (auth, seeding, restrictions, isolation between visitors, exit), account deletion.
+~~~bash
+npm install
+npm run dev
+~~~
+
+The initial schema and follow-up indexes are tracked under the drizzle directory. The Supabase database migrations have already been applied for the current OSSv2 setup.
+
+### Google sign-in setup
+
+1. In Google Cloud Console, create an OAuth client of type **Web application**.
+2. Add this authorized redirect URI to the Google OAuth client:
+
+   https://emheigmdvombyjggnzog.supabase.co/auth/v1/callback
+
+3. In Supabase Dashboard → Authentication → Sign In / Providers → Google, enable Google and enter the Google client ID and client secret. Do not put the Google client secret in GitHub or a NEXT_PUBLIC_ variable.
+4. In Supabase Dashboard → Authentication → URL Configuration, set the Site URL to https://ossv2-vyn9.vercel.app and add these redirect URLs:
+   - https://ossv2-vyn9.vercel.app/auth/callback
+   - https://*-vyn9.vercel.app/auth/callback (Vercel previews)
+   - http://localhost:3000/auth/callback
+
+The Google button and callback are implemented in the app. Google sign-in will not complete until the Google provider credentials and redirect allow-list are configured in Supabase.
+
+### Vercel deployment
+
+The Vercel project ossv2 is connected to this repository. Add DATABASE_URL in that project's Environment Variables using the connection string from Supabase. Do not paste the database password into source control or chat. The public Supabase URL and publishable key are already configured in the OSSv2 Vercel project. APP_SECRET is stored as a sensitive Vercel variable.
+
+### Optional integrations
+
+- Spotify: set SPOTIFY_CLIENT_ID and optionally SPOTIFY_REDIRECT_URI. The callback is <origin>/api/spotify/callback. The Spotify PKCE flow is used; no client secret is required.
+- Email: set RESEND_API_KEY and a verified RESEND_FROM_EMAIL.
+- Browser push: generate VAPID keys and set VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, and VAPID_SUBJECT; schedule GET /api/cron/notify with Authorization: Bearer $CRON_SECRET.
+- Local build checks: npm run typecheck, npm run lint, and npm run build.
 
 ## Features & scoring
 

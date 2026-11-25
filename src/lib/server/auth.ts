@@ -20,6 +20,7 @@ export type PublicUser = {
   timezone: string;
   dailyGoal: number;
   emailVerified: boolean;
+  hasPassword: boolean;
   isDemo: boolean;
   onboarded: boolean;
   avatarVersion: number | null;
@@ -35,6 +36,7 @@ export function publicUser(u: DbUser): PublicUser {
     timezone: safeTz(u.timezone),
     dailyGoal: u.dailyGoal,
     emailVerified: u.emailVerified,
+    hasPassword: u.hasPassword,
     isDemo: u.isDemo,
     onboarded: u.onboarded,
     avatarVersion: u.avatarVersion,
@@ -79,7 +81,7 @@ export const getSessionUser = cache(async (): Promise<DbUser | null> => {
     .select({ u: users })
     .from(sessions)
     .innerJoin(users, eq(users.id, sessions.userId))
-    .where(and(eq(sessions.tokenHash, sha256(token)), gt(sessions.expiresAt, new Date())))
+    .where(and(eq(sessions.tokenHash, sha256(token)), gt(sessions.expiresAt, new Date()), eq(users.isDemo, false)))
     .limit(1);
   return rows[0]?.u ?? null;
 });
