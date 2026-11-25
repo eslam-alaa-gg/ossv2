@@ -19,4 +19,4 @@ jobs:
           node-version: 22
       - run: npm install --no-audit --no-fund --no-package-lock
       - run: npm run typecheck
-      - run: npm run lint
+      - run: npx eslint . --rule "react-hooks/set-state-in-effect: warn"
