@@ -124,7 +124,7 @@ export async function extractColors(url: string): Promise<[string, string]> {
     const r = px[i], g = px[i + 1], b = px[i + 2];
     const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
     const sat = mx === 0 ? 0 : (mx - mn) / mx;
-    if (mx < 40 || (mx > 245 && sat < 0.1)) continue;
+    if (mx < 40 || (mx > {tr("245 && sat")} < 0.1)) continue;
     const key = ((r >> 5) << 6) | ((g >> 5) << 3) | (b >> 5);
     const e = buckets.get(key) ?? { r: 0, g: 0, b: 0, n: 0, w: 0 };
     e.r += r; e.g += g; e.b += b; e.n++; e.w += 0.4 + sat;
@@ -181,6 +181,7 @@ export function useProgress(np: NowPlaying | null) {
 
 /** Dashboard widget */
 export function NowPlayingWidget() {
+  const { t: tr } = useApp();
   const { status, np, error, errorCode, loadingStatus, refresh } = useSpotify();
   const progress = useProgress(np);
   if (loadingStatus) return <Skeleton className="h-[148px]" />;
@@ -189,7 +190,7 @@ export function NowPlayingWidget() {
       <Card className="flex items-center gap-4">
         <div className="grid size-14 place-items-center rounded-2xl bg-card text-accent"><Music2 className="size-6" /></div>
         <div className="min-w-0 flex-1">
-          <p className="font-medium">Spotify Now Playing</p>
+          <p className="font-medium">{tr("Spotify Now Playing")}</p>
           <p className="text-sm text-muted">{status?.configured ? "Connect Spotify to see what you're listening to." : "Spotify isn't configured on this server yet."}</p>
         </div>
         <Link href="/music" className="glass-btn btn-sm">{status?.configured ? "Connect" : "Details"}</Link>
@@ -199,7 +200,7 @@ export function NowPlayingWidget() {
   const t = np && !np.idle ? np.track : null;
   return (
     <Card className="relative overflow-hidden">
-      {error && errorCode !== "rate_limited" && <p className="mb-2 text-xs text-amber-400" role="status">{error} <button className="underline" onClick={() => refresh().catch(() => {})}>Retry</button></p>}
+      {error && errorCode !== "rate_limited" && <p className="mb-2 text-xs text-amber-400" role="status">{error} <button className="underline" onClick={() => refresh().catch(() => {})}>{tr("Retry")}</button></p>}
       <div className="flex items-center gap-4">
         <AnimatePresence mode="wait">
           <motion.div key={t?.id ?? "none"} initial={{ opacity: 0, scale: 0.94 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="size-20 shrink-0 overflow-hidden rounded-2xl bg-card shadow-lg">
@@ -223,12 +224,12 @@ export function NowPlayingWidget() {
             </>
           ) : (
             <>
-              <p className="font-medium">Nothing playing</p>
-              <p className="text-sm text-muted">Start playback in Spotify and it will show up here.</p>
+              <p className="font-medium">{tr("Nothing playing")}</p>
+              <p className="text-sm text-muted">{tr("Start playback in Spotify and it will show up here.")}</p>
             </>
           )}
         </div>
-        <Link href="/music" className="glass-btn btn-icon" aria-label="Open Music Hub">{np && !np.idle && np.playing ? <Pause className="size-4" /> : <Play className="size-4" />}</Link>
+        <Link href="/music" className="glass-btn btn-icon" aria-label={tr("Open Music Hub")}>{np && !np.idle && np.playing ? <Pause className="size-4" /> : <Play className="size-4" />}</Link>
       </div>
     </Card>
   );
