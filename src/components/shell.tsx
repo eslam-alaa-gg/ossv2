@@ -82,7 +82,7 @@ function SidebarUser({ collapsed }: { collapsed: boolean }) {
       {!collapsed && (
         <span className="min-w-0">
           <span className="block truncate text-sm font-medium">{user.displayName}</span>
-          <span className="block truncate text-xs text-faint">{user.isDemo ? "Demo account" : user.email}</span>
+          <span className="block truncate text-xs text-faint">{user.email}</span>
         </span>
       )}
     </Link>
@@ -123,7 +123,7 @@ function ProfileMenu() {
               <Link href="/profile" role="menuitem" className={item}><UserIcon className="size-4" /> {t("Profile")}</Link>
               <Link href="/settings" role="menuitem" className={item}><Settings className="size-4" /> {t("Settings")}</Link>
               <Link href="/themes" role="menuitem" className={item}><Palette className="size-4" /> {t("Theme Studio")}</Link>
-              <button role="menuitem" onClick={signOut} className={cn(item, "text-red-400")}><LogOut className="size-4" /> {user.isDemo ? t("Exit Demo") : t("Sign out")}</button>
+              <button role="menuitem" onClick={signOut} className={cn(item, "text-red-400")}><LogOut className="size-4" /> {t("Sign out")}</button>
             </div>
           </motion.div>
         )}
@@ -233,20 +233,6 @@ function CommandMenu({ open, onClose }: { open: boolean; onClose: () => void }) 
   );
 }
 
-function DemoBanner() {
-  const { user, t } = useApp();
-  const signOut = useSignOut();
-  if (!user?.isDemo) return null;
-  return (
-    <div className="glass-panel sticky top-0 z-50 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 rounded-none border-x-0 border-t-0 px-4 py-2 text-xs" role="status">
-      <span className="chip text-accent font-bold tracking-widest">{t("DEMO MODE")}</span>
-      <span className="text-muted">Sample data in a private sandbox — discarded when you exit. Some account features are disabled.</span>
-      <Link href="/signup" onClick={signOut} className="font-semibold text-accent underline">{t("Create free account")}</Link>
-      <button onClick={signOut} className="font-medium underline">{t("Exit Demo")}</button>
-    </div>
-  );
-}
-
 export function AppShell({ children }: { children: ReactNode }) {
   const path = usePathname();
   const { t } = useApp();
@@ -267,7 +253,6 @@ export function AppShell({ children }: { children: ReactNode }) {
   const mobilePrimary = NAV.filter((n) => n.primary);
   return (
     <SpotifyProvider>
-      <DemoBanner />
       <Sidebar collapsed={collapsed} setCollapsed={toggle} />
       <div className={cn("min-h-dvh transition-[padding] duration-300", collapsed ? "lg:ps-[92px]" : "lg:ps-[272px]")}>
         <header className="sticky top-0 z-30 flex items-center gap-3 px-4 py-3 sm:px-6 lg:pe-8">
