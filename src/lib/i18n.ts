@@ -667,8 +667,6 @@ const ar: Record<string, string> = {
   "Other": "أخرى",
   "Yearly": "سنوي",
   "Long-term": "طويل المدى",
-  "No target date": "لا يوجد موعد مستهدف",
-  "No milestones — progress uses your manual value": "لا توجد مراحل — يعتمد التقدم على القيمة اليدوية",
   "Mark {title} as acquired": "تحديد {title} كمُقتنى",
   "Open goal {title}": "فتح الهدف {title}",
   "Toggle {title}": "تبديل حالة {title}",
@@ -709,6 +707,8 @@ const ar: Record<string, string> = {
   "What can I improve?": "ما الذي يمكنني تحسينه؟",
   "What am I grateful for?": "ما الذي أشعر بالامتنان له؟",
   "What should I do tomorrow?": "ماذا ينبغي أن أفعل غدًا؟",
+  "milestones": "مراحل",
+  "Goal deleted": "تم حذف الهدف",
 };
 
 export function translate(lang: Lang, s: string): string {
