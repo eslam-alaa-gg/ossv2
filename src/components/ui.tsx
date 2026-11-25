@@ -249,9 +249,9 @@ export function UIProvider({ children, lang }: { children: ReactNode; lang: Lang
   const [conf, setConf] = useState<{ text: string; label: string; resolve: (v: boolean) => void } | null>(null);
   const toast = useCallback<UICtx["toast"]>((kind, text, action) => {
     const id = Date.now() + Math.random();
-    setToasts((t) => [...t.slice(-3), { id, kind, text, action }]);
+    setToasts((t) => [...t.slice(-3), { id, kind, text: translate(lang, text), action: action ? { ...action, label: translate(lang, action.label) } : undefined }]);
     setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), action ? 7000 : 4200);
-  }, []);
+  }, [lang]);
   const run = useCallback<UICtx["run"]>(
     async (fn, success) => {
       try {
