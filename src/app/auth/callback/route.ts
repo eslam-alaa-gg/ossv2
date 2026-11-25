@@ -9,7 +9,7 @@ import { createSession, hashPassword } from "@/lib/server/auth";
 import { DEFAULT_PREFS } from "@/lib/prefs";
 
 function safeNext(value: string | null) {
-  if (!value || !value.startsWith("/") || value.startsWith("//") || value.includes("\\\\")) return "/dashboard";
+  if (!value || !value.startsWith("/") || value.startsWith("//") || value.includes(String.fromCharCode(92))) return "/dashboard";
   return value;
 }
 
@@ -25,7 +25,7 @@ export async function GET(request: Request) {
   const supabase = createServerClient(url, key, {
     cookies: {
       getAll() { return cookieStore.getAll(); },
-      setAll(cookiesToSet) {
+      setAll(cookiesToSet: { name: string; value: string; options: Parameters<typeof cookieStore.set>[2] }[]) {
         cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options));
       },
     },
