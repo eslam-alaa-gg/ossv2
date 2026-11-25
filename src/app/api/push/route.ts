@@ -26,7 +26,7 @@ export const POST = handle(async (req) => {
       .onConflictDoUpdate({ target: pushSubscriptions.endpoint, set: { userId: a.id, p256dh: d.subscription.keys.p256dh, auth: d.subscription.keys.auth } });
   }
   if (d.test) {
-    const sent = await sendPush(a.id, { title: "LIFE OS", body: "Push notifications are working.", href: "/dashboard" });
+    const sent = await sendPush(a.id, { title: "LIFE OS", body: translate(a.user.language === "ar" ? "ar" : "en", "Push notifications are working."), href: "/dashboard" });
     if (!sent) throw new ApiError(502, "No push was delivered. Re-enable notifications and try again.");
     return { sent };
   }
