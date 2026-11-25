@@ -35,17 +35,17 @@ export async function generateNotifications(context: NotifyContext) {
   ]);
 
   const candidates: { kind: string; title: string; body: string; href: string; dedupeKey: string }[] = dueTasks.map((t) => ({
-    kind: "task_due", title: "Task due today", body: t.title, href: "/tasks", dedupeKey: \`task-due:\${t.id}:\${today}\`,
+    kind: "task_due", title: "Task due today", body: t.title, href: "/tasks", dedupeKey: "task-due:" + t.id + ":" + today,
   }));
   const challenge = challengeRows.find((c) => !c.completedAt);
-  if (challenge) candidates.push({ kind: "challenge", title: "Your daily challenge is waiting", body: challenge.title, href: "/challenge", dedupeKey: \`challenge:\${challenge.id}\` });
+  if (challenge) candidates.push({ kind: "challenge", title: "Your daily challenge is waiting", body: challenge.title, href: "/challenge", dedupeKey: "challenge:" + challenge.id });
 
   const completed = new Set(todayLogs.map((l) => l.habitId));
   const weekday = new Date(today + "T00:00:00Z").getUTCDay();
   for (const habit of activeHabits) {
     if (completed.has(habit.id) || !habit.days.includes(weekday)) continue;
     if (habit.reminderTime && now < habit.reminderTime) continue;
-    candidates.push({ kind: "habit", title: "Habit reminder", body: habit.name, href: "/habits", dedupeKey: \`habit:\${habit.id}:\${today}\` });
+    candidates.push({ kind: "habit", title: "Habit reminder", body: habit.name, href: "/habits", dedupeKey: "habit:" + habit.id + ":" + today });
   }
 
   if (!candidates.length) return [];
