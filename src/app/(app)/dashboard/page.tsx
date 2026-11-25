@@ -70,7 +70,7 @@ export default function DashboardPage() {
 
       {data && (
         <>
-          <style>{" .dashboard-layout{display:flex;flex-wrap:wrap;gap:var(--gap);align-items:start}.dashboard-widget{min-width:0;width:100%}@media(min-width:768px){.dashboard-size-compact,.dashboard-size-standard{flex:0 0 calc(50% - var(--gap)/2)}.dashboard-size-wide{flex:0 0 100%}}@media(min-width:1200px){.dashboard-size-compact{flex:0 0 calc((100% - 3*var(--gap))/4)}.dashboard-size-standard{flex:0 0 calc((100% - var(--gap))/2)}.dashboard-size-wide{flex:0 0 100%}}" + order.map((key,index) => ".dashboard-widget-" + key + "{order:" + index + "}").join("")}</style>
+          <style>{" .dashboard-layout{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;align-items:start}.dashboard-widget{min-width:0;width:100%}.dashboard-size-compact,.dashboard-size-standard,.dashboard-size-wide{grid-column:span 1}@media(min-width:768px){.dashboard-layout{grid-template-columns:repeat(2,minmax(0,1fr))}.dashboard-size-standard,.dashboard-size-wide{grid-column:span 2}}@media(min-width:1200px){.dashboard-layout{grid-template-columns:repeat(4,minmax(0,1fr))}.dashboard-size-compact{grid-column:span 1}.dashboard-size-standard{grid-column:span 2}.dashboard-size-wide{grid-column:span 4}}" + order.map((key,index) => ".dashboard-widget-" + key + "{order:" + index + "}").join("")}</style>
           <div className="dashboard-layout">
           <div className="contents">
             {show("progress") && (
