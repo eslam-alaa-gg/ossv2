@@ -91,7 +91,7 @@ export default function SettingsPage() {
           </Card>
           <Card>
             <h2 className="mb-2 flex items-center gap-2 text-sm font-medium text-muted"><Music2 className="size-4" /> {t("Spotify & appearance")}</h2>
-            <p className="text-sm text-muted">Connection, ambience and playback options are in the <Link href="/music" className="text-accent">{t("Music Hub")}</Link>. Colors, gradients and fonts are in the <Link href="/themes" className="text-accent">{t("Theme Studio")}</Link>.</p>
+            <p className="text-sm text-muted">{t("Connection, ambience and playback options are in the ")}<Link href="/music" className="text-accent">{t("Music Hub")}</Link>. {t("Colors, gradients and fonts are in the ")}<Link href="/themes" className="text-accent">{t("Theme Studio")}</Link>.</p>
           </Card>
           <Card>
             <h2 className="mb-2 flex items-center gap-2 text-sm font-medium text-muted"><Download className="size-4" /> {t("Your data")}</h2>
