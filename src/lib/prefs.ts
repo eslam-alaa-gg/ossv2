@@ -98,6 +98,18 @@ export function parsePrefs(raw: unknown): Prefs {
       };
     } else if (isObj(val) && isObj(DEFAULT_PREFS[k])) {
       val = { ...(DEFAULT_PREFS[k] as object), ...val };
+      if (k === "dashboard") {
+        const dashboard = val as Record<string, unknown>;
+        const widgets = isObj(dashboard.widgets) ? dashboard.widgets : {};
+        const sizes = isObj(dashboard.sizes) ? dashboard.sizes : {};
+        const suppliedOrder = Array.isArray(dashboard.order) ? dashboard.order : [];
+        const validOrder = suppliedOrder.filter((item): item is string =>
+          typeof item === "string" && (WIDGETS as readonly string[]).includes(item)
+        );
+        dashboard.widgets = { ...DEFAULT_PREFS.dashboard.widgets, ...widgets };
+        dashboard.sizes = { ...DEFAULT_PREFS.dashboard.sizes, ...sizes };
+        dashboard.order = [...new Set([...validOrder, ...WIDGETS])];
+      }
     }
     if (val === undefined) continue;
     const s = prefSchemas[k].safeParse(val);
