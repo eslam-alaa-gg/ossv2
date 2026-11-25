@@ -52,24 +52,24 @@ function Inner() {
     if (await run(() => api(`/api/tasks/${t.id}`, { method: "DELETE" }), "Task deleted")) { setModal(null); reload(); }
   }
 
-  const Row = ({ t }: { t: Task }) => {
-    const overdue = !!t.dueDate && t.dueDate < today && t.status !== "completed" && t.status !== "archived";
-    const done = t.status === "completed";
+  const Row = ({ task }: { task: Task }) => {
+    const overdue = !!task.dueDate && task.dueDate < today && task.status !== "completed" && task.status !== "archived";
+    const done = task.status === "completed";
     return (
       <div className="glass card-hover flex items-center gap-3 px-4 py-3" style={{ borderRadius: "var(--radius-sm)" }}>
-        <Checkbox checked={done} label={`${done ? "Restore" : "Complete"} ${t.title}`} onChange={(v) => patch(t, { status: v ? "completed" : "todo" })} disabled={t.status === "archived"} />
+        <Checkbox checked={done} label={`${done ? "Restore" : "Complete"} ${task.title}`} onChange={(v) => patch(t, { status: v ? "completed" : "todo" })} disabled={task.status === "archived"} />
         <button onClick={() => setModal({ task: t })} className="min-w-0 flex-1 text-start">
-          <p className={cn("truncate text-sm font-medium", done && "text-muted line-through")}>{t.title}</p>
+          <p className={cn("truncate text-sm font-medium", done && "text-muted line-through")}>{task.title}</p>
           <div className="mt-1 flex flex-wrap items-center gap-1.5">
-            <PriorityBadge p={t.priority} />
-            <Badge>{t.category}</Badge>
-            {t.status === "in_progress" && <Badge tone="blue">{t("In progress")}</Badge>}
-            {t.dueDate && <Badge tone={overdue ? "red" : t.dueDate === today ? "amber" : undefined}><CalendarClock className="size-3" />{overdue ? "Overdue · " : ""}{t.dueDate === today ? "Today" : fmtShort(t.dueDate, lang)}{t.dueTime ? ` ${t.dueTime}` : ""}</Badge>}
-            {t.recurrence !== "none" && <Badge><Repeat2 className="size-3" />{t.recurrence}</Badge>}
-            {t.tags.map((x) => <Badge key={x}>#{x}</Badge>)}
+            <PriorityBadge p={task.priority} />
+            <Badge>{task.category}</Badge>
+            {task.status === "in_progress" && <Badge tone="blue">{t("In progress")}</Badge>}
+            {task.dueDate && <Badge tone={overdue ? "red" : task.dueDate === today ? "amber" : undefined}><CalendarClock className="size-3" />{overdue ? "Overdue · " : ""}{task.dueDate === today ? "Today" : fmtShort(task.dueDate, lang)}{task.dueTime ? ` ${task.dueTime}` : ""}</Badge>}
+            {task.recurrence !== "none" && <Badge><Repeat2 className="size-3" />{task.recurrence}</Badge>}
+            {task.tags.map((x) => <Badge key={x}>#{x}</Badge>)}
           </div>
         </button>
-        {t.status === "archived" ? <Button size="sm" onClick={() => patch(t, { status: "todo" }, "Task restored")}><RotateCcw className="size-3.5" /> {t("Restore")}</Button> : <Button variant="ghost" size="icon" aria-label={t("Archive task")} onClick={() => patch(t, { status: "archived" }, "Task archived")}><Archive className="size-4" /></Button>}
+        {task.status === "archived" ? <Button size="sm" onClick={() => patch(t, { status: "todo" }, "Task restored")}><RotateCcw className="size-3.5" /> {t("Restore")}</Button> : <Button variant="ghost" size="icon" aria-label={t("Archive task")} onClick={() => patch(t, { status: "archived" }, "Task archived")}><Archive className="size-4" /></Button>}
       </div>
     );
   };
@@ -92,7 +92,7 @@ function Inner() {
       </div>
 
       {view === "calendar" ? <CalendarBoard tasksOnly /> : error && !data ? <ErrorState message={error} retry={reload} /> : loading && !data ? <ListSkeleton /> : view === "list" ? (
-        list.length === 0 ? <EmptyState icon={<CheckSquare className="size-6" />} title={tasks.length ? "No tasks match your filters" : "No tasks yet"} text={tasks.length ? "Try clearing the search or filters." : "Capture your first task — it only takes a few seconds."} action={!tasks.length && <Button variant="primary" onClick={() => setModal({})}>{t("Create task")}</Button>} /> : <div className="space-y-2.5">{list.map((t) => <Row key={t.id} t={t} />)}</div>
+        list.length === 0 ? <EmptyState icon={<CheckSquare className="size-6" />} title={tasks.length ? "No tasks match your filters" : "No tasks yet"} text={tasks.length ? "Try clearing the search or filters." : "Capture your first task — it only takes a few seconds."} action={!tasks.length && <Button variant="primary" onClick={() => setModal({})}>{t("Create task")}</Button>} /> : <div className="space-y-2.5">{list.map((t) => <Row key={t.id} task={t} />)}</div>
       ) : (
         <div className="grid gap-4 md:grid-cols-3">
           {cols.map((c) => {
