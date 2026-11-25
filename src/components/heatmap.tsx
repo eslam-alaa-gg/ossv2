@@ -37,7 +37,7 @@ export function Heatmap({ year, days, today }: { year: number; days: HeatDay[]; 
                   if (!inYear) return <span key={date} className="size-3" />;
                   const d = map.get(date);
                   const future = date > today;
-                  return <button key={date} role="gridcell" tabIndex={-1} aria-label={detail(d, date)} onMouseEnter={() => setTip(d ?? { date, score: 0, level: 0, tasks: 0, habits: 0, challenges: 0, focus: 0, focusMinutes: 0, milestones: 0 })} onFocus={() => setTip(d ?? { date, score: 0, level: 0, tasks: 0, habits: 0, challenges: 0, focus: 0, focusMinutes: 0, milestones: 0 })} className={cn("hm", `hm-${d?.level ?? 0}`, future && "opacity-30", date === today && "ring-1 ring-[var(--fg)]")} />;
+                  return <button key={date} role="gridcell" tabIndex={-1} aria-label={detail(d, date)} onMouseEnter={() => setTip(d ?? { date, score: 0, level: 0, tasks: 0, habits: 0, challenges: 0, focus: 0, focusMinutes: 0, milestones: 0 })} onFocus={() => setTip(d ?? { date, score: 0, level: 0, tasks: 0, habits: 0, challenges: 0, focus: 0, focusMinutes: 0, milestones: 0 })} onClick={() => setTip(d ?? { date, score: 0, level: 0, tasks: 0, habits: 0, challenges: 0, focus: 0, focusMinutes: 0, milestones: 0 })} onBlur={() => setTip(null)} tabIndex={0} className={cn("hm", `hm-${d?.level ?? 0}`, future && "opacity-30", date === today && "ring-1 ring-[var(--fg)]")} />;
                 })}
               </div>
             ))}
@@ -45,7 +45,7 @@ export function Heatmap({ year, days, today }: { year: number; days: HeatDay[]; 
         </div>
       </div>
       <div className="mt-3 flex min-h-12 flex-wrap items-center justify-between gap-3 text-xs">
-        <div className="text-muted" aria-live="polite">{tip ? <><b className="text-fg">{fmtLong(tip.date, lang)}</b> — {tip.score ? `${tip.score} pts · ${tip.tasks} tasks · ${tip.habits} habits · ${tip.challenges} challenges · ${tip.focus} focus (${tip.focusMinutes}m) · ${tip.milestones} milestones` : t("No verified activity")}</> : t("Hover or tap a day for details")}</div>
+        <div className="text-muted" aria-live="polite">{tip ? detail(tip, tip.date) : t("Hover or tap a day for details")}</div>
         <div className="flex items-center gap-1.5 text-faint">{t("Less")} {[0, 1, 2, 3, 4].map((l) => <span key={l} className={cn("hm", `hm-${l}`)} />)} {t("More")}</div>
       </div>
     </div>
