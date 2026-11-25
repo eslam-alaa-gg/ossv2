@@ -2,6 +2,11 @@
 export type Lang = "en" | "ar";
 
 const ar: Record<string, string> = {
+  "Get device token from OSSv2": "الحصول على رمز الجهاز من OSSv2",
+  "Pair Android": "ربط أندرويد",
+  "Device token": "رمز الجهاز",
+  "Copy token": "نسخ الرمز",
+  "Pair Android device": "ربط جهاز أندرويد",
   "Set by tracker": "يحدده المتتبع",
   "Customize": "تخصيص",
   "Done": "تم",
