@@ -5,9 +5,10 @@ import { AuthShell } from "@/components/auth";
 import { Button, Field } from "@/components/ui";
 import { api } from "@/lib/client";
 import { useApp } from "@/components/providers";
+import { translateError } from "@/lib/i18n";
 
 export default function ForgotPage() {
-  const { t } = useApp();
+  const { t, lang } = useApp();
   const [email, setEmail] = useState("");
   const [state, setState] = useState<{ done: boolean; configured?: boolean }>({ done: false });
   const [error, setError] = useState<string | null>(null);
@@ -20,7 +21,7 @@ export default function ForgotPage() {
       const r = await api<{ emailConfigured: boolean }>("/api/auth/forgot", { body: { email } });
       setState({ done: true, configured: r.emailConfigured });
     } catch (err) {
-      setError(err instanceof Error ? t(err.message) : t("Something went wrong."));
+      setError(err instanceof Error ? translateError(lang, err.message) : t("Something went wrong."));
     }
     setBusy(false);
   }
