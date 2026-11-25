@@ -20,6 +20,7 @@ export type PublicUser = {
   timezone: string;
   dailyGoal: number;
   emailVerified: boolean;
+  hasPassword: boolean;
   isDemo: boolean;
   onboarded: boolean;
   avatarVersion: number | null;
@@ -35,6 +36,7 @@ export function publicUser(u: DbUser): PublicUser {
     timezone: safeTz(u.timezone),
     dailyGoal: u.dailyGoal,
     emailVerified: u.emailVerified,
+    hasPassword: u.hasPassword,
     isDemo: u.isDemo,
     onboarded: u.onboarded,
     avatarVersion: u.avatarVersion,
