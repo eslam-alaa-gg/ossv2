@@ -526,6 +526,10 @@ const ar: Record<string, string> = {
   "Switch to English": "التبديل إلى الإنجليزية",
   "Switch to Arabic": "التبديل إلى العربية"
 
+  "Daily goal": "الهدف اليومي",
+  "Notification channels, quiet hours and data export live in": "إعدادات قنوات الإشعارات ووقت الهدوء وتصدير البيانات موجودة في",
+  "Timezone updated": "تم تحديث المنطقة الزمنية",
+  "Daily goal updated": "تم تحديث الهدف اليومي"
 };
 
 export function translate(lang: Lang, s: string): string {
