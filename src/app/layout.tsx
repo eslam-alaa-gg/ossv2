@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = { themeColor: "#0b0b10", viewportFit: "cover", width: "device-width", initialScale: 1 };
 
 const FONTS =
-  "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Cairo:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Arabic:wght@400;500;600&family=Manrope:wght@400;500;600;700&family=Source+Serif+4:wght@400;600&family=Noto+Naskh+Arabic:wght@400;600&display=swap";
+  "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playpen+Sans+Arabic:wght@400;500;600;700&family=Sniglet:wght@400;800&family=Kavoon&family=Merienda:wght@400;500;600;700&family=Shantell+Sans:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=Cairo:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&family=Source+Serif+4:wght@400;600&family=Noto+Naskh+Arabic:wght@400;600&display=swap";
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const u = await getSessionUser();
