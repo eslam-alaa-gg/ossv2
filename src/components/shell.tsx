@@ -50,7 +50,7 @@ function Sidebar({ collapsed, setCollapsed }: { collapsed: boolean; setCollapsed
   const path = usePathname();
   const { t } = useApp();
   return (
-    <aside className={cn("glass-panel fixed inset-y-3 start-3 z-40 hidden flex-col rounded-[var(--radius-lg)] p-3 transition-[width] duration-300 lg:flex", collapsed ? "w-[68px]" : "w-[248px]")} aria-label="Primary">
+    <aside className={cn("glass-panel fixed inset-y-3 start-3 z-40 hidden flex-col rounded-[var(--radius-lg)] p-3 transition-[width] duration-300 lg:flex", collapsed ? "w-[68px]" : "w-[248px]")} aria-label={t("Primary")}>
       <div className="mb-4 mt-1 flex items-center justify-between">
         <Brand collapsed={collapsed} />
       </div>
@@ -65,7 +65,7 @@ function Sidebar({ collapsed, setCollapsed }: { collapsed: boolean; setCollapsed
           );
         })}
       </nav>
-      <Button variant="ghost" size="sm" onClick={() => setCollapsed(!collapsed)} aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"} className="mt-2 justify-start">
+      <Button variant="ghost" size="sm" onClick={() => setCollapsed(!collapsed)} aria-label={collapsed ? t("Expand sidebar") : t("Collapse sidebar")} className="mt-2 justify-start">
         {collapsed ? <ChevronsRight className="size-4 rtl:rotate-180" /> : <><ChevronsLeft className="size-4 rtl:rotate-180" /> <span className="text-muted">Collapse</span></>}
       </Button>
       <SidebarUser collapsed={collapsed} />
@@ -106,7 +106,7 @@ function ProfileMenu() {
   const item = "flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm hover:bg-card";
   return (
     <div ref={ref} className="relative">
-      <button onClick={() => setOpen(!open)} aria-haspopup="menu" aria-expanded={open} aria-label="Account menu" className="header-icon-btn rounded-full transition-transform active:scale-95">
+      <button onClick={() => setOpen(!open)} aria-haspopup="menu" aria-expanded={open} aria-label={t("Account menu")} className="header-icon-btn rounded-full transition-transform active:scale-95">
         <Avatar size={46} ring />
       </button>
       <AnimatePresence>
@@ -116,7 +116,7 @@ function ProfileMenu() {
               <Avatar size={40} />
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium">{user.displayName}</p>
-                <p className="truncate text-xs text-faint">{user.isDemo ? "Demo account" : user.email}</p>
+                <p className="truncate text-xs text-faint">{user.isDemo ? t("Demo account") : user.email}</p>
               </div>
             </div>
             <div className="py-1" onClick={() => setOpen(false)}>
@@ -134,6 +134,7 @@ function ProfileMenu() {
 
 type Notif = { id: string; title: string; body: string; href: string | null; readAt: string | null; createdAt: string; kind: string };
 function Bell_() {
+  const { t } = useApp();
   const { data, reload } = useFetch<{ items: Notif[]; unread: number }>("/api/notifications");
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -151,7 +152,7 @@ function Bell_() {
   const markAll = async () => { await api("/api/notifications", { method: "POST", body: { all: true } }); reload(); };
   return (
     <div ref={ref} className="relative">
-      <Button variant="ghost" size="icon" className="header-icon-btn h-10 w-10" title="Notifications" aria-label={`Notifications${data?.unread ? `, ${data.unread} unread` : ""}`} onClick={() => { setOpen(!open); if (!open) reload(); }}>
+      <Button variant="ghost" size="icon" className="header-icon-btn h-10 w-10" title={t("Notifications")} aria-label={`${t("Notifications")}${data?.unread ? `, ${data.unread} unread` : ""}`} onClick={() => { setOpen(!open); if (!open) reload(); }}>
         <Bell className="size-[19px]" />
         {!!data?.unread && <span className="absolute end-1.5 top-1.5 grid min-w-4 place-items-center rounded-full bg-accent px-1 text-[10px] font-bold text-[var(--on-accent)]">{data.unread}</span>}
       </Button>
@@ -159,11 +160,11 @@ function Bell_() {
         {open && (
           <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="popover absolute end-0 top-12 z-50 w-[min(92vw,22rem)] p-2">
             <div className="flex items-center justify-between px-3 py-2">
-              <p className="text-sm font-semibold">Notifications</p>
-              {!!data?.unread && <button onClick={markAll} className="text-xs text-accent">Mark all read</button>}
+              <p className="text-sm font-semibold">{t("Notifications")}</p>
+              {!!data?.unread && <button onClick={markAll} className="text-xs text-accent">{t("Mark all read")}</button>}
             </div>
             <div className="max-h-80 overflow-y-auto">
-              {!data?.items.length && <p className="px-3 py-8 text-center text-sm text-muted">You're all caught up.</p>}
+              {!data?.items.length && <p className="px-3 py-8 text-center text-sm text-muted">{t("You're all caught up.")}</p>}
               {data?.items.map((n) => (
                 <button key={n.id} onClick={async () => { await api("/api/notifications", { method: "POST", body: { id: n.id } }); setOpen(false); reload(); if (n.href) router.push(n.href); }} className="flex w-full gap-3 rounded-lg px-3 py-2.5 text-start hover:bg-card">
                   <span className={cn("mt-1.5 size-2 shrink-0 rounded-full", n.readAt ? "bg-transparent" : "bg-accent")} />
@@ -211,8 +212,8 @@ function CommandMenu({ open, onClose }: { open: boolean; onClose: () => void }) 
   useEffect(() => setSel(0), [q]);
   const go = (href: string) => { onClose(); router.push(href); };
   return (
-    <Modal open={open} onClose={onClose} title="Command menu">
-      <input className="input" placeholder="Search or jump to…" aria-label="Search" value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => {
+    <Modal open={open} onClose={onClose} title={t("Command menu")}>
+      <input className="input" placeholder={t("Search or jump to…")} aria-label={t("Search")} value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => {
         if (e.key === "ArrowDown") { e.preventDefault(); setSel((s) => Math.min(s + 1, all.length - 1)); }
         if (e.key === "ArrowUp") { e.preventDefault(); setSel((s) => Math.max(s - 1, 0)); }
         if (e.key === "Enter" && all[sel]) go(all[sel].href);
@@ -226,7 +227,7 @@ function CommandMenu({ open, onClose }: { open: boolean; onClose: () => void }) 
             </button>
           </li>
         ))}
-        {q.trim().length >= 2 && !all.length && <li className="py-6 text-center text-sm text-muted">No results</li>}
+        {q.trim().length >= 2 && !all.length && <li className="py-6 text-center text-sm text-muted">{t("No results")}</li>}
         <li><button onClick={signOut} className="mt-1 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted hover:bg-card"><LogOut className="size-4" /> {t("Sign out")}</button></li>
       </ul>
     </Modal>
@@ -276,7 +277,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </div>
 
       {/* mobile floating pill navigation */}
-      <nav aria-label="Mobile" className="pb-safe fixed inset-x-0 bottom-3 z-40 flex justify-center px-3 lg:hidden">
+      <nav aria-label={t("Mobile")} className="pb-safe fixed inset-x-0 bottom-3 z-40 flex justify-center px-3 lg:hidden">
         <div className="glass-panel flex w-full max-w-md items-center justify-between gap-1 rounded-full p-1.5">
           {mobilePrimary.map((n) => {
             const active = path === n.href || path.startsWith(n.href + "/");
