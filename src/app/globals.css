@@ -136,12 +136,12 @@ html[data-motion="off"] .pointer-light { display: none; }
 
 /* ---------- refined floating glass topbar ---------- */
 .app-topbar {
-  border: 1px solid color-mix(in srgb, var(--border-strong) 72%, transparent);
-  border-radius: 18px;
-  background: color-mix(in srgb, var(--bg) 48%, transparent);
-  -webkit-backdrop-filter: blur(28px) saturate(165%);
-  backdrop-filter: blur(28px) saturate(165%);
-  box-shadow: 0 12px 34px rgba(0,0,0,.14), inset 0 1px 0 rgba(255,255,255,.055);
+  border: 1px solid color-mix(in srgb, var(--border-strong) 68%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg) 38%, transparent);
+  -webkit-backdrop-filter: blur(32px) saturate(175%);
+  backdrop-filter: blur(32px) saturate(175%);
+  box-shadow: 0 10px 30px rgba(0,0,0,.13), inset 0 1px 0 rgba(255,255,255,.09);
 }
 .header-icon-btn { transition: background-color var(--dur) ease, border-color var(--dur) ease, transform var(--dur) ease; }
 .glass-btn svg { transform-origin: center; transition: transform .24s cubic-bezier(.2,.8,.2,1), color .2s ease; }
@@ -151,6 +151,7 @@ html[data-motion="off"] .pointer-light { display: none; }
 @keyframes headerIconMotion { 0% { transform: rotate(0) scale(1); } 38% { transform: rotate(-9deg) scale(1.12); } 72% { transform: rotate(5deg) scale(1.04); } 100% { transform: rotate(0) scale(1); } }
 html[dir="rtl"] .app-topbar { direction: rtl; }
 @media (max-width: 420px) {
-  .app-topbar { margin-inline: .55rem; padding-inline: .55rem; gap: .35rem; }
-  .app-topbar .header-icon-btn { width: 2.55rem; height: 2.55rem; }
+  .app-topbar { width: calc(100% - 1rem); padding-inline: .55rem; gap: .3rem; }
+  .app-topbar .header-icon-btn { width: 2.25rem; height: 2.25rem; }
+  .app-topbar .avatar-ring img, .app-topbar img { max-width: 2.15rem; }
 }
