@@ -4,6 +4,7 @@ import { AlertTriangle, Check, CheckCircle2, Info, Loader2, X } from "lucide-rea
 import Link from "next/link";
 import { createContext, forwardRef, useCallback, useContext, useEffect, useId, useRef, useState, type ButtonHTMLAttributes, type ReactNode } from "react";
 import { ApiErr } from "@/lib/client";
+import { translate, type Lang } from "@/lib/i18n";
 
 export const cn = (...a: (string | false | null | undefined)[]) => a.filter(Boolean).join(" ");
 
@@ -84,8 +85,9 @@ export function Skeleton({ className }: { className?: string }) {
   return <div className={cn("skeleton", className)} aria-hidden />;
 }
 export function ListSkeleton({ rows = 4 }: { rows?: number }) {
+  const lang = useContext(LocaleContext);
   return (
-    <div className="space-y-3" aria-busy aria-label="Loading">
+    <div className="space-y-3" aria-busy aria-label={translate(lang, "Loading")}>
       {Array.from({ length: rows }).map((_, i) => (
         <Skeleton key={i} className="h-16" />
       ))}
@@ -105,13 +107,14 @@ export function EmptyState({ icon, title, text, action }: { icon: ReactNode; tit
 }
 
 export function ErrorState({ message, retry }: { message: string; retry?: () => void }) {
+  const lang = useContext(LocaleContext);
   return (
     <div role="alert" className="flex flex-col items-center gap-3 rounded-[var(--radius)] border border-red-400/30 bg-red-500/5 px-6 py-8 text-center">
       <AlertTriangle className="size-6 text-red-400" />
-      <p className="text-sm">{message}</p>
+      <p className="text-sm">{translate(lang, message)}</p>
       {retry && (
         <Button size="sm" onClick={retry}>
-          Try again
+          {translate(lang, "Try again")}
         </Button>
       )}
     </div>
@@ -210,7 +213,7 @@ export function Modal({ open, onClose, title, children, footer, wide }: { open: 
           >
             <div className="flex items-center justify-between border-b border-line px-5 py-4">
               <h2 className="text-base font-semibold">{title}</h2>
-              <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close">
+              <Button variant="ghost" size="icon" onClick={onClose} aria-label={translate(lang, "Close")}>
                 <X className="size-4" />
               </Button>
             </div>
@@ -225,6 +228,8 @@ export function Modal({ open, onClose, title, children, footer, wide }: { open: 
 
 /* ------------------------------ toasts + confirm ----------------------- */
 type Toast = { id: number; kind: "success" | "error" | "info"; text: string; action?: { label: string; href: string } };
+const LocaleContext = createContext<Lang>("en");
+
 type UICtx = {
   toast: (kind: Toast["kind"], text: string, action?: Toast["action"]) => void;
   run: <T>(fn: () => Promise<T>, success?: string) => Promise<T | undefined>;
@@ -237,7 +242,8 @@ export const useUI = () => {
   return c;
 };
 
-export function UIProvider({ children }: { children: ReactNode }) {
+export function UIProvider({ children, lang }: { children: ReactNode; lang: Lang }) {
+  const t = (s: string) => translate(lang, s);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [conf, setConf] = useState<{ text: string; label: string; resolve: (v: boolean) => void } | null>(null);
   const toast = useCallback<UICtx["toast"]>((kind, text, action) => {
@@ -252,16 +258,17 @@ export function UIProvider({ children }: { children: ReactNode }) {
         if (success) toast("success", success);
         return r;
       } catch (e) {
-        if (e instanceof ApiErr && e.code === "demo") toast("info", e.message, { label: "Create account", href: "/signup" });
-        else toast("error", e instanceof Error ? e.message : "Something went wrong.");
+        if (e instanceof ApiErr && e.code === "demo") toast("info", t("Demo accounts have limited access."), { label: t("Create account"), href: "/signup" });
+        else toast("error", e instanceof Error ? t(e.message) : t("Something went wrong."));
         return undefined;
       }
     },
     [toast],
   );
-  const confirm = useCallback<UICtx["confirm"]>((text, label = "Confirm") => new Promise((resolve) => setConf({ text, label, resolve })), []);
+  const confirm = useCallback<UICtx["confirm"]>((text, label = t("Confirm")) => new Promise((resolve) => setConf({ text: t(text), label: t(label), resolve })), [lang]);
   const icon = { success: <CheckCircle2 className="size-4 text-emerald-400" />, error: <AlertTriangle className="size-4 text-red-400" />, info: <Info className="size-4 text-sky-400" /> };
   return (
+    <LocaleContext.Provider value={lang}>
     <UI.Provider value={{ toast, run, confirm }}>
       {children}
       <div className="pointer-events-none fixed inset-x-0 bottom-24 z-[100] flex flex-col items-center gap-2 px-4 sm:bottom-6 sm:items-end sm:pe-6" aria-live="polite">
@@ -285,10 +292,10 @@ export function UIProvider({ children }: { children: ReactNode }) {
           conf?.resolve(false);
           setConf(null);
         }}
-        title="Are you sure?"
+        title={t("Are you sure?")}
         footer={
           <>
-            <Button onClick={() => { conf?.resolve(false); setConf(null); }}>Cancel</Button>
+            <Button onClick={() => { conf?.resolve(false); setConf(null); }}>{t("Cancel")}</Button>
             <Button variant="primary" onClick={() => { conf?.resolve(true); setConf(null); }}>
               {conf?.label}
             </Button>
@@ -298,6 +305,7 @@ export function UIProvider({ children }: { children: ReactNode }) {
         <p className="text-sm text-muted">{conf?.text}</p>
       </Modal>
     </UI.Provider>
+    </LocaleContext.Provider>
   );
 }
 
