@@ -52,7 +52,7 @@ export default function DashboardPage() {
           <div>
             <p className="text-sm text-muted">{data ? fmtLong(data.today, lang) : "\u00a0"}</p>
             <h1 className="mt-1 text-[1.65rem] font-semibold tracking-tight sm:text-3xl">{t(greet)}, <span className="accent-grad">{first}</span>.</h1>
-            <p className="mt-1.5 text-sm text-muted">{data ? (data.remaining ? `${data.remaining} task${data.remaining > 1 ? "s" : ""} need your attention today.` : "You're all clear for today.") : "Loading your day…"}</p>
+            <p className="mt-1.5 text-sm text-muted">{data ? (data.remaining ? `${data.remaining} ${t(data.remaining === 1 ? "task" : "tasks")} ${t("need your attention today.")}` : t("You're all clear for today.")) : t("Loading your day…")}</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Link href="/tasks?new=1" className="glass-btn btn-primary"><Plus className="size-4" />{t("Create Task")}</Link>
@@ -91,7 +91,7 @@ export default function DashboardPage() {
             {show("habits") && (
               <Card {...widgetProps("habits")}>
                 <div className="mb-3 flex items-center justify-between"><h2 className="text-sm font-medium text-muted">{t("Habits")}</h2><span className="text-xs text-faint">{data.habits.done}/{data.habits.total} today</span></div>
-                {data.habits.total === 0 ? <EmptyState icon={<Repeat className="size-5" />} title="No habits scheduled today" action={<Link href="/habits?new=1" className="glass-btn btn-sm">Add habit</Link>} /> : (
+                {data.habits.total === 0 ? <EmptyState icon={<Repeat className="size-5" />} title={t("No habits scheduled today")} action={<Link href="/habits?new=1" className="glass-btn btn-sm">{t("Add habit")}</Link>} /> : (
                   <>
                     <Progress value={data.habits.total ? (100 * data.habits.done) / data.habits.total : 0} className="mb-3" />
                     <ul className="space-y-2">
@@ -102,7 +102,7 @@ export default function DashboardPage() {
                         </li>
                       ))}
                     </ul>
-                    <p className="mt-3 text-xs text-faint">Water, reading & learning habits complete from their trackers.</p>
+                    <p className="mt-3 text-xs text-faint">{t("Water, reading & learning habits complete from their trackers.")}</p>
                   </>
                 )}
               </Card>
@@ -115,7 +115,7 @@ export default function DashboardPage() {
                     <p className="text-lg font-semibold leading-snug">{data.challenge.title}</p>
                     <p className="mt-1 text-sm text-muted">{data.challenge.minutes} min · {data.challenge.difficulty} · +{data.challenge.xp} XP</p>
                     <div className="mt-auto pt-4">
-                      {data.challenge.completedAt ? <p className="flex items-center gap-2 text-sm text-emerald-400"><CheckCircle2 className="size-4" /> Completed today</p> : <Link href="/challenge" className="glass-btn btn-primary btn-sm">Open challenge</Link>}
+                      {data.challenge.completedAt ? <p className="flex items-center gap-2 text-sm text-emerald-400"><CheckCircle2 className="size-4" /> Completed today</p> : <Link href="/challenge" className="glass-btn btn-primary btn-sm">{t("Open challenge")}</Link>}
                     </div>
                   </>
                 ) : null}
@@ -143,8 +143,8 @@ export default function DashboardPage() {
             )}
             {show("weekly") && (
               <Card {...widgetProps("weekly")}>
-                <div className="mb-3 flex items-center justify-between"><h2 className="text-sm font-medium text-muted">{t("Weekly summary")}</h2><Link href="/review" className="text-xs text-accent">Review</Link></div>
-                <div className="flex h-20 items-end gap-1.5" role="img" aria-label="Activity score by day this week">
+                <div className="mb-3 flex items-center justify-between"><h2 className="text-sm font-medium text-muted">{t("Weekly summary")}</h2><Link href="/review" className="text-xs text-accent">{t("Review")}</Link></div>
+                <div className="flex h-20 items-end gap-1.5" role="img" aria-label={t("Activity score by day this week")}>
                   {data.week.map((d) => {
                     const max = Math.max(data.dailyGoal, ...data.week.map((x) => x.score), 1);
                     return (
@@ -155,7 +155,7 @@ export default function DashboardPage() {
                     );
                   })}
                 </div>
-                <p className="mt-3 text-xs text-muted">{data.weekTasks} tasks · {data.weekHabits} habits completed this week</p>
+                <p className="mt-3 text-xs text-muted">{data.weekTasks} {t("tasks")} · {data.weekHabits} {t("habits")} {t("completed this week")}</p>
               </Card>
             )}
           </div>
@@ -163,8 +163,8 @@ export default function DashboardPage() {
           <div className="contents">
             {show("reminders") && (
               <Card {...widgetProps("reminders")}>
-                <div className="mb-3 flex items-center justify-between"><h2 className="text-sm font-medium text-muted">{t("Upcoming reminders")}</h2><Link href="/tasks" className="text-xs text-accent">All tasks</Link></div>
-                {data.upcoming.length === 0 ? <EmptyState icon={<Clock className="size-5" />} title="Nothing scheduled" text="Tasks with due dates will show up here." /> : (
+                <div className="mb-3 flex items-center justify-between"><h2 className="text-sm font-medium text-muted">{t("Upcoming reminders")}</h2><Link href="/tasks" className="text-xs text-accent">{t("All tasks")}</Link></div>
+                {data.upcoming.length === 0 ? <EmptyState icon={<Clock className="size-5" />} title={t("Nothing scheduled")} text={t("Tasks with due dates will show up here.")} /> : (
                   <ul className="divide-y divide-[var(--border)]">
                     {data.upcoming.map((u) => (
                       <li key={u.id} className="flex items-center justify-between gap-3 py-2.5 text-sm">
@@ -178,8 +178,8 @@ export default function DashboardPage() {
             )}
             {show("achievements") && (
               <Card {...widgetProps("achievements")}>
-                <div className="mb-3 flex items-center justify-between"><h2 className="text-sm font-medium text-muted">{t("Recent achievements")}</h2><Link href="/achievements" className="text-xs text-accent">All <ArrowUpRight className="inline size-3" /></Link></div>
-                {data.recent.length === 0 ? <EmptyState icon={<Trophy className="size-5" />} title="No badges yet" text="Complete a task, habit or focus session to unlock your first." /> : (
+                <div className="mb-3 flex items-center justify-between"><h2 className="text-sm font-medium text-muted">{t("Recent achievements")}</h2><Link href="/achievements" className="text-xs text-accent">{t("All")} <ArrowUpRight className="inline size-3" /></Link></div>
+                {data.recent.length === 0 ? <EmptyState icon={<Trophy className="size-5" />} title={t("No badges yet")} text={t("Complete a task, habit or focus session to unlock your first.")} /> : (
                   <ul className="space-y-3">
                     {data.recent.map((r) => (
                       <li key={r.key} className="flex items-center gap-3"><span className="grid size-10 place-items-center rounded-xl bg-card text-accent"><Trophy className="size-5" /></span><span className="min-w-0"><span className="block text-sm font-medium">{r.title}</span><span className="block truncate text-xs text-muted">{r.desc}</span></span></li>
@@ -194,17 +194,17 @@ export default function DashboardPage() {
         </>
       )}
 
-      <Modal open={custom} onClose={() => setCustom(false)} title="Customize dashboard">
-        <p className="mb-3 text-sm text-muted">Choose which widgets appear. Saved to your account.</p>
+      <Modal open={custom} onClose={() => setCustom(false)} title={t("Customize dashboard")}>
+        <p className="mb-3 text-sm text-muted">{t("Choose which widgets appear. Saved to your account.")}</p>
         <ul className="space-y-1">
           {WIDGETS.map((k) => (
             <li key={k} className="flex items-center justify-between rounded-lg px-1 py-2 text-sm">
-              <span className="min-w-0 flex-1">{LABELS[k]}</span>
+              <span className="min-w-0 flex-1">{t(LABELS[k])}</span>
               <div className="flex items-center gap-1">
                 <Button variant="ghost" size="icon" aria-label={"Move " + LABELS[k] + " up"} onClick={() => moveWidget(k, -1)} disabled={order.indexOf(k) === 0}>↑</Button>
                 <Button variant="ghost" size="icon" aria-label={"Move " + LABELS[k] + " down"} onClick={() => moveWidget(k, 1)} disabled={order.indexOf(k) === order.length - 1}>↓</Button>
-                <select aria-label={LABELS[k] + " size"} value={sizes[k] ?? "standard"} onChange={(e) => void saveDashboard(order, { ...sizes, [k]: e.target.value as "compact" | "standard" | "wide" })} className="max-w-24 rounded-lg border border-line bg-[var(--input)] px-2 py-1.5 text-xs"><option value="compact">Small</option><option value="standard">Medium</option><option value="wide">Wide</option></select>
-                <Switch checked={show(k)} label={LABELS[k]} onChange={(v) => void saveDashboard(order, sizes, { ...w, [k]: v })} />
+                <select aria-label={LABELS[k] + " size"} value={sizes[k] ?? "standard"} onChange={(e) => void saveDashboard(order, { ...sizes, [k]: e.target.value as "compact" | "standard" | "wide" })} className="max-w-24 rounded-lg border border-line bg-[var(--input)] px-2 py-1.5 text-xs"><option value="compact">{t("Small")}</option><option value="standard">{t("Medium")}</option><option value="wide">{t("Wide")}</option></select>
+                <Switch checked={show(k)} label={t(LABELS[k])} onChange={(v) => void saveDashboard(order, sizes, { ...w, [k]: v })} />
               </div>
             </li>
           ))}
