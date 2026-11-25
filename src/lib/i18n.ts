@@ -1044,6 +1044,7 @@ const ar: Record<string, string> = {
   "Computer": "كمبيوتر",
   "Speaker": "مكبر صوت",
   "Tablet": "جهاز لوحي",
+  "Push notifications are working.": "إشعارات المتصفح تعمل بشكل صحيح.",
 };
 
 export function translate(lang: Lang, s: string): string {
