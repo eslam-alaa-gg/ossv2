@@ -103,7 +103,7 @@ function Inner() {
             <h3 className="mb-3 text-sm font-medium text-muted">{t("Last 14 days")}</h3>
             <Bars days={trackers.data.water.days} today={trackers.data.today} max={Math.max(trackers.data.water.goal, ...trackers.data.water.days.map((d) => d.v))} unit="ml" />
             <h3 className="mb-2 mt-5 text-sm font-medium text-muted">{t("Today's intake")}</h3>
-            {trackers.data.water.entries.length === 0 ? <p className="text-sm text-muted">{t("No water logged yet today.")}</p> : <ul className="space-y-1.5">{trackers.data.water.entries.map((w) => <li key={w.id} className="flex items-center justify-between text-sm"><span>{w.ml} ml <span className="text-xs text-faint">· {new Date(w.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span></span><Button variant="ghost" size="icon" aria-label={t("Remove entry")} onClick={async () => { await run(() => api(`/api/trackers/water?id=${w.id}`, { method: "DELETE" })); reloadAll(); }}><Trash2 className="size-3.5" /></Button></li>)}</ul>}
+            {trackers.data.water.entries.length === 0 ? <p className="text-sm text-muted">{t("No water logged yet today.")}</p> : <ul className="space-y-1.5">{trackers.data.water.entries.map((w) => <li key={w.id} className="flex items-center justify-between text-sm"><span>{w.ml} ml <span className="text-xs text-faint">· {new Date(w.createdAt).toLocaleTimeString(lang === "ar" ? "ar-EG" : "en", { hour: "2-digit", minute: "2-digit" })}</span></span><Button variant="ghost" size="icon" aria-label={t("Remove entry")} onClick={async () => { await run(() => api(`/api/trackers/water?id=${w.id}`, { method: "DELETE" })); reloadAll(); }}><Trash2 className="size-3.5" /></Button></li>)}</ul>}
           </Card>
         </div>
       )}
