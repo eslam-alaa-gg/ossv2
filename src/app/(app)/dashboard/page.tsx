@@ -31,10 +31,10 @@ export default function DashboardPage() {
   const w = prefs.dashboard.widgets;
   const order = prefs.dashboard.order;
   const sizes = prefs.dashboard.sizes;
-  const saveDashboard = (nextOrder = order, nextSizes = sizes, nextWidgets = w) => run(() => savePrefs({ dashboard: { widgets: nextWidgets, order: nextOrder, sizes: nextSizes } }), "Dashboard layout saved.");
+  const saveDashboard = (nextOrder = order, nextSizes = sizes, nextWidgets = w) => run(() => savePrefs({ dashboard: { widgets: nextWidgets, order: nextOrder, sizes: nextSizes } }), t("Dashboard layout saved."));
   const moveWidget = (key: string, delta: number) => { const next = [...order]; const from = next.indexOf(key); const to = Math.max(0, Math.min(next.length - 1, from + delta)); if (from < 0 || from === to) return; next.splice(from, 1); next.splice(to, 0, key); void saveDashboard(next); };
   const dropWidget = (target: string) => { if (!dragging || dragging === target) return; const next = [...order]; const from = next.indexOf(dragging); const to = next.indexOf(target); if (from < 0 || to < 0) return; next.splice(from, 1); next.splice(to, 0, dragging); setDragging(null); void saveDashboard(next); };
-  const widgetProps = (key: string) => ({ className: "dashboard-widget dashboard-widget-" + key + " dashboard-size-" + (sizes[key] ?? "standard"), draggable: true, onDragStart: (event: DragEvent<HTMLDivElement>) => { setDragging(key); event.dataTransfer.effectAllowed = "move"; event.dataTransfer.setData("text/plain", key); }, onDragOver: (event: DragEvent<HTMLDivElement>) => event.preventDefault(), onDrop: (event: DragEvent<HTMLDivElement>) => { event.preventDefault(); dropWidget(key); }, onDragEnd: () => setDragging(null) });
+  const widgetProps = (key: string) => ({ className: "dashboard-widget dashboard-widget-" + key + " dashboard-size-" + (sizes[key] ?? "standard") + (key === "challenge" ? " flex flex-col" : ""), draggable: true, onDragStart: (event: DragEvent<HTMLDivElement>) => { setDragging(key); event.dataTransfer.effectAllowed = "move"; event.dataTransfer.setData("text/plain", key); }, onDragOver: (event: DragEvent<HTMLDivElement>) => event.preventDefault(), onDrop: (event: DragEvent<HTMLDivElement>) => { event.preventDefault(); dropWidget(key); }, onDragEnd: () => setDragging(null) });
   const show = (k: string) => w[k] !== false;
   const hour = hourIn(user?.timezone);
   const greet = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
@@ -60,7 +60,7 @@ export default function DashboardPage() {
             <Link href="/focus" className="glass-btn"><Timer className="size-4" />{t("Start Focus")}</Link>
             <Link href="/vault?new=1" className="glass-btn"><BookMarked className="size-4" />{t("Create Note")}</Link>
             <Link href="/goals?new=1" className="glass-btn"><Target className="size-4" />{t("Add Goal")}</Link>
-            <Button variant="ghost" size="icon" onClick={() => setCustom(true)} aria-label="Customize dashboard"><SlidersHorizontal className="size-4" /></Button>
+            <Button variant="ghost" size="icon" onClick={() => setCustom(true)} aria-label={t("Customize dashboard")}><SlidersHorizontal className="size-4" /></Button>
           </div>
         </div>
       </div>
@@ -70,7 +70,7 @@ export default function DashboardPage() {
 
       {data && (
         <>
-          <style>{" .dashboard-layout{display:flex;flex-wrap:wrap;gap:var(--gap);align-items:start}.dashboard-widget{min-width:0;width:100%}@media(min-width:768px){.dashboard-size-compact,.dashboard-size-standard{flex:0 0 calc(50% - var(--gap)/2)}.dashboard-size-wide{flex:0 0 100%}}@media(min-width:1200px){.dashboard-size-compact{flex:0 0 calc((100% - 3*var(--gap))/4)}.dashboard-size-standard{flex:0 0 calc((100% - var(--gap))/2)}.dashboard-size-wide{flex:0 0 100%}}" + order.map((key,index) => ".dashboard-widget-" + key + "{order:" + index + "}").join("")}</style>
+          <style>{" .dashboard-layout{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;align-items:start}.dashboard-widget{min-width:0;width:100%}.dashboard-size-compact,.dashboard-size-standard,.dashboard-size-wide{grid-column:span 1}@media(min-width:768px){.dashboard-layout{grid-template-columns:repeat(2,minmax(0,1fr))}.dashboard-size-standard,.dashboard-size-wide{grid-column:span 2}}@media(min-width:1200px){.dashboard-layout{grid-template-columns:repeat(4,minmax(0,1fr))}.dashboard-size-compact{grid-column:span 1}.dashboard-size-standard{grid-column:span 2}.dashboard-size-wide{grid-column:span 4}}" + order.map((key,index) => ".dashboard-widget-" + key + "{order:" + index + "}").join("")}</style>
           <div className="dashboard-layout">
           <div className="contents">
             {show("progress") && (
@@ -78,19 +78,19 @@ export default function DashboardPage() {
                 <h2 className="mb-4 text-sm font-medium text-muted">{t("Today's progress")}</h2>
                 <div className="flex items-center gap-5">
                   <Ring value={(data.score / data.dailyGoal) * 100} size={104}>
-                    <div><p className="text-2xl font-semibold tabular-nums">{data.score}</p><p className="text-[10px] text-faint">of {data.dailyGoal} pts</p></div>
+                    <div><p className="text-2xl font-semibold tabular-nums">{data.score}</p><p className="text-[10px] text-faint">{t("of")} {data.dailyGoal} {t("pts")}</p></div>
                   </Ring>
                   <div className="space-y-2 text-sm">
                     <p><span className="font-semibold tabular-nums">{data.completedToday}</span> <span className="text-muted">{t("Completed tasks").toLowerCase()}</span></p>
-                    <p><span className="font-semibold tabular-nums">{data.remaining}</span> <span className="text-muted">{t("Remaining").toLowerCase()} due</span></p>
-                    {data.overdue > 0 && <p className="text-xs text-red-400">{data.overdue} overdue</p>}
+                    <p><span className="font-semibold tabular-nums">{data.remaining}</span> <span className="text-muted">{t("Remaining").toLowerCase()} {t("due")}</span></p>
+                    {data.overdue > 0 && <p className="text-xs text-red-400">{data.overdue} {t("overdue")}</p>}
                   </div>
                 </div>
               </Card>
             )}
             {show("habits") && (
               <Card {...widgetProps("habits")}>
-                <div className="mb-3 flex items-center justify-between"><h2 className="text-sm font-medium text-muted">{t("Habits")}</h2><span className="text-xs text-faint">{data.habits.done}/{data.habits.total} today</span></div>
+                <div className="mb-3 flex items-center justify-between"><h2 className="text-sm font-medium text-muted">{t("Habits")}</h2><span className="text-xs text-faint">{data.habits.done}/{data.habits.total} {t("today")}</span></div>
                 {data.habits.total === 0 ? <EmptyState icon={<Repeat className="size-5" />} title={t("No habits scheduled today")} action={<Link href="/habits?new=1" className="glass-btn btn-sm">{t("Add habit")}</Link>} /> : (
                   <>
                     <Progress value={data.habits.total ? (100 * data.habits.done) / data.habits.total : 0} className="mb-3" />
@@ -108,14 +108,14 @@ export default function DashboardPage() {
               </Card>
             )}
             {show("challenge") && (
-              <Card {...widgetProps("challenge")} className={"flex flex-col dashboard-widget dashboard-widget-challenge dashboard-size-" + (sizes.challenge ?? "standard")}>
+              <Card {...widgetProps("challenge")}>
                 <div className="mb-3 flex items-center justify-between"><h2 className="text-sm font-medium text-muted">{t("Daily Challenge")}</h2><Zap className="size-4 text-accent" /></div>
                 {data.challenge ? (
                   <>
-                    <p className="text-lg font-semibold leading-snug">{data.challenge.title}</p>
-                    <p className="mt-1 text-sm text-muted">{data.challenge.minutes} min · {data.challenge.difficulty} · +{data.challenge.xp} XP</p>
+                    <p className="text-lg font-semibold leading-snug">{t(data.challenge.title)}</p>
+                    <p className="mt-1 text-sm text-muted">{data.challenge.minutes} {t("min")} · {t(data.challenge.difficulty)} · +{data.challenge.xp} XP</p>
                     <div className="mt-auto pt-4">
-                      {data.challenge.completedAt ? <p className="flex items-center gap-2 text-sm text-emerald-400"><CheckCircle2 className="size-4" /> Completed today</p> : <Link href="/challenge" className="glass-btn btn-primary btn-sm">{t("Open challenge")}</Link>}
+                      {data.challenge.completedAt ? <p className="flex items-center gap-2 text-sm text-emerald-400"><CheckCircle2 className="size-4" /> {t("Completed today")}</p> : <Link href="/challenge" className="glass-btn btn-primary btn-sm">{t("Open challenge")}</Link>}
                     </div>
                   </>
                 ) : null}
@@ -127,9 +127,9 @@ export default function DashboardPage() {
             {show("streak") && (
               <Card {...widgetProps("streak")}>
                 <h2 className="mb-3 text-sm font-medium text-muted">{t("Current streak")}</h2>
-                <div className="flex items-end gap-2"><Flame className="mb-1 size-7 text-orange-400" /><span className="text-4xl font-semibold tabular-nums">{data.streak.current}</span><span className="mb-1.5 text-sm text-muted">day{data.streak.current === 1 ? "" : "s"}</span></div>
-                <p className="mt-1 text-xs text-faint">Best {data.streak.longest} · {data.weeklyStreak} week streak</p>
-                <div className="mt-4 flex items-center justify-between text-xs"><span className="font-medium">Level {data.level.level}</span><span className="text-faint">{data.level.into}/{data.level.span} XP</span></div>
+                <div className="flex items-end gap-2"><Flame className="mb-1 size-7 text-orange-400" /><span className="text-4xl font-semibold tabular-nums">{data.streak.current}</span><span className="mb-1.5 text-sm text-muted">{t(data.streak.current === 1 ? "day" : "days")}</span></div>
+                <p className="mt-1 text-xs text-faint">{t("Best")} {data.streak.longest} · {data.weeklyStreak} {t("week streak")}</p>
+                <div className="mt-4 flex items-center justify-between text-xs"><span className="font-medium">{t("Level")} {data.level.level}</span><span className="text-faint">{data.level.into}/{data.level.span} XP</span></div>
                 <Progress value={(100 * data.level.into) / data.level.span} className="mt-1.5" />
               </Card>
             )}
@@ -137,7 +137,7 @@ export default function DashboardPage() {
               <Card {...widgetProps("focus")}>
                 <h2 className="mb-3 text-sm font-medium text-muted">{t("Focus time")}</h2>
                 <p className="text-4xl font-semibold tabular-nums">{minutesLabel(data.focusMinutes)}</p>
-                <p className="mt-1 text-xs text-faint">today · {minutesLabel(data.weekFocusMinutes)} this week</p>
+                <p className="mt-1 text-xs text-faint">{t("today")} · {minutesLabel(data.weekFocusMinutes)} {t("this week")}</p>
                 <Link href="/focus" className="glass-btn btn-sm mt-4"><Timer className="size-4" /> {t("Start Focus")}</Link>
               </Card>
             )}
@@ -169,7 +169,7 @@ export default function DashboardPage() {
                     {data.upcoming.map((u) => (
                       <li key={u.id} className="flex items-center justify-between gap-3 py-2.5 text-sm">
                         <span className="truncate">{u.title}</span>
-                        <span className={`shrink-0 text-xs ${u.dueDate === data.today ? "text-amber-400" : "text-faint"}`}>{u.dueDate === data.today ? "Today" : fmtShort(u.dueDate, lang)}{u.dueTime ? ` · ${u.dueTime}` : ""}</span>
+                        <span className={`shrink-0 text-xs ${u.dueDate === data.today ? "text-amber-400" : "text-faint"}`}>{u.dueDate === data.today ? t("Today") : fmtShort(u.dueDate, lang)}{u.dueTime ? ` · ${u.dueTime}` : ""}</span>
                       </li>
                     ))}
                   </ul>
@@ -182,7 +182,7 @@ export default function DashboardPage() {
                 {data.recent.length === 0 ? <EmptyState icon={<Trophy className="size-5" />} title={t("No badges yet")} text={t("Complete a task, habit or focus session to unlock your first.")} /> : (
                   <ul className="space-y-3">
                     {data.recent.map((r) => (
-                      <li key={r.key} className="flex items-center gap-3"><span className="grid size-10 place-items-center rounded-xl bg-card text-accent"><Trophy className="size-5" /></span><span className="min-w-0"><span className="block text-sm font-medium">{r.title}</span><span className="block truncate text-xs text-muted">{r.desc}</span></span></li>
+                      <li key={r.key} className="flex items-center gap-3"><span className="grid size-10 place-items-center rounded-xl bg-card text-accent"><Trophy className="size-5" /></span><span className="min-w-0"><span className="block text-sm font-medium">{t(r.title)}</span><span className="block truncate text-xs text-muted">{t(r.desc)}</span></span></li>
                     ))}
                   </ul>
                 )}
@@ -201,9 +201,9 @@ export default function DashboardPage() {
             <li key={k} className="flex items-center justify-between rounded-lg px-1 py-2 text-sm">
               <span className="min-w-0 flex-1">{t(LABELS[k])}</span>
               <div className="flex items-center gap-1">
-                <Button variant="ghost" size="icon" aria-label={"Move " + LABELS[k] + " up"} onClick={() => moveWidget(k, -1)} disabled={order.indexOf(k) === 0}>↑</Button>
-                <Button variant="ghost" size="icon" aria-label={"Move " + LABELS[k] + " down"} onClick={() => moveWidget(k, 1)} disabled={order.indexOf(k) === order.length - 1}>↓</Button>
-                <select aria-label={LABELS[k] + " size"} value={sizes[k] ?? "standard"} onChange={(e) => void saveDashboard(order, { ...sizes, [k]: e.target.value as "compact" | "standard" | "wide" })} className="max-w-24 rounded-lg border border-line bg-[var(--input)] px-2 py-1.5 text-xs"><option value="compact">{t("Small")}</option><option value="standard">{t("Medium")}</option><option value="wide">{t("Wide")}</option></select>
+                <Button variant="ghost" size="icon" aria-label={t("Move {widget} up").replace("{widget}", t(LABELS[k]))} onClick={() => moveWidget(k, -1)} disabled={order.indexOf(k) === 0}>↑</Button>
+                <Button variant="ghost" size="icon" aria-label={t("Move {widget} down").replace("{widget}", t(LABELS[k]))} onClick={() => moveWidget(k, 1)} disabled={order.indexOf(k) === order.length - 1}>↓</Button>
+                <select aria-label={t("{widget} size").replace("{widget}", t(LABELS[k]))} value={sizes[k] ?? "standard"} onChange={(e) => void saveDashboard(order, { ...sizes, [k]: e.target.value as "compact" | "standard" | "wide" })} className="max-w-24 rounded-lg border border-line bg-[var(--input)] px-2 py-1.5 text-xs"><option value="compact">{t("Small")}</option><option value="standard">{t("Medium")}</option><option value="wide">{t("Wide")}</option></select>
                 <Switch checked={show(k)} label={t(LABELS[k])} onChange={(v) => void saveDashboard(order, sizes, { ...w, [k]: v })} />
               </div>
             </li>

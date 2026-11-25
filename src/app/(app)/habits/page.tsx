@@ -29,9 +29,10 @@ function Bars({ days, today, max, unit }: { days: { d: string; v: number }[]; to
 }
 
 function Inner() {
-  const { prefs, savePrefs, t } = useApp();
+  const { prefs, savePrefs, lang, t } = useApp();
   const { run, toast, confirm } = useUI();
   const sp = useSearchParams();
+  const dayLabels = lang === "ar" ? ["ح", "ن", "ث", "ر", "خ", "ج", "س"] : DAYS;
   const habits = useFetch<{ habits: Habit[]; today: string }>("/api/habits");
   const trackers = useFetch<Trackers>("/api/trackers");
   const [tab, setTab] = useState("habits");
@@ -41,18 +42,18 @@ function Inner() {
 
   async function log(h: Habit, amount: number) {
     const r = await run(() => api<{ completed: boolean; xp: number }>(`/api/habits/${h.id}/log`, { body: { amount: Math.max(0, amount) } }));
-    if (r?.xp) toast("success", `Habit complete · +${r.xp} XP`);
+    if (r?.xp) toast("success", `${t("Habit complete")} · +${r.xp} XP`);
     habits.reload();
   }
   async function remove(h: Habit) {
     if (!(await confirm(`Delete “${h.name}” and all its history?`, "Delete"))) return;
-    if (await run(() => api(`/api/habits/${h.id}`, { method: "DELETE" }), "Habit deleted")) reloadAll();
+    if (await run(() => api(`/api/habits/${h.id}`, { method: "DELETE" }), t("Habit deleted"))) reloadAll();
   }
 
   return (
     <>
       <PageHeader title={t("Habits")} subtitle={t("Small, consistent actions. General wellness tracking — not medical advice.")} actions={<Button variant="primary" onClick={() => setModal({})}><Plus className="size-4" /> {t("Add habit")}</Button>} />
-      <div className="mb-5"><Segmented value={tab} onChange={setTab} label={t("Habit sections")} options={[{ value: "habits", label: "My habits" }, { value: "water", label: "Water" }, { value: "reading", label: "Reading" }, { value: "learning", label: "Learning" }]} /></div>
+      <div className="mb-5"><Segmented value={tab} onChange={setTab} label={t("Habit sections")} options={[{ value: "habits", label: t("My habits") }, { value: "water", label: t("Water") }, { value: "reading", label: t("Reading") }, { value: "learning", label: t("Learning") }]} /></div>
 
       {tab === "habits" && (habits.error && !habits.data ? <ErrorState message={habits.error} retry={habits.reload} /> : !habits.data ? <ListSkeleton /> : habits.data.habits.length === 0 ? (
         <EmptyState icon={<Repeat className="size-6" />} title={t("Build your first habit")} text={t("Pick a ready-made habit like Drink Water or Meditation, or create your own.")} action={<Button variant="primary" onClick={() => setModal({})}>{t("Add habit")}</Button>} />
@@ -67,20 +68,20 @@ function Inner() {
                   <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-card text-accent"><HabitIcon name={h.icon} /></span>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2"><p className="truncate font-medium">{h.name}</p>{special && <Badge>{t("auto")}</Badge>}</div>
-                    <p className="truncate text-xs text-muted">{h.description || (h.days.length === 7 ? "Every day" : h.days.map((d) => DAYS[d]).join(" "))}</p>
+                    <p className="truncate text-xs text-muted">{h.description ? t(h.description) : h.days.length === 7 ? t("Every day") : h.days.map((d) => dayLabels[d]).join(" ")}</p>
                   </div>
-                  <Button variant="ghost" size="icon" onClick={() => setModal({ habit: h })} aria-label={`Edit ${h.name}`}><Pencil className="size-4" /></Button>
-                  <Button variant="ghost" size="icon" onClick={() => remove(h)} aria-label={`Delete ${h.name}`}><Trash2 className="size-4" /></Button>
+                  <Button variant="ghost" size="icon" onClick={() => setModal({ habit: h })} aria-label={t("Edit {title}").replace("{title}", h.name)}><Pencil className="size-4" /></Button>
+                  <Button variant="ghost" size="icon" onClick={() => remove(h)} aria-label={t("Delete {title}").replace("{title}", h.name)}><Trash2 className="size-4" /></Button>
                 </div>
                 <div className="mt-4 flex items-center gap-3">
                   {special ? (
-                    <button onClick={() => setTab(h.kind === "water" ? "water" : h.kind === "reading" ? "reading" : "learning")} className="flex-1 text-start"><Progress value={pct} /><p className="mt-1.5 text-xs text-muted">{h.todayAmount}/{h.target} {h.unit} today — open tracker</p></button>
+                    <button onClick={() => setTab(h.kind === "water" ? "water" : h.kind === "reading" ? "reading" : "learning")} className="flex-1 text-start"><Progress value={pct} /><p className="mt-1.5 text-xs text-muted">{h.todayAmount}/{h.target} {h.unit} {t("today — open tracker")}</p></button>
                   ) : h.target > 1 ? (
                     <div className="flex flex-1 items-center gap-2"><Button size="icon" onClick={() => log(h, h.todayAmount - 1)} aria-label={t("Decrease")}><Minus className="size-4" /></Button><div className="flex-1"><Progress value={pct} /><p className="mt-1.5 text-xs text-muted">{h.todayAmount}/{h.target} {h.unit}</p></div><Button size="icon" onClick={() => log(h, h.todayAmount + 1)} aria-label={t("Increase")}><Plus className="size-4" /></Button></div>
                   ) : (
-                    <label className="flex flex-1 items-center gap-3 text-sm"><Checkbox checked={h.todayDone} onChange={(v) => log(h, v ? 1 : 0)} label={`Mark ${h.name} ${h.todayDone ? "incomplete" : "done"} today`} />{h.todayDone ? "Done today" : h.days.includes(new Date().getDay()) ? "Mark as done" : "Not scheduled today"}</label>
+                    <label className="flex flex-1 items-center gap-3 text-sm"><Checkbox checked={h.todayDone} onChange={(v) => log(h, v ? 1 : 0)} label={`${t("Mark")} ${h.name} ${t(h.todayDone ? "incomplete" : "done")} ${t("today")}`} />{t(h.todayDone ? "Done today" : h.days.includes(new Date().getDay()) ? "Mark as done" : "Not scheduled today")}</label>
                   )}
-                  <div className="flex items-center gap-1 text-sm font-medium"><Flame className="size-4 text-orange-400" />{h.current}<span className="text-xs font-normal text-faint">/ best {h.longest}</span></div>
+                  <div className="flex items-center gap-1 text-sm font-medium"><Flame className="size-4 text-orange-400" />{h.current}<span className="text-xs font-normal text-faint">/ {t("best")} {h.longest}</span></div>
                 </div>
                 <div className="mt-4 flex gap-[3px]" aria-label={t("Last 28 days")}>
                   {Array.from({ length: 28 }, (_, i) => addDays(habits.data!.today, i - 27)).map((d) => <span key={d} title={fmtShort(d)} className={cn("hm flex-1", h.history.includes(d) && "hm-3")} style={{ height: 14 }} />)}
@@ -94,9 +95,9 @@ function Inner() {
       {tab === "water" && trackers.data && (
         <div className="grid gap-[var(--gap)] md:grid-cols-2">
           <Card className="flex flex-col items-center gap-4">
-            <Ring value={(100 * trackers.data.water.total) / trackers.data.water.goal} size={170} stroke={11}><div><Droplets className="mx-auto mb-1 size-5 text-accent" /><p className="text-2xl font-semibold tabular-nums">{trackers.data.water.total}</p><p className="text-xs text-faint">of {trackers.data.water.goal} ml</p></div></Ring>
+            <Ring value={(100 * trackers.data.water.total) / trackers.data.water.goal} size={170} stroke={11}><div><Droplets className="mx-auto mb-1 size-5 text-accent" /><p className="text-2xl font-semibold tabular-nums">{trackers.data.water.total}</p><p className="text-xs text-faint">{t("of")} {trackers.data.water.goal} ml</p></div></Ring>
             <div className="flex flex-wrap justify-center gap-2">{[150, 250, 330, 500].map((ml) => <Button key={ml} onClick={async () => { await run(() => api("/api/trackers/water", { body: { ml } })); reloadAll(); }}>+{ml} ml</Button>)}</div>
-            <div className="flex w-full items-end gap-2"><Field label={t("Daily goal (ml)")} className="flex-1"><input className="input" type="number" min={500} max={10000} step={100} defaultValue={prefs.waterGoal} onBlur={async (e) => { const v = Number(e.target.value); if (v !== prefs.waterGoal && v >= 500 && v <= 10000) { await run(() => savePrefs({ waterGoal: v }), "Water goal updated"); reloadAll(); } }} aria-label={t("Daily water goal")} /></Field></div>
+            <div className="flex w-full items-end gap-2"><Field label={t("Daily goal (ml)")} className="flex-1"><input className="input" type="number" min={500} max={10000} step={100} defaultValue={prefs.waterGoal} onBlur={async (e) => { const v = Number(e.target.value); if (v !== prefs.waterGoal && v >= 500 && v <= 10000) { await run(() => savePrefs({ waterGoal: v }), t("Water goal updated")); reloadAll(); } }} aria-label={t("Daily water goal")} /></Field></div>
           </Card>
           <Card>
             <h3 className="mb-3 text-sm font-medium text-muted">{t("Last 14 days")}</h3>
@@ -122,8 +123,8 @@ function ReadingTab({ tracker, reload }: { tracker: Trackers; reload: () => void
   return (
     <div className="grid gap-[var(--gap)] md:grid-cols-2">
       <Card>
-        <div className="mb-4 flex items-center gap-3"><BookOpen className="size-5 text-accent" /><div className="flex-1"><p className="font-medium">Today: {tracker.reading.todayPages} / {tracker.reading.target} pages</p><Progress value={(100 * tracker.reading.todayPages) / tracker.reading.target} className="mt-2" /></div></div>
-        <form className="space-y-3" onSubmit={async (e) => { e.preventDefault(); if (await run(() => api("/api/trackers/reading", { body: { book, pages: Number(pages) } }), "Reading logged")) { setPages(""); reload(); } }}>
+        <div className="mb-4 flex items-center gap-3"><BookOpen className="size-5 text-accent" /><div className="flex-1"><p className="font-medium">{t("Today")}: {tracker.reading.todayPages} / {tracker.reading.target} {t("pages")}</p><Progress value={(100 * tracker.reading.todayPages) / tracker.reading.target} className="mt-2" /></div></div>
+        <form className="space-y-3" onSubmit={async (e) => { e.preventDefault(); if (await run(() => api("/api/trackers/reading", { body: { book, pages: Number(pages) } }), t("Reading logged"))) { setPages(""); reload(); } }}>
           <Field label={t("Book name")}><input className="input" value={book} onChange={(e) => setBook(e.target.value)} maxLength={120} required aria-label={t("Book name")} list="books" /><datalist id="books">{[...new Set(tracker.reading.entries.map((e) => e.book))].map((b) => <option key={b} value={b} />)}</datalist></Field>
           <Field label={t("Pages read")}><input className="input" type="number" min={1} max={2000} value={pages} onChange={(e) => setPages(e.target.value)} required aria-label={t("Pages read")} /></Field>
           <Button type="submit" variant="primary" className="w-full">{t("Log reading")}</Button>
@@ -133,7 +134,7 @@ function ReadingTab({ tracker, reload }: { tracker: Trackers; reload: () => void
       </Card>
       <Card>
         <h3 className="mb-3 text-sm font-medium text-muted">{t("Reading history")}</h3>
-        {tracker.reading.entries.length === 0 ? <EmptyState icon={<BookOpen className="size-5" />} title={t("No reading yet")} text={t("Log your first session to start a history.")} /> : <ul className="divide-y divide-[var(--border)]">{tracker.reading.entries.map((r) => <li key={r.id} className="flex items-center justify-between py-2.5 text-sm"><span className="min-w-0"><span className="block truncate">{r.book}</span><span className="text-xs text-faint">{fmtShort(r.date)} · {r.pages} pages</span></span><Button variant="ghost" size="icon" aria-label={t("Remove entry")} onClick={async () => { await run(() => api(`/api/trackers/reading?id=${r.id}`, { method: "DELETE" })); reload(); }}><Trash2 className="size-3.5" /></Button></li>)}</ul>}
+        {tracker.reading.entries.length === 0 ? <EmptyState icon={<BookOpen className="size-5" />} title={t("No reading yet")} text={t("Log your first session to start a history.")} /> : <ul className="divide-y divide-[var(--border)]">{tracker.reading.entries.map((r) => <li key={r.id} className="flex items-center justify-between py-2.5 text-sm"><span className="min-w-0"><span className="block truncate">{r.book}</span><span className="text-xs text-faint">{fmtShort(r.date)} · {r.pages} {t("pages")}</span></span><Button variant="ghost" size="icon" aria-label={t("Remove entry")} onClick={async () => { await run(() => api(`/api/trackers/reading?id=${r.id}`, { method: "DELETE" })); reload(); }}><Trash2 className="size-3.5" /></Button></li>)}</ul>}
       </Card>
     </div>
   );
@@ -148,7 +149,7 @@ function LearningTab({ tracker, reload }: { tracker: Trackers; reload: () => voi
     <div className="grid gap-[var(--gap)] md:grid-cols-2">
       <Card>
         <div className="mb-4 flex items-center gap-2"><Lightbulb className="size-5 text-accent" /><p className="font-medium">{t("What did you learn?")}</p></div>
-        <form className="space-y-3" onSubmit={async (e) => { e.preventDefault(); if (await run(() => api("/api/trackers/learning", { body: { title, explanation: text } }), "Learning saved")) { setTitle(""); setText(""); reload(); } }}>
+        <form className="space-y-3" onSubmit={async (e) => { e.preventDefault(); if (await run(() => api("/api/trackers/learning", { body: { title, explanation: text } }), t("Learning saved"))) { setTitle(""); setText(""); reload(); } }}>
           <Field label={t("New knowledge")}><input className="input" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} required aria-label={t("New knowledge")} /></Field>
           <Field label={t("Short explanation")}><textarea className="input min-h-24" value={text} onChange={(e) => setText(e.target.value)} maxLength={1000} aria-label={t("Explanation")} /></Field>
           <Button type="submit" variant="primary" className="w-full">{t("Save entry")}</Button>
@@ -163,30 +164,30 @@ function LearningTab({ tracker, reload }: { tracker: Trackers; reload: () => voi
 }
 
 function HabitModal({ open, habit, onClose, onSaved, existing }: { open: boolean; habit?: Habit; onClose: () => void; onSaved: () => void; existing: Habit[] }) {
-  const { t } = useApp();
+  const { t, lang } = useApp();
   const { run } = useUI();
   const [f, setF] = useState({ name: "", description: "", icon: "sparkles", days: [0, 1, 2, 3, 4, 5, 6], target: 1, unit: "", reminderTime: "" });
   const [kind, setKind] = useState<"standard" | "water" | "reading" | "learning">("standard");
   useEffect(() => { if (open) { setKind(habit?.kind ?? "standard"); setF(habit ? { name: habit.name, description: habit.description, icon: habit.icon, days: habit.days, target: habit.target, unit: habit.unit, reminderTime: habit.reminderTime ?? "" } : { name: "", description: "", icon: "sparkles", days: [0, 1, 2, 3, 4, 5, 6], target: 1, unit: "", reminderTime: "" }); } }, [open, habit]);
   const save = async () => {
     const body = { ...f, reminderTime: f.reminderTime || null, kind };
-    const ok = await run(() => (habit ? api(`/api/habits/${habit.id}`, { method: "PATCH", body: { ...f, reminderTime: f.reminderTime || null } }) : api("/api/habits", { body })), habit ? "Habit updated" : "Habit added");
+    const ok = await run(() => (habit ? api(`/api/habits/${habit.id}`, { method: "PATCH", body: { ...f, reminderTime: f.reminderTime || null } }) : api("/api/habits", { body })), habit ? t("Habit updated") : t("Habit added"));
     if (ok) { onSaved(); onClose(); }
   };
   const have = new Set(existing.map((e) => e.name));
   return (
-    <Modal open={open} onClose={onClose} title={habit ? "Edit habit" : "Add habit"} wide footer={<><Button onClick={onClose}>{t("Cancel")}</Button><Button variant="primary" onClick={save} disabled={!f.name.trim()}>{habit ? "Save" : "Add habit"}</Button></>}>
+    <Modal open={open} onClose={onClose} title={t(habit ? "Edit habit" : "Add habit")} wide footer={<><Button onClick={onClose}>{t("Cancel")}</Button><Button variant="primary" onClick={save} disabled={!f.name.trim()}>{habit ? t("Save") : t("Add habit")}</Button></>}>
       {!habit && (
         <div className="mb-5">
           <p className="mb-2 text-xs font-medium text-muted">{t("Quick add")}</p>
-          <div className="flex flex-wrap gap-2">{PREDEFINED_HABITS_CLIENT.map((h) => <button key={h.key} disabled={have.has(h.name)} onClick={() => { setKind(h.kind); setF({ ...f, name: h.name, description: h.description, icon: h.icon, target: h.target, unit: h.unit }); }} className="chip disabled:opacity-40"><HabitIcon name={h.icon} className="size-3.5" />{h.name}</button>)}</div>
+          <div className="flex flex-wrap gap-2">{PREDEFINED_HABITS_CLIENT.map((h) => <button key={h.key} disabled={have.has(h.name)} onClick={() => { setKind(h.kind); setF({ ...f, name: h.name, description: h.description, icon: h.icon, target: h.target, unit: h.unit }); }} className="chip disabled:opacity-40"><HabitIcon name={h.icon} className="size-3.5" />{t(h.name)}</button>)}</div>
         </div>
       )}
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label={t("Name")} className="sm:col-span-2"><input className="input" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} maxLength={60} aria-label={t("Habit name")} /></Field>
         <Field label={t("Description")} className="sm:col-span-2"><input className="input" value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} maxLength={300} aria-label={t("Description")} /></Field>
         <Field label={t("Icon")}><div className="flex flex-wrap gap-1.5">{HABIT_ICONS.map((i) => <button key={i} type="button" aria-label={i} aria-pressed={f.icon === i} onClick={() => setF({ ...f, icon: i })} className={cn("grid size-9 place-items-center rounded-lg border", f.icon === i ? "border-accent bg-accent/15" : "border-line")}><HabitIcon name={i} className="size-4" /></button>)}</div></Field>
-        <Field label={t("Schedule")}><div className="flex gap-1.5">{DAYS.map((d, i) => <button key={i} type="button" aria-pressed={f.days.includes(i)} aria-label={["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][i]} onClick={() => setF({ ...f, days: f.days.includes(i) ? f.days.filter((x) => x !== i) : [...f.days, i].sort() })} className={cn("size-9 rounded-full border text-xs font-medium", f.days.includes(i) ? "border-transparent bg-accent text-[var(--on-accent)]" : "border-line text-muted")}>{d}</button>)}</div></Field>
+        <Field label={t("Schedule")}><div className="flex gap-1.5">{DAYS.map((d, i) => <button key={i} type="button" aria-pressed={f.days.includes(i)} aria-label={t(["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][i])} onClick={() => setF({ ...f, days: f.days.includes(i) ? f.days.filter((x) => x !== i) : [...f.days, i].sort() })} className={cn("size-9 rounded-full border text-xs font-medium", f.days.includes(i) ? "border-transparent bg-accent text-[var(--on-accent)]" : "border-line text-muted")}>{lang === "ar" ? ["ح", "ن", "ث", "ر", "خ", "ج", "س"][i] : d}</button>)}</div></Field>
         <Field label={`Daily target${kind !== "standard" ? " (set by tracker)" : ""}`}><input className="input" type="number" min={1} value={f.target} disabled={kind === "water"} onChange={(e) => setF({ ...f, target: Math.max(1, Number(e.target.value)) })} aria-label={t("Daily target")} /></Field>
         <Field label={t("Unit")}><input className="input" value={f.unit} onChange={(e) => setF({ ...f, unit: e.target.value })} maxLength={20} placeholder={t("e.g. glasses")} aria-label={t("Unit")} /></Field>
         <Field label={t("Reminder time")} hint={t("Used for in-app reminders")}><input className="input" type="time" value={f.reminderTime} onChange={(e) => setF({ ...f, reminderTime: e.target.value })} aria-label={t("Reminder time")} /></Field>

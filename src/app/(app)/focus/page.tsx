@@ -47,7 +47,7 @@ export default function FocusPage() {
     if (finishing.current) return;
     finishing.current = true;
     const r = await run(() => api<{ xp: number; unlocked: string[] }>(`/api/focus/${id}`, { body: { action: "complete" } }));
-    if (r) { toast("success", r.xp ? `Focus session complete · +${r.xp} XP` : "Session complete"); r.unlocked.forEach((u) => toast("success", `🏆 ${u}`)); }
+    if (r) { toast("success", r.xp ? ` ${t("Focus session complete")} · +${r.xp} XP` : t("Session complete")); r.unlocked.forEach((u) => toast("success", `🏆 ${t(u)}`)); }
     setPhase("idle"); setSid(null); setRemaining(minutes * 60); finishing.current = false; reload();
   }, [run, toast, minutes, reload]);
 
@@ -89,7 +89,7 @@ export default function FocusPage() {
   const pause = () => { setRemaining(Math.max(0, Math.ceil((endAt.current - Date.now()) / 1000))); setPhase("paused"); };
   const resume = () => { endAt.current = Date.now() + remaining * 1000; setPhase("running"); };
   async function end(reset = false) {
-    if (sid) await run(() => api(`/api/focus/${sid}`, { body: { action: "end", activeSeconds: Math.max(0, planned - remaining) } }), reset ? undefined : "Session ended — time so far was recorded");
+    if (sid) await run(() => api(`/api/focus/${sid}`, { body: { action: "end", activeSeconds: Math.max(0, planned - remaining) } }), reset ? undefined : t("Session ended — time so far was recorded"));
     setPhase("idle"); setSid(null); setRemaining(minutes * 60); setPlanned(minutes * 60); reload();
   }
   async function toggleZen() {
@@ -108,9 +108,9 @@ export default function FocusPage() {
           <circle cx="170" cy="170" r={R} fill="none" stroke="var(--accent)" strokeWidth="8" strokeLinecap="round" strokeDasharray={C} strokeDashoffset={C * (1 - pct / 100)} style={{ transition: "stroke-dashoffset .5s linear", filter: "drop-shadow(0 0 10px rgba(var(--accent-rgb),.5))" }} />
         </svg>
         <div className="text-center">
-          <p className="text-xs uppercase tracking-[0.25em] text-faint">{MODES.find((m) => m.value === mode)?.label}</p>
+          <p className="text-xs uppercase tracking-[0.25em] text-faint">{MODES.find((m) => m.value === mode)?.label && t(MODES.find((m) => m.value === mode)!.label)}</p>
           <p role="timer" aria-live="off" className="my-1 text-[clamp(3.2rem,14vw,5.5rem)] font-light tabular-nums leading-none tracking-tight">{mmss(remaining)}</p>
-          <p className="mx-auto max-w-[14rem] truncate text-sm text-muted">{task ? task.title : phase === "idle" ? "Ready when you are" : "Stay with it"}</p>
+          <p className="mx-auto max-w-[14rem] truncate text-sm text-muted">{task ? task.title : phase === "idle" ? t("Ready when you are") : t("Stay with it")}</p>
         </div>
       </div>
       <div className="mt-6 flex items-center gap-3">
@@ -119,7 +119,7 @@ export default function FocusPage() {
         {phase === "paused" && <Button variant="primary" className="h-12 px-6" onClick={resume}><Play className="size-5" /> {t("Resume")}</Button>}
         {phase !== "idle" && <Button className="h-12" onClick={() => end(false)}><Square className="size-4" /> {t("End")}</Button>}
         {phase !== "idle" && <Button variant="ghost" className="h-12" onClick={() => end(true)} aria-label={t("Reset")}><RotateCcw className="size-4" /> {t("Reset")}</Button>}
-        <Button variant="ghost" size="icon" className="h-12 w-12" onClick={toggleZen} aria-label={zen ? "Exit fullscreen focus" : "Fullscreen focus mode"}>{zen ? <Minimize2 className="size-5" /> : <Maximize2 className="size-5" />}</Button>
+        <Button variant="ghost" size="icon" className="h-12 w-12" onClick={toggleZen} aria-label={zen ? t("Exit fullscreen focus") : t("Fullscreen focus mode")}>{zen ? <Minimize2 className="size-5" /> : <Maximize2 className="size-5" />}</Button>
       </div>
       {phase !== "idle" && <p className="mt-3 text-xs text-faint">{t("Rewards are only granted when the full duration has elapsed on the server.")}</p>}
     </div>
@@ -137,10 +137,10 @@ export default function FocusPage() {
       <div className="grid gap-[var(--gap)] lg:grid-cols-[1fr_340px]">
         <Card className="flex flex-col items-center py-8">
           <div className="mb-6 flex w-full flex-col items-center gap-3">
-            <Segmented value={mode} onChange={pickMode} label={t("Focus mode")} options={MODES.map((m) => ({ value: m.value, label: m.label }))} />
+            <Segmented value={mode} onChange={pickMode} label={t("Focus mode")} options={MODES.map((m) => ({ value: m.value, label: t(m.label) }))} />
             {(mode === "focus" || mode === "custom") && (
               <div className="flex flex-wrap items-center justify-center gap-2">
-                {PRESETS.map((p) => <button key={p} disabled={phase !== "idle"} onClick={() => setDuration(p)} aria-pressed={minutes === p} className={cn("chip px-3 py-1 text-sm disabled:opacity-50", minutes === p && "!border-accent !text-fg")}>{p} min</button>)}
+                {PRESETS.map((p) => <button key={p} disabled={phase !== "idle"} onClick={() => setDuration(p)} aria-pressed={minutes === p} className={cn("chip px-3 py-1 text-sm disabled:opacity-50", minutes === p && "!border-accent !text-fg")}>{p} {t("min")}</button>)}
                 <label className="chip px-3 py-1 text-sm">{t("Custom")} <input type="number" min={1} max={240} disabled={phase !== "idle"} value={minutes} onChange={(e) => setDuration(Number(e.target.value))} className="w-14 bg-transparent text-center outline-none" aria-label={t("Custom minutes")} /> {t("min")}</label>
               </div>
             )}
@@ -162,26 +162,26 @@ export default function FocusPage() {
             <div className="mb-3 flex items-center justify-between"><h2 className="text-sm font-medium text-muted">{t("Ambient sound")}</h2><Badge>{t("optional")}</Badge></div>
             <div className="grid grid-cols-2 gap-2">
               <button onClick={() => { setSound("none"); setAudioOn(false); }} aria-pressed={sound === "none"} className={cn("rounded-xl border px-3 py-2 text-sm", sound === "none" ? "border-accent bg-accent/10" : "border-line")}>{t("Silent")}</button>
-              {SOUNDS.map((s) => <button key={s.id} onClick={() => { setSound(s.id); setAudioOn(true); }} aria-pressed={sound === s.id} className={cn("rounded-xl border px-3 py-2 text-sm", sound === s.id ? "border-accent bg-accent/10" : "border-line hover:bg-card")}>{s.label}</button>)}
+              {SOUNDS.map((s) => <button key={s.id} onClick={() => { setSound(s.id); setAudioOn(true); }} aria-pressed={sound === s.id} className={cn("rounded-xl border px-3 py-2 text-sm", sound === s.id ? "border-accent bg-accent/10" : "border-line hover:bg-card")}>{t(s.label)}</button>)}
             </div>
             <div className="mt-4 flex items-center gap-3">
-              <Button size="icon" onClick={() => setAudioOn(!audioOn)} disabled={sound === "none"} aria-label={audioOn ? "Pause sound" : "Play sound"}>{audioOn && sound !== "none" ? <Pause className="size-4" /> : <Play className="size-4" />}</Button>
+              <Button size="icon" onClick={() => setAudioOn(!audioOn)} disabled={sound === "none"} aria-label={audioOn ? t("Pause sound") : t("Play sound")}>{audioOn && sound !== "none" ? <Pause className="size-4" /> : <Play className="size-4" />}</Button>
               {volume === 0 ? <VolumeX className="size-4 text-muted" /> : <Volume2 className="size-4 text-muted" />}
               <input type="range" min={0} max={1} step={0.01} value={volume} onChange={(e) => setVolume(Number(e.target.value))} aria-label={t("Volume")} />
             </div>
-            <p className="mt-2 text-xs text-faint">Sounds are synthesised in your browser. Never autoplays; your choice is remembered.</p>
+            <p className="mt-2 text-xs text-faint">{t("Sounds are synthesised in your browser. Never autoplays; your choice is remembered.")}</p>
           </Card>
           <Card>
             <h2 className="mb-3 text-sm font-medium text-muted">{t("Your focus")}</h2>
             <div className="grid grid-cols-3 gap-2 text-center">
-              {[["Today", minutesLabel(data?.todayMinutes ?? 0)], ["This week", minutesLabel(data?.weekMinutes ?? 0)], ["Sessions", String(data?.totalSessions ?? 0)]].map(([l, v]) => <div key={l} className="rounded-xl bg-card p-3"><p className="text-lg font-semibold tabular-nums">{v}</p><p className="text-[11px] text-faint">{l}</p></div>)}
+              {[["Today", minutesLabel(data?.todayMinutes ?? 0)], ["This week", minutesLabel(data?.weekMinutes ?? 0)], ["Sessions", String(data?.totalSessions ?? 0)]].map(([l, v]) => <div key={l} className="rounded-xl bg-card p-3"><p className="text-lg font-semibold tabular-nums">{v}</p><p className="text-[11px] text-faint">{t(l)}</p></div>)}
             </div>
           </Card>
         </div>
       </div>
       <h2 className="mb-3 mt-8 text-sm font-medium text-muted">{t("Session history")}</h2>
       {!data?.sessions.length ? <EmptyState icon={<Play className="size-5" />} title={t("No sessions yet")} text={t("Finish your first session and it will be recorded here.")} /> : (
-        <Card pad={false}><ul className="divide-y divide-[var(--border)]">{data.sessions.map((s) => <li key={s.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm"><span className="min-w-0"><span className="block truncate">{s.taskTitle ?? MODES.find((m) => m.value === s.mode)?.label ?? s.mode}</span><span className="text-xs text-faint">{new Date(s.startedAt).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span></span><span className="flex items-center gap-2"><Badge tone={s.status === "completed" ? "green" : undefined}>{s.status === "completed" ? "Completed" : "Ended early"}</Badge><span className="tabular-nums text-muted">{Math.round(s.actualSeconds / 60)}m</span></span></li>)}</ul></Card>
+        <Card pad={false}><ul className="divide-y divide-[var(--border)]">{data.sessions.map((s) => <li key={s.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm"><span className="min-w-0"><span className="block truncate">{s.taskTitle ?? MODES.find((m) => m.value === s.mode)?.label ?? s.mode}</span><span className="text-xs text-faint">{new Date(s.startedAt).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span></span><span className="flex items-center gap-2"><Badge tone={s.status === "completed" ? "green" : undefined}>{t(t(s.status === "completed" ? "Completed" : "Ended early"))}</Badge><span className="tabular-nums text-muted">{Math.round(s.actualSeconds / 60)}m</span></span></li>)}</ul></Card>
       )}
     </>
   );
