@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useState } from "react";
-import { AuthShell } from "@/components/auth";
+import { AuthShell, GoogleSignInButton } from "@/components/auth";
 import { Button, Field } from "@/components/ui";
 import { api } from "@/lib/client";
 
@@ -26,6 +26,8 @@ export default function SignupPage() {
   }
   return (
     <AuthShell title="Create your workspace" subtitle="A private space for your tasks, habits and goals" footer={<>Already have an account? <Link href="/login" className="font-medium text-accent">Sign in</Link></>}>
+      <GoogleSignInButton next="/onboarding" />
+      <div className="my-5 flex items-center gap-3 text-xs text-faint"><span className="h-px flex-1 bg-[var(--border)]" /> or use email <span className="h-px flex-1 bg-[var(--border)]" /></div>
       <form onSubmit={submit} className="space-y-4">
         <Field label="Display name"><input className="input" required minLength={2} maxLength={40} autoComplete="name" value={f.displayName} onChange={set("displayName")} placeholder="Your name" aria-label="Display name" /></Field>
         <Field label="Email"><input className="input" type="email" required autoComplete="email" value={f.email} onChange={set("email")} placeholder="you@example.com" aria-label="Email" /></Field>
