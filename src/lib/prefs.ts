@@ -34,7 +34,7 @@ export const themeSchema = z.object({
   mouseLight: b,
   radius: z.number().min(6).max(32),
   density: z.enum(["compact", "comfortable", "spacious"]),
-  font: z.enum(["inter", "plex", "cairo", "manrope", "serif", "system"]),
+  font: z.enum(["inter", "plex", "cairo", "manrope", "serif", "system", "sniglet", "kavoon", "merienda", "shantell"]),
   animation: pct,
   speed: z.number().min(50).max(200),
   reducedMotion: b,
