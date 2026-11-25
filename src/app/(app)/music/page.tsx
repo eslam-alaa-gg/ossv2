@@ -1,7 +1,7 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
 import { AnimatePresence, motion } from "framer-motion";
-import { AlertTriangle, Disc3, Link2Off, Monitor, Music2, Pause, Play, SkipBack, SkipForward, Smartphone, Speaker } from "lucide-react";
+import { Disc3, Link2Off, Monitor, Music2, Pause, Play, SkipBack, SkipForward, Smartphone, Speaker } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { useApp } from "@/components/providers";
@@ -13,7 +13,7 @@ const ERRORS: Record<string, string> = {
   access_denied: "You declined the Spotify authorization. Nothing was connected.",
   invalid_state: "The authorization response couldn't be verified (state mismatch). Please try connecting again.",
   token_exchange_failed: "Spotify didn't accept the authorization. Check the redirect URI configured in your Spotify app.",
-  not_configured: "Spotify isn't configured on this server.",
+  not_configured: "Spotify isn't available right now. Please try again later or contact the site administrator.",
   demo: "Spotify connection is disabled in Demo Mode. Create an account to connect your own.",
 };
 type Device = { id: string; name: string; type: string; active: boolean; restricted: boolean; volume: number | null };
@@ -60,15 +60,10 @@ function Inner() {
     return (
       <>
         <PageHeader title={t("Music Hub")} subtitle={t("Your Spotify, inside LIFE OS.")} />
-        <Card className="max-w-2xl space-y-4">
-          <div className="flex items-center gap-3"><AlertTriangle className="size-5 text-amber-400" /><h2 className="font-semibold">{t("Spotify isn't configured on this server")}</h2></div>
-          <p className="text-sm text-muted">{t("The integration is fully implemented (Authorization Code Flow with PKCE) but needs a Spotify app. The server administrator should configure the Spotify app and the server encryption key first:")}</p>
-          <ol className="list-decimal space-y-1.5 ps-5 text-sm text-muted">
-            <li>{t("Create an app at")} <a className="text-accent underline" href="https://developer.spotify.com/dashboard" target="_blank" rel="noreferrer">{t("developer.spotify.com/dashboard")}</a>.</li>
-            <li>{t("Add this Redirect URI:")} <code className="rounded bg-[var(--input)] px-1.5 py-0.5 text-xs text-fg">{status?.redirectUri}</code> {t("(must be HTTPS, or http://127.0.0.1 for local development).")}</li>
-            <li>{t("Set")} <code className="text-fg">{t("SPOTIFY_CLIENT_ID")}</code> {t("and")} <code className="text-fg">{t("APP_SECRET")}</code> {t("(at least 32 characters; keep it private) in the server environment. Set")} <code className="text-fg">{t("SPOTIFY_REDIRECT_URI")}</code> {t("only if you need a custom callback URL, then redeploy.")}</li>
-          </ol>
-          <p className="text-xs text-faint">{t("A Spotify client secret is not needed because PKCE is used. APP_SECRET is only the site encryption key for securely storing tokens. Tokens never reach the browser.")}</p>
+        <Card className="mx-auto max-w-xl py-10 text-center">
+          <span className="mx-auto mb-4 grid size-16 place-items-center rounded-3xl bg-card text-muted"><Music2 className="size-8" /></span>
+          <h2 className="text-xl font-semibold">{lang === "ar" ? "Spotify غير متاح حاليًا" : "Spotify is temporarily unavailable"}</h2>
+          <p className="mx-auto mt-2 max-w-md text-sm text-muted">{lang === "ar" ? "خدمة ربط Spotify غير جاهزة في الوقت الحالي. حاول مرة أخرى لاحقًا، أو تواصل مع مسؤول الموقع." : "Spotify connection isn't ready right now. Please try again later or contact the site administrator."}</p>
         </Card>
       </>
     );
@@ -84,7 +79,7 @@ function Inner() {
           <h2 className="text-xl font-semibold">{t("Connect Spotify")}</h2>
           <p className="mx-auto mt-2 max-w-md text-sm text-muted">{t("See what's playing, browse recently played tracks, control playback (Premium) and let album artwork tint your workspace.")}</p>
           <a href="/api/spotify/connect" className="glass-btn btn-primary mt-6 h-11 px-6"><Music2 className="size-4" /> {t("Connect Spotify")}</a>
-          <div className="mx-auto mt-6 max-w-sm rounded-xl bg-card p-4 text-start text-xs text-muted"><p className="mb-1.5 font-medium text-fg">{t("Permissions requested (minimum needed)") }</p><ul className="space-y-1"><li>{t("• Read your current playback & devices")}</li><li>{t("• Read recently played tracks")}</li><li>{t("• Control playback (Premium only)")}</li><li>{t("• Read your plan type to know if controls work")}</li></ul></div>
+          <div className="mx-auto mt-6 max-w-sm rounded-xl bg-card p-4 text-start text-xs text-muted"><p className="mb-1.5 font-medium text-fg">{t("Permissions requested (minimum needed)")}</p><ul className="space-y-1"><li>{t("• Read your current playback & devices")}</li><li>{t("• Read recently played tracks")}</li><li>{t("• Control playback (Premium only)")}</li><li>{t("• Read your plan type to know if controls work")}</li></ul></div>
         </Card>
       </>
     );
