@@ -38,6 +38,7 @@ export function useSignOut() {
 }
 
 function Brand({ collapsed }: { collapsed?: boolean }) {
+  const { t } = useApp();
   return (
     <Link href="/dashboard" className="flex items-center gap-2.5 px-2" aria-label={t("LIFE OS home")}>
       <span className="accent-fill grid size-9 place-items-center rounded-xl text-sm font-bold text-[var(--on-accent)] shadow-lg">L</span>
@@ -74,7 +75,7 @@ function Sidebar({ collapsed, setCollapsed }: { collapsed: boolean; setCollapsed
 }
 
 function SidebarUser({ collapsed }: { collapsed: boolean }) {
-  const { user } = useApp();
+  const { user, t } = useApp();
   if (!user) return null;
   return (
     <Link href="/profile" className="mt-2 flex items-center gap-3 rounded-[calc(var(--radius)*.6)] p-2 transition-colors hover:bg-card" aria-label={t("Open profile")}>
