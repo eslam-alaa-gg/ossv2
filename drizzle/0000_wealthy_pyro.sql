@@ -217,6 +217,7 @@ CREATE TABLE "ossv2"."users" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"email" text NOT NULL,
 	"password_hash" text NOT NULL,
+	"google_auth_id" text,
 	"display_name" text NOT NULL,
 	"language" text DEFAULT 'en' NOT NULL,
 	"timezone" text DEFAULT 'UTC' NOT NULL,
@@ -318,3 +319,5 @@ CREATE INDEX "water_user_date_idx" ON "ossv2"."water_logs" USING btree ("user_id
 CREATE UNIQUE INDEX "weekly_reviews_unique" ON "ossv2"."weekly_reviews" USING btree ("user_id","week_start");--> statement-breakpoint
 CREATE INDEX "wishlist_user_idx" ON "ossv2"."wishlist_items" USING btree ("user_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "xp_unique_source" ON "ossv2"."xp_transactions" USING btree ("user_id","source","source_id");
+--> statement-breakpoint
+CREATE UNIQUE INDEX "users_google_auth_id_unique" ON "ossv2"."users" USING btree ("google_auth_id");
