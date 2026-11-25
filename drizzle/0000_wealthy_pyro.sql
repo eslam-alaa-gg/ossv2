@@ -1,4 +1,6 @@
-CREATE TABLE "auth_tokens" (
+CREATE SCHEMA IF NOT EXISTS "ossv2";
+--> statement-breakpoint
+CREATE TABLE "ossv2"."auth_tokens" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"type" text NOT NULL,
@@ -9,14 +11,14 @@ CREATE TABLE "auth_tokens" (
 	CONSTRAINT "auth_tokens_token_hash_unique" UNIQUE("token_hash")
 );
 --> statement-breakpoint
-CREATE TABLE "avatars" (
+CREATE TABLE "ossv2"."avatars" (
 	"user_id" uuid PRIMARY KEY NOT NULL,
 	"mime" text NOT NULL,
 	"data" "bytea" NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "daily_challenges" (
+CREATE TABLE "ossv2"."daily_challenges" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"date" date NOT NULL,
@@ -31,7 +33,7 @@ CREATE TABLE "daily_challenges" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "focus_sessions" (
+CREATE TABLE "ossv2"."focus_sessions" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"task_id" uuid,
@@ -43,7 +45,7 @@ CREATE TABLE "focus_sessions" (
 	"status" text DEFAULT 'running' NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "goal_milestones" (
+CREATE TABLE "ossv2"."goal_milestones" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"goal_id" uuid NOT NULL,
 	"user_id" uuid NOT NULL,
@@ -55,7 +57,7 @@ CREATE TABLE "goal_milestones" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "goals" (
+CREATE TABLE "ossv2"."goals" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"title" text NOT NULL,
@@ -71,7 +73,7 @@ CREATE TABLE "goals" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "habit_logs" (
+CREATE TABLE "ossv2"."habit_logs" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"habit_id" uuid NOT NULL,
@@ -81,7 +83,7 @@ CREATE TABLE "habit_logs" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "habits" (
+CREATE TABLE "ossv2"."habits" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"name" text NOT NULL,
@@ -97,7 +99,7 @@ CREATE TABLE "habits" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "journal_entries" (
+CREATE TABLE "ossv2"."journal_entries" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"date" date NOT NULL,
@@ -106,7 +108,7 @@ CREATE TABLE "journal_entries" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "learning_entries" (
+CREATE TABLE "ossv2"."learning_entries" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"date" date NOT NULL,
@@ -115,7 +117,7 @@ CREATE TABLE "learning_entries" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "notes" (
+CREATE TABLE "ossv2"."notes" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"type" text DEFAULT 'quick' NOT NULL,
@@ -130,7 +132,7 @@ CREATE TABLE "notes" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "notifications" (
+CREATE TABLE "ossv2"."notifications" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"kind" text NOT NULL,
@@ -142,7 +144,7 @@ CREATE TABLE "notifications" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "push_subscriptions" (
+CREATE TABLE "ossv2"."push_subscriptions" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"endpoint" text NOT NULL,
@@ -152,7 +154,7 @@ CREATE TABLE "push_subscriptions" (
 	CONSTRAINT "push_subscriptions_endpoint_unique" UNIQUE("endpoint")
 );
 --> statement-breakpoint
-CREATE TABLE "reading_logs" (
+CREATE TABLE "ossv2"."reading_logs" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"date" date NOT NULL,
@@ -161,7 +163,7 @@ CREATE TABLE "reading_logs" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "sessions" (
+CREATE TABLE "ossv2"."sessions" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"token_hash" text NOT NULL,
@@ -170,7 +172,7 @@ CREATE TABLE "sessions" (
 	CONSTRAINT "sessions_token_hash_unique" UNIQUE("token_hash")
 );
 --> statement-breakpoint
-CREATE TABLE "spotify_connections" (
+CREATE TABLE "ossv2"."spotify_connections" (
 	"user_id" uuid PRIMARY KEY NOT NULL,
 	"access_token_enc" text NOT NULL,
 	"refresh_token_enc" text NOT NULL,
@@ -184,7 +186,7 @@ CREATE TABLE "spotify_connections" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "tasks" (
+CREATE TABLE "ossv2"."tasks" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"title" text NOT NULL,
@@ -204,14 +206,14 @@ CREATE TABLE "tasks" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "user_achievements" (
+CREATE TABLE "ossv2"."user_achievements" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"key" text NOT NULL,
 	"unlocked_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "users" (
+CREATE TABLE "ossv2"."users" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"email" text NOT NULL,
 	"password_hash" text NOT NULL,
@@ -229,7 +231,7 @@ CREATE TABLE "users" (
 	CONSTRAINT "users_email_unique" UNIQUE("email")
 );
 --> statement-breakpoint
-CREATE TABLE "water_logs" (
+CREATE TABLE "ossv2"."water_logs" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"date" date NOT NULL,
@@ -237,7 +239,7 @@ CREATE TABLE "water_logs" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "weekly_reviews" (
+CREATE TABLE "ossv2"."weekly_reviews" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"week_start" date NOT NULL,
@@ -248,7 +250,7 @@ CREATE TABLE "weekly_reviews" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "wishlist_items" (
+CREATE TABLE "ossv2"."wishlist_items" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"title" text NOT NULL,
@@ -258,7 +260,7 @@ CREATE TABLE "wishlist_items" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "xp_transactions" (
+CREATE TABLE "ossv2"."xp_transactions" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"source" text NOT NULL,
@@ -268,51 +270,51 @@ CREATE TABLE "xp_transactions" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-ALTER TABLE "auth_tokens" ADD CONSTRAINT "auth_tokens_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "avatars" ADD CONSTRAINT "avatars_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "daily_challenges" ADD CONSTRAINT "daily_challenges_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "focus_sessions" ADD CONSTRAINT "focus_sessions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "focus_sessions" ADD CONSTRAINT "focus_sessions_task_id_tasks_id_fk" FOREIGN KEY ("task_id") REFERENCES "public"."tasks"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "goal_milestones" ADD CONSTRAINT "goal_milestones_goal_id_goals_id_fk" FOREIGN KEY ("goal_id") REFERENCES "public"."goals"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "goal_milestones" ADD CONSTRAINT "goal_milestones_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "goals" ADD CONSTRAINT "goals_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "habit_logs" ADD CONSTRAINT "habit_logs_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "habit_logs" ADD CONSTRAINT "habit_logs_habit_id_habits_id_fk" FOREIGN KEY ("habit_id") REFERENCES "public"."habits"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "habits" ADD CONSTRAINT "habits_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "journal_entries" ADD CONSTRAINT "journal_entries_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "learning_entries" ADD CONSTRAINT "learning_entries_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "notes" ADD CONSTRAINT "notes_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "notifications" ADD CONSTRAINT "notifications_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "push_subscriptions" ADD CONSTRAINT "push_subscriptions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "reading_logs" ADD CONSTRAINT "reading_logs_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "sessions" ADD CONSTRAINT "sessions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "spotify_connections" ADD CONSTRAINT "spotify_connections_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "tasks" ADD CONSTRAINT "tasks_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "tasks" ADD CONSTRAINT "tasks_goal_id_goals_id_fk" FOREIGN KEY ("goal_id") REFERENCES "public"."goals"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "tasks" ADD CONSTRAINT "tasks_milestone_id_goal_milestones_id_fk" FOREIGN KEY ("milestone_id") REFERENCES "public"."goal_milestones"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "user_achievements" ADD CONSTRAINT "user_achievements_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "water_logs" ADD CONSTRAINT "water_logs_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "weekly_reviews" ADD CONSTRAINT "weekly_reviews_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "wishlist_items" ADD CONSTRAINT "wishlist_items_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "xp_transactions" ADD CONSTRAINT "xp_transactions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-CREATE UNIQUE INDEX "daily_challenges_unique" ON "daily_challenges" USING btree ("user_id","date","template_key");--> statement-breakpoint
-CREATE INDEX "focus_user_idx" ON "focus_sessions" USING btree ("user_id","started_at");--> statement-breakpoint
-CREATE INDEX "milestones_goal_idx" ON "goal_milestones" USING btree ("goal_id");--> statement-breakpoint
-CREATE INDEX "milestones_user_idx" ON "goal_milestones" USING btree ("user_id");--> statement-breakpoint
-CREATE INDEX "goals_user_idx" ON "goals" USING btree ("user_id");--> statement-breakpoint
-CREATE UNIQUE INDEX "habit_logs_unique" ON "habit_logs" USING btree ("habit_id","date");--> statement-breakpoint
-CREATE INDEX "habit_logs_user_date_idx" ON "habit_logs" USING btree ("user_id","date");--> statement-breakpoint
-CREATE INDEX "habits_user_idx" ON "habits" USING btree ("user_id");--> statement-breakpoint
-CREATE UNIQUE INDEX "journal_unique" ON "journal_entries" USING btree ("user_id","date");--> statement-breakpoint
-CREATE INDEX "learning_user_date_idx" ON "learning_entries" USING btree ("user_id","date");--> statement-breakpoint
-CREATE INDEX "notes_user_idx" ON "notes" USING btree ("user_id","updated_at");--> statement-breakpoint
-CREATE UNIQUE INDEX "notifications_dedupe" ON "notifications" USING btree ("user_id","dedupe_key");--> statement-breakpoint
-CREATE INDEX "reading_user_date_idx" ON "reading_logs" USING btree ("user_id","date");--> statement-breakpoint
-CREATE INDEX "sessions_user_idx" ON "sessions" USING btree ("user_id");--> statement-breakpoint
-CREATE INDEX "tasks_user_status_idx" ON "tasks" USING btree ("user_id","status");--> statement-breakpoint
-CREATE INDEX "tasks_user_due_idx" ON "tasks" USING btree ("user_id","due_date");--> statement-breakpoint
-CREATE UNIQUE INDEX "user_achievements_unique" ON "user_achievements" USING btree ("user_id","key");--> statement-breakpoint
-CREATE INDEX "water_user_date_idx" ON "water_logs" USING btree ("user_id","date");--> statement-breakpoint
-CREATE UNIQUE INDEX "weekly_reviews_unique" ON "weekly_reviews" USING btree ("user_id","week_start");--> statement-breakpoint
-CREATE INDEX "wishlist_user_idx" ON "wishlist_items" USING btree ("user_id");--> statement-breakpoint
-CREATE UNIQUE INDEX "xp_unique_source" ON "xp_transactions" USING btree ("user_id","source","source_id");
+ALTER TABLE "ossv2"."auth_tokens" ADD CONSTRAINT "auth_tokens_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "ossv2"."public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "ossv2"."avatars" ADD CONSTRAINT "avatars_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "ossv2"."public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "ossv2"."daily_challenges" ADD CONSTRAINT "daily_challenges_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "ossv2"."public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "ossv2"."focus_sessions" ADD CONSTRAINT "focus_sessions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "ossv2"."public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "ossv2"."focus_sessions" ADD CONSTRAINT "focus_sessions_task_id_tasks_id_fk" FOREIGN KEY ("task_id") REFERENCES "ossv2"."public"."tasks"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "ossv2"."goal_milestones" ADD CONSTRAINT "goal_milestones_goal_id_goals_id_fk" FOREIGN KEY ("goal_id") REFERENCES "ossv2"."public"."goals"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "ossv2"."goal_milestones" ADD CONSTRAINT "goal_milestones_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "ossv2"."public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "ossv2"."goals" ADD CONSTRAINT "goals_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "ossv2"."public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "ossv2"."habit_logs" ADD CONSTRAINT "habit_logs_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "ossv2"."public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "ossv2"."habit_logs" ADD CONSTRAINT "habit_logs_habit_id_habits_id_fk" FOREIGN KEY ("habit_id") REFERENCES "ossv2"."public"."habits"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "ossv2"."habits" ADD CONSTRAINT "habits_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "ossv2"."public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "ossv2"."journal_entries" ADD CONSTRAINT "journal_entries_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "ossv2"."public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "ossv2"."learning_entries" ADD CONSTRAINT "learning_entries_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "ossv2"."public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "ossv2"."notes" ADD CONSTRAINT "notes_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "ossv2"."public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "ossv2"."notifications" ADD CONSTRAINT "notifications_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "ossv2"."public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "ossv2"."push_subscriptions" ADD CONSTRAINT "push_subscriptions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "ossv2"."public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "ossv2"."reading_logs" ADD CONSTRAINT "reading_logs_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "ossv2"."public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "ossv2"."sessions" ADD CONSTRAINT "sessions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "ossv2"."public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "ossv2"."spotify_connections" ADD CONSTRAINT "spotify_connections_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "ossv2"."public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "ossv2"."tasks" ADD CONSTRAINT "tasks_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "ossv2"."public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "ossv2"."tasks" ADD CONSTRAINT "tasks_goal_id_goals_id_fk" FOREIGN KEY ("goal_id") REFERENCES "ossv2"."public"."goals"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "ossv2"."tasks" ADD CONSTRAINT "tasks_milestone_id_goal_milestones_id_fk" FOREIGN KEY ("milestone_id") REFERENCES "ossv2"."public"."goal_milestones"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "ossv2"."user_achievements" ADD CONSTRAINT "user_achievements_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "ossv2"."public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "ossv2"."water_logs" ADD CONSTRAINT "water_logs_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "ossv2"."public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "ossv2"."weekly_reviews" ADD CONSTRAINT "weekly_reviews_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "ossv2"."public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "ossv2"."wishlist_items" ADD CONSTRAINT "wishlist_items_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "ossv2"."public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "ossv2"."xp_transactions" ADD CONSTRAINT "xp_transactions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "ossv2"."public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+CREATE UNIQUE INDEX "daily_challenges_unique" ON "ossv2"."daily_challenges" USING btree ("user_id","date","template_key");--> statement-breakpoint
+CREATE INDEX "focus_user_idx" ON "ossv2"."focus_sessions" USING btree ("user_id","started_at");--> statement-breakpoint
+CREATE INDEX "milestones_goal_idx" ON "ossv2"."goal_milestones" USING btree ("goal_id");--> statement-breakpoint
+CREATE INDEX "milestones_user_idx" ON "ossv2"."goal_milestones" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX "goals_user_idx" ON "ossv2"."goals" USING btree ("user_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "habit_logs_unique" ON "ossv2"."habit_logs" USING btree ("habit_id","date");--> statement-breakpoint
+CREATE INDEX "habit_logs_user_date_idx" ON "ossv2"."habit_logs" USING btree ("user_id","date");--> statement-breakpoint
+CREATE INDEX "habits_user_idx" ON "ossv2"."habits" USING btree ("user_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "journal_unique" ON "ossv2"."journal_entries" USING btree ("user_id","date");--> statement-breakpoint
+CREATE INDEX "learning_user_date_idx" ON "ossv2"."learning_entries" USING btree ("user_id","date");--> statement-breakpoint
+CREATE INDEX "notes_user_idx" ON "ossv2"."notes" USING btree ("user_id","updated_at");--> statement-breakpoint
+CREATE UNIQUE INDEX "notifications_dedupe" ON "ossv2"."notifications" USING btree ("user_id","dedupe_key");--> statement-breakpoint
+CREATE INDEX "reading_user_date_idx" ON "ossv2"."reading_logs" USING btree ("user_id","date");--> statement-breakpoint
+CREATE INDEX "sessions_user_idx" ON "ossv2"."sessions" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX "tasks_user_status_idx" ON "ossv2"."tasks" USING btree ("user_id","status");--> statement-breakpoint
+CREATE INDEX "tasks_user_due_idx" ON "ossv2"."tasks" USING btree ("user_id","due_date");--> statement-breakpoint
+CREATE UNIQUE INDEX "user_achievements_unique" ON "ossv2"."user_achievements" USING btree ("user_id","key");--> statement-breakpoint
+CREATE INDEX "water_user_date_idx" ON "ossv2"."water_logs" USING btree ("user_id","date");--> statement-breakpoint
+CREATE UNIQUE INDEX "weekly_reviews_unique" ON "ossv2"."weekly_reviews" USING btree ("user_id","week_start");--> statement-breakpoint
+CREATE INDEX "wishlist_user_idx" ON "ossv2"."wishlist_items" USING btree ("user_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "xp_unique_source" ON "ossv2"."xp_transactions" USING btree ("user_id","source","source_id");
