@@ -1,0 +1,10 @@
+{
+  "name": "LIFE OS",
+  "short_name": "LIFE OS",
+  "description": "Your Life. Your Goals. Your Progress.",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#08080b",
+  "theme_color": "#0b0b10",
+  "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}
