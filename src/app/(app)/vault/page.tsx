@@ -70,7 +70,7 @@ function Editor({ note, onChange, onDeleted }: { note: Note; onChange: (n: Note)
         {tools.map(([I, label, fn]) => <Button key={label} size="icon" variant="ghost" aria-label={t(label)} onClick={fn} disabled={preview} className="!p-1.5"><I className="size-4" /></Button>)}
         <Button size="sm" variant="ghost" className="ms-auto" onClick={() => setPreview(!preview)} aria-pressed={preview}><Eye className="size-4" /> {preview ? t("Edit") : t("Preview")}</Button>
       </div>
-      {preview ? <div className="md min-h-[320px] flex-1 overflow-y-auto" dangerouslySetInnerHTML={{ __html: renderMarkdown(d.content) || '<p class="text-faint">{t("Nothing to preview yet.")}</p>' }} /> : <textarea ref={ta} className="input min-h-[320px] flex-1 resize-y font-[inherit] leading-relaxed" placeholder={t("Start writing… use the toolbar for headings, lists, checklists and links.")} value={d.content} onChange={(e) => setD({ ...d, content: e.target.value })} maxLength={100000} aria-label={t("Note content")} />}
+      {preview ? (d.content.trim() ? <div className="md min-h-[320px] flex-1 overflow-y-auto" dangerouslySetInnerHTML={{ __html: renderMarkdown(d.content) }} /> : <p className="min-h-[320px] flex-1 py-6 text-faint">{t("Nothing to preview yet.")}</p>) : <textarea ref={ta} className="input min-h-[320px] flex-1 resize-y font-[inherit] leading-relaxed" placeholder={t("Start writing… use the toolbar for headings, lists, checklists and links.")} value={d.content} onChange={(e) => setD({ ...d, content: e.target.value })} maxLength={100000} aria-label={t("Note content")} />}
     </Card>
   );
 }
