@@ -52,7 +52,7 @@ function Inner() {
   return (
     <>
       <PageHeader title={t("Habits")} subtitle={t("Small, consistent actions. General wellness tracking — not medical advice.")} actions={<Button variant="primary" onClick={() => setModal({})}><Plus className="size-4" /> {t("Add habit")}</Button>} />
-      <div className="mb-5"><Segmented value={tab} onChange={setTab} label={t("Habit sections")} options={[{ value: "habits", label: "My habits" }, { value: "water", label: "Water" }, { value: "reading", label: "Reading" }, { value: "learning", label: "Learning" }]} /></div>
+      <div className="mb-5"><Segmented value={tab} onChange={setTab} label={t("Habit sections")} options={[{ value: "habits", label: t("My habits") }, { value: "water", label: t("Water") }, { value: "reading", label: t("Reading") }, { value: "learning", label: t("Learning") }]} /></div>
 
       {tab === "habits" && (habits.error && !habits.data ? <ErrorState message={habits.error} retry={habits.reload} /> : !habits.data ? <ListSkeleton /> : habits.data.habits.length === 0 ? (
         <EmptyState icon={<Repeat className="size-6" />} title={t("Build your first habit")} text={t("Pick a ready-made habit like Drink Water or Meditation, or create your own.")} action={<Button variant="primary" onClick={() => setModal({})}>{t("Add habit")}</Button>} />
@@ -78,7 +78,7 @@ function Inner() {
                   ) : h.target > 1 ? (
                     <div className="flex flex-1 items-center gap-2"><Button size="icon" onClick={() => log(h, h.todayAmount - 1)} aria-label={t("Decrease")}><Minus className="size-4" /></Button><div className="flex-1"><Progress value={pct} /><p className="mt-1.5 text-xs text-muted">{h.todayAmount}/{h.target} {h.unit}</p></div><Button size="icon" onClick={() => log(h, h.todayAmount + 1)} aria-label={t("Increase")}><Plus className="size-4" /></Button></div>
                   ) : (
-                    <label className="flex flex-1 items-center gap-3 text-sm"><Checkbox checked={h.todayDone} onChange={(v) => log(h, v ? 1 : 0)} label={`Mark ${h.name} ${h.todayDone ? "incomplete" : "done"} today`} />{h.todayDone ? "Done today" : h.days.includes(new Date().getDay()) ? "Mark as done" : "Not scheduled today"}</label>
+                    <label className="flex flex-1 items-center gap-3 text-sm"><Checkbox checked={h.todayDone} onChange={(v) => log(h, v ? 1 : 0)} label={`${t("Mark")} ${h.name} ${t(h.todayDone ? "incomplete" : "done")} ${t("today")}`} />{t(h.todayDone ? "Done today" : h.days.includes(new Date().getDay()) ? "Mark as done" : "Not scheduled today")}</label>
                   )}
                   <div className="flex items-center gap-1 text-sm font-medium"><Flame className="size-4 text-orange-400" />{h.current}<span className="text-xs font-normal text-faint">/ best {h.longest}</span></div>
                 </div>
@@ -175,7 +175,7 @@ function HabitModal({ open, habit, onClose, onSaved, existing }: { open: boolean
   };
   const have = new Set(existing.map((e) => e.name));
   return (
-    <Modal open={open} onClose={onClose} title={habit ? "Edit habit" : "Add habit"} wide footer={<><Button onClick={onClose}>{t("Cancel")}</Button><Button variant="primary" onClick={save} disabled={!f.name.trim()}>{habit ? "Save" : "Add habit"}</Button></>}>
+    <Modal open={open} onClose={onClose} title={t(habit ? "Edit habit" : "Add habit")} wide footer={<><Button onClick={onClose}>{t("Cancel")}</Button><Button variant="primary" onClick={save} disabled={!f.name.trim()}>{habit ? t("Save") : t("Add habit")}</Button></>}>
       {!habit && (
         <div className="mb-5">
           <p className="mb-2 text-xs font-medium text-muted">{t("Quick add")}</p>
