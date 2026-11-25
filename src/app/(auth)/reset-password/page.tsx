@@ -6,9 +6,10 @@ import { AuthShell } from "@/components/auth";
 import { Button, Field } from "@/components/ui";
 import { api } from "@/lib/client";
 import { useApp } from "@/components/providers";
+import { translateError } from "@/lib/i18n";
 
 function Inner() {
-  const { t } = useApp();
+  const { t, lang } = useApp();
   const token = useSearchParams().get("token") ?? "";
   const [pw, setPw] = useState("");
   const [done, setDone] = useState(false);
@@ -22,7 +23,7 @@ function Inner() {
       await api("/api/auth/reset", { body: { token, password: pw } });
       setDone(true);
     } catch (err) {
-      setError(err instanceof Error ? t(err.message) : t("Couldn't reset the password."));
+      setError(err instanceof Error ? translateError(lang, err.message) : t("Something went wrong."));
     }
     setBusy(false);
   }
