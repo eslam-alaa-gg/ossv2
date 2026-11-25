@@ -28,12 +28,12 @@ export const useApp = () => {
   return c;
 };
 
-export function AppProvider({ initialUser, initialPrefs, children }: { initialUser: PublicUser | null; initialPrefs: Prefs; children: ReactNode }) {
+export function AppProvider({ initialUser, initialPrefs, initialLang = "en", children }: { initialUser: PublicUser | null; initialPrefs: Prefs; initialLang?: Lang; children: ReactNode }) {
   const [user, setUser] = useState(initialUser);
   const [prefs, setPrefs] = useState<Prefs>(initialPrefs ?? DEFAULT_PREFS);
   const [draft, setDraft] = useState<Theme | null>(null);
   const theme = draft ?? prefs.theme;
-  const lang: Lang = user?.language === "ar" ? "ar" : "en";
+  const lang: Lang = user ? (user.language === "ar" ? "ar" : "en") : initialLang;
 
   // keep in sync with server-rendered data after router refreshes / login changes
   useEffect(() => setUser(initialUser), [initialUser]);
