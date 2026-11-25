@@ -28,17 +28,17 @@ export default function SettingsPage() {
 
   async function enablePush() {
     if (!push.data?.publicKey) return;
-    if (!("serviceWorker" in navigator) || !("PushManager" in window)) return toast("error", "This browser doesn't support Web Push.");
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) return toast("error", t("This browser doesn't support Web Push."));
     const p = await Notification.requestPermission();
     setPerm(p);
-    if (p !== "granted") return toast("info", "Notification permission was not granted. You can change this in your browser's site settings.");
+    if (p !== "granted") return toast("info", t("Notification permission was not granted. You can change this in your browser's site settings."));
     const ok = await run(async () => {
       const reg = await navigator.serviceWorker.ready;
       const sub = (await reg.pushManager.getSubscription()) ?? (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64(push.data!.publicKey!) }));
       await api("/api/push", { body: { subscription: sub.toJSON() } });
       await savePrefs({ notifications: { ...n, push: true } });
       return true;
-    }, "Browser push enabled");
+    }, t("Browser push enabled"));
     if (ok) push.reload();
   }
   async function disablePush() {
@@ -47,13 +47,13 @@ export default function SettingsPage() {
       const sub = await reg.pushManager.getSubscription();
       if (sub) { await api("/api/push", { method: "DELETE", body: { endpoint: sub.endpoint } }); await sub.unsubscribe(); }
       await savePrefs({ notifications: { ...n, push: false } });
-    }, "Browser push disabled");
+    }, t("Browser push disabled"));
     push.reload();
   }
 
   return (
     <>
-      <PageHeader title={t("Settings")} subtitle={t("Account, notifications and data.")} />
+      <PageHeader title={t("Settings")} subtitle={t(t("Account, notifications and data."))} />
       <div className="grid gap-[var(--gap)] lg:grid-cols-2">
         <Card>
           <h2 className="mb-2 flex items-center gap-2 text-sm font-medium text-muted"><Bell className="size-4" /> {t("Notifications")}</h2>
@@ -62,14 +62,14 @@ export default function SettingsPage() {
             <Row title={t("Browser push")} hint={push.data && !push.data.configured ? t("Not configured on this server (VAPID keys missing)") : perm === "denied" ? t("Blocked in browser settings") : t("Delivered through your browser's push service")}>
               {user.isDemo ? <Badge>{t("Unavailable in demo")}</Badge> : push.data?.configured ? (n.push && push.data.subscribed ? <Button size="sm" onClick={disablePush}>{t("Disable")}</Button> : <Button size="sm" variant="primary" onClick={enablePush} disabled={perm === "denied"}>{t("Enable")}</Button>) : <Badge tone="amber">{t("Not configured")}</Badge>}
             </Row>
-            {n.push && push.data?.subscribed ? <div className="py-3"><Button size="sm" onClick={() => run(() => api("/api/push", { body: { test: true } }), "Test notification sent")}>{t("Send test push")}</Button></div> : null}
+            {n.push && push.data?.subscribed ? <div className="py-3"><Button size="sm" onClick={() => run(() => api("/api/push", { body: { test: true } }), t("Test notification sent"))}>{t("Send test push")}</Button></div> : null}
             <Row title={t("Email reminders")} hint={t("Requires an email provider (RESEND_API_KEY) on the server")}><Switch checked={n.email} onChange={(v) => setN({ email: v })} label={t("Email reminders")} /></Row>
           </div>
           <div className="mt-4 grid grid-cols-2 gap-4">
-            <Field label={t("Quiet hours start")}><input className="input" type="time" value={n.quietStart} onChange={(e) => e.target.value && setN({ quietStart: e.target.value })} aria-label="Quiet hours start" /></Field>
-            <Field label={t("Quiet hours end")}><input className="input" type="time" value={n.quietEnd} onChange={(e) => e.target.value && setN({ quietEnd: e.target.value })} aria-label="Quiet hours end" /></Field>
-            <Field label={t("Challenge reminder")}><input className="input" type="time" value={n.challengeTime} onChange={(e) => e.target.value && setN({ challengeTime: e.target.value })} aria-label="Challenge reminder time" /></Field>
-            <Field label={t("Habit reminder")}><input className="input" type="time" value={n.habitTime} onChange={(e) => e.target.value && setN({ habitTime: e.target.value })} aria-label="Habit reminder time" /></Field>
+            <Field label={t("Quiet hours start")}><input className="input" type="time" value={n.quietStart} onChange={(e) => e.target.value && setN({ quietStart: e.target.value })} aria-label={t("Quiet hours start")} /></Field>
+            <Field label={t("Quiet hours end")}><input className="input" type="time" value={n.quietEnd} onChange={(e) => e.target.value && setN({ quietEnd: e.target.value })} aria-label={t("Quiet hours end")} /></Field>
+            <Field label={t("Challenge reminder")}><input className="input" type="time" value={n.challengeTime} onChange={(e) => e.target.value && setN({ challengeTime: e.target.value })} aria-label={t("Challenge reminder")} /></Field>
+            <Field label={t("Habit reminder")}><input className="input" type="time" value={n.habitTime} onChange={(e) => e.target.value && setN({ habitTime: e.target.value })} aria-label={t("Habit reminder")} /></Field>
           </div>
           <p className="mt-4 text-xs text-faint">In-app reminders are generated from your real tasks and habits whenever you use LIFE OS. Background push/email delivery runs only when the server's scheduler (<code>/api/cron/notify</code>) and provider keys are configured — see the setup guide.</p>
         </Card>
@@ -81,9 +81,9 @@ export default function SettingsPage() {
               <>
                 <Row title={user.email} hint="Email address cannot be changed here"><Badge tone={user.emailVerified ? "green" : "amber"}>{user.emailVerified ? "Verified" : "Unverified"}</Badge></Row>
                 {!user.emailVerified && <Button size="sm" onClick={async () => { const r = await run(() => api<{ emailSent: boolean }>("/api/auth/resend", { body: {} })); if (r) toast(r.emailSent ? "success" : "info", r.emailSent ? "Verification email sent" : "Email delivery isn't configured on this server."); }}><Mail className="size-4" /> Resend verification</Button>}
-                <form className="mt-4 space-y-3" onSubmit={async (e) => { e.preventDefault(); if (await run(() => api("/api/me/account", { body: { current: pw.current, next: pw.next } }), "Password changed")) setPw({ current: "", next: "" }); }}>
-                  {user.hasPassword && <Field label="Current password"><input className="input" type="password" autoComplete="current-password" value={pw.current} onChange={(e) => setPw({ ...pw, current: e.target.value })} aria-label="Current password" /></Field>}
-                  <Field label={user.hasPassword ? "New password" : "Set a password"} hint="At least 8 characters"><input className="input" type="password" autoComplete="new-password" minLength={8} value={pw.next} onChange={(e) => setPw({ ...pw, next: e.target.value })} aria-label="New password" /></Field>
+                <form className="mt-4 space-y-3" onSubmit={async (e) => { e.preventDefault(); if (await run(() => api("/api/me/account", { body: { current: pw.current, next: pw.next } }), t("Password changed"))) setPw({ current: "", next: "" }); }}>
+                  {user.hasPassword && <Field label={t("Current password")}><input className="input" type="password" autoComplete="current-password" value={pw.current} onChange={(e) => setPw({ ...pw, current: e.target.value })} aria-label="Current password" /></Field>}
+                  <Field label={user.hasPassword ? "New password" : "Set a password"} hint={t("At least 8 characters")}><input className="input" type="password" autoComplete="new-password" minLength={8} value={pw.next} onChange={(e) => setPw({ ...pw, next: e.target.value })} aria-label={t("New password")} /></Field>
                   <Button type="submit" disabled={(user.hasPassword && !pw.current) || pw.next.length < 8}>{user.hasPassword ? "Change password" : "Set password"}</Button>
                 </form>
               </>
@@ -91,7 +91,7 @@ export default function SettingsPage() {
           </Card>
           <Card>
             <h2 className="mb-2 flex items-center gap-2 text-sm font-medium text-muted"><Music2 className="size-4" /> {t("Spotify & appearance")}</h2>
-            <p className="text-sm text-muted">Connection, ambience and playback options are in the <Link href="/music" className="text-accent">Music Hub</Link>. Colors, gradients and fonts are in the <Link href="/themes" className="text-accent">Theme Studio</Link>.</p>
+            <p className="text-sm text-muted">Connection, ambience and playback options are in the <Link href="/music" className="text-accent">{t("Music Hub")}</Link>. Colors, gradients and fonts are in the <Link href="/themes" className="text-accent">{t("Theme Studio")}</Link>.</p>
           </Card>
           <Card>
             <h2 className="mb-2 flex items-center gap-2 text-sm font-medium text-muted"><Download className="size-4" /> {t("Your data")}</h2>
@@ -103,7 +103,7 @@ export default function SettingsPage() {
       </div>
       <Modal open={del} onClose={() => setDel(false)} title={t("Delete account")} footer={<><Button onClick={() => setDel(false)}>{t("Cancel")}</Button><Button variant="danger" disabled={!delPw} onClick={async () => { if (await run(() => api("/api/me/account", { method: "DELETE", body: { password: delPw } }))) window.location.href = "/signup"; }}>{t("Delete permanently")}</Button></>}>
         <p className="mb-3 text-sm text-muted">All tasks, habits, goals, notes, journal entries and your profile will be erased. Enter your password to confirm.</p>
-        <input className="input" type="password" value={delPw} onChange={(e) => setDelPw(e.target.value)} aria-label="Password" placeholder="Password" />
+        <input className="input" type="password" value={delPw} onChange={(e) => setDelPw(e.target.value)} aria-label={t("Password")} placeholder={t("Password")} />
       </Modal>
     </>
   );
