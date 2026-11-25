@@ -17,11 +17,12 @@ export const GET = handle(async () => {
   const readingDays = (await db.execute(sql`select date::text d, sum(pages)::int v from ossv2.reading_logs where user_id=${a.id} and date >= ${from}::date group by date order by date`)).rows as { d: string; v: number }[];
   const learning = await db.select().from(learningEntries).where(eq(learningEntries.userId, a.id)).orderBy(desc(learningEntries.date), desc(learningEntries.createdAt)).limit(30);
   const [rh] = await db.select().from(habits).where(and(eq(habits.userId, a.id), eq(habits.kind, "reading"), eq(habits.archived, false))).limit(1);
+  const [lh] = await db.select().from(habits).where(and(eq(habits.userId, a.id), eq(habits.kind, "learning"), eq(habits.archived, false))).limit(1);
   void gte;
   return {
     today,
     water: { goal: a.prefs.waterGoal, total: waterToday.reduce((s, w) => s + w.ml, 0), entries: waterToday, days: waterDays },
     reading: { target: rh?.target ?? 20, todayPages: reading.filter((r) => r.date === today).reduce((s, r) => s + r.pages, 0), entries: reading, days: readingDays },
-    learning: { entries: learning },
+    learning: { target: lh?.target ?? 1, todayCount: learning.filter((e) => e.date === today).length, entries: learning },
   };
 });
