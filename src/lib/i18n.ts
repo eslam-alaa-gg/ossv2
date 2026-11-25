@@ -849,6 +849,15 @@ const ar: Record<string, string> = {
   "Move {widget} up": "نقل {widget} لأعلى",
   "Move {widget} down": "نقل {widget} لأسفل",
   "{widget} size": "حجم {widget}",
+  "first_task": "أول خطوة",
+  "task_10": "إنجاز 10 مهام",
+  "task_50": "خبير المهام",
+  "habit_7": "بناء روتين",
+  "habit_30": "الاستمرارية",
+  "focus_5": "تركيز عميق",
+  "goal_1": "صانع الأهداف",
+  "challenge_5": "قبلت التحدي",
+  "streak_7": "أسبوع من الالتزام",
 };
 
 export function translate(lang: Lang, s: string): string {
