@@ -9,7 +9,9 @@ import { DEFAULT_PREFS, parsePrefs } from "@/lib/prefs";
 
 export async function generateMetadata(): Promise<Metadata> {
   const u = await getSessionUser();
-  const ar = u?.language === "ar";
+  const requestHeaders = await headers();
+  const preferredLanguage = requestHeaders.get("accept-language") ?? "";
+  const ar = u?.language === "ar" || (!u && /^ar(?:-|,|;|$)/i.test(preferredLanguage));
   return {
     title: { default: "LIFE OS", template: "%s · LIFE OS" },
     description: ar
