@@ -530,6 +530,28 @@ const ar: Record<string, string> = {
   "Timezone updated": "تم تحديث المنطقة الزمنية",
   "Daily goal updated": "تم تحديث الهدف اليومي"
 
+  "Overdue": "متأخرة",
+  "unread": "غير مقروء",
+  "Sort: due date": "ترتيب حسب موعد الاستحقاق",
+  "Sort: priority": "ترتيب حسب الأولوية",
+  "Sort: newest": "ترتيب من الأحدث",
+  "Sort: title": "ترتيب حسب العنوان",
+  "Sounds are synthesised in your browser. Never autoplays; your choice is remembered.": "الأصوات بيتم توليدها داخل المتصفح. مش بتشتغل تلقائيًا، واختيارك بيتحفظ.",
+  "Exit fullscreen focus": "الخروج من وضع التركيز بملء الشاشة",
+  "Fullscreen focus mode": "وضع التركيز بملء الشاشة",
+  "Pause sound": "إيقاف الصوت مؤقتًا",
+  "Play sound": "تشغيل الصوت",
+  "Linked tasks": "المهام المرتبطة",
+  "done": "مكتمل",
+  "Link tasks from the task editor (Linked goal).": "اربط المهام بالهدف من محرر المهمة من خلال خيار «الهدف المرتبط».",
+  "No completed activity yet — charts will populate as you finish tasks, habits, challenges and focus sessions.": "لسه مفيش نشاط مكتمل. الرسوم البيانية هتظهر مع إنجاز المهام والعادات والتحديات وجلسات التركيز.",
+  "Productivity trend (30 days)": "اتجاه الإنتاجية (آخر 30 يوم)",
+  "Task completion (12 weeks)": "إنجاز المهام (آخر 12 أسبوع)",
+  "Focus time (minutes / day)": "وقت التركيز (دقيقة يوميًا)",
+  "Habit consistency (last 30 days)": "الالتزام بالعادات (آخر 30 يوم)",
+  "No badges yet — complete a task, habit or focus session to earn your first.": "لسه مفيش شارات. أنجز مهمة أو عادة أو جلسة تركيز عشان تحصل على أول شارة.",
+  "LIFE OS home": "الصفحة الرئيسية لـ LIFE OS",
+  "Close menu": "إغلاق القائمة",
 };
 
 export function translate(lang: Lang, s: string): string {
