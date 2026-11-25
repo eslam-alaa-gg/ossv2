@@ -54,7 +54,9 @@ export const ACCENT_PALETTE = [
 
 export const TARGET_KEYS: TargetKey[] = ["app", "dashboard", "cards", "buttons", "accent", "progress", "charts", "nav", "profile"];
 
-export const GRADIENT_PRESETS: Pick<GradientCfg, "kind" | "angle" | "stops">[] & { id: string; name: string }[] = [
+type GradientPreset = { id: string; name: string } & Pick<GradientCfg, "kind" | "angle" | "stops">;
+
+export const GRADIENT_PRESETS: GradientPreset[] = [
   Object.assign({ id: "aurora", name: "Aurora" }, { kind: "linear" as const, angle: 135, stops: [{ color: "#6757e8", pos: 0 }, { color: "#2679a8", pos: 52 }, { color: "#38a77b", pos: 100 }] }),
   Object.assign({ id: "violet", name: "Violet haze" }, { kind: "radial" as const, angle: 45, stops: [{ color: "#8b5cf6", pos: 0 }, { color: "#312e81", pos: 100 }] }),
   Object.assign({ id: "ember", name: "Ember" }, { kind: "linear" as const, angle: 35, stops: [{ color: "#d97757", pos: 0 }, { color: "#9f426a", pos: 55 }, { color: "#39245f", pos: 100 }] }),
