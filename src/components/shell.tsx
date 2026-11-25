@@ -1,7 +1,7 @@
 "use client";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  BarChart3, Bell, BookMarked, CalendarCheck, CalendarDays, CheckSquare, ChevronsLeft, ChevronsRight, Languages, LayoutDashboard, LogOut, Menu, Music2, Palette, Plus, Repeat, Search, Settings, Target, Timer,
+  BarChart3, Bell, BookMarked, CalendarCheck, CalendarDays, CheckSquare, ChevronsLeft, ChevronsRight, Languages, LayoutDashboard, LogOut, Music2, Palette, Plus, Repeat, Search, Settings, Target, Timer,
   Trophy, User as UserIcon, X, Zap,
 } from "lucide-react";
 import Link from "next/link";
@@ -108,7 +108,7 @@ function ProfileMenu() {
   return (
     <div ref={ref} className="relative">
       <button onClick={() => setOpen(!open)} aria-haspopup="menu" aria-expanded={open} aria-label={t("Account menu")} className="header-icon-btn rounded-full transition-transform active:scale-95">
-        <Avatar size={46} ring />
+        <Avatar size={36} ring />
       </button>
       <AnimatePresence>
         {open && (
@@ -153,7 +153,7 @@ function Bell_() {
   const markAll = async () => { await api("/api/notifications", { method: "POST", body: { all: true } }); reload(); };
   return (
     <div ref={ref} className="relative">
-      <Button variant="ghost" size="icon" className="header-icon-btn h-10 w-10" title={t("Notifications")} aria-label={`${t("Notifications")}${data?.unread ? `, ${data.unread} ${t("unread")}` : ""}`} onClick={() => { setOpen(!open); if (!open) reload(); }}>
+      <Button variant="ghost" size="icon" className="header-icon-btn h-9 w-9" title={t("Notifications")} aria-label={`${t("Notifications")}${data?.unread ? `, ${data.unread} ${t("unread")}` : ""}`} onClick={() => { setOpen(!open); if (!open) reload(); }}>
         <Bell className="size-[19px]" />
         {!!data?.unread && <span className="absolute end-1.5 top-1.5 grid min-w-4 place-items-center rounded-full bg-accent px-1 text-[10px] font-bold text-[var(--on-accent)]">{data.unread}</span>}
       </Button>
@@ -252,17 +252,16 @@ export function AppShell({ children }: { children: ReactNode }) {
   useEffect(() => {
     if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => {});
   }, []);
-  const mobilePrimary = NAV.filter((n) => n.primary);
   return (
     <SpotifyProvider>
       <Sidebar collapsed={collapsed} setCollapsed={toggle} />
       <div className={cn("min-h-dvh transition-[padding] duration-300", collapsed ? "lg:ps-[92px]" : "lg:ps-[272px]")}>
-        <header className="app-topbar glass-panel sticky top-2 z-30 mx-3 flex items-center gap-2 px-3 py-2.5 sm:mx-5 sm:gap-3 sm:px-4 lg:mx-6 lg:pe-6">
+        <header className="app-topbar glass-panel sticky top-2 z-30 mx-auto mt-2 flex h-[54px] w-[calc(100%-1.25rem)] max-w-[1120px] items-center gap-2 px-3 py-1.5 sm:gap-3 sm:px-4 lg:px-5">
           <button onClick={() => setCmd(true)} className="header-icon-btn glass-btn btn-ghost btn-icon h-10 w-10 shrink-0" aria-label={t("Open command menu")} title={t("Search")}>
             <Search className="size-[19px]" />
           </button>
           <div className="ms-auto flex min-w-0 items-center gap-1.5 sm:gap-2">
-            <button type="button" onClick={() => patchUser({ language: lang === "ar" ? "en" : "ar" })} className="header-icon-btn glass-btn btn-ghost btn-icon h-10 w-10" aria-label={lang === "ar" ? t("Switch to English") : t("Switch to Arabic")} title={lang === "ar" ? t("English") : t("Arabic")}><Languages className="size-[19px]" /></button>
+            <button type="button" onClick={() => patchUser({ language: lang === "ar" ? "en" : "ar" })} className="header-icon-btn glass-btn btn-ghost btn-icon h-9 w-9" aria-label={lang === "ar" ? t("Switch to English") : t("Switch to Arabic")} title={lang === "ar" ? t("English") : t("Arabic")}><Languages className="size-[19px]" /></button>
             <Link href="/tasks?new=1" className="glass-btn btn-primary btn-sm hidden h-10 sm:inline-flex"><Plus className="size-4" /> {t("Create Task")}</Link>
             <Bell_ />
             <ProfileMenu />
@@ -277,36 +276,42 @@ export function AppShell({ children }: { children: ReactNode }) {
         </main>
       </div>
 
-      {/* mobile floating pill navigation */}
-      <nav aria-label={t("Mobile")} className="pb-safe fixed inset-x-0 bottom-3 z-40 flex justify-center px-3 lg:hidden">
-        <div className="glass-panel flex w-full max-w-md items-center justify-between gap-1 rounded-full p-1.5">
-          {mobilePrimary.map((n) => {
-            const active = path === n.href || path.startsWith(n.href + "/");
-            return (
-              <Link key={n.href} href={n.href} aria-current={active ? "page" : undefined} aria-label={t(n.label)} className={cn("flex h-12 flex-1 items-center justify-center gap-2 rounded-full text-sm font-medium transition-all", active ? "bg-accent px-4 text-[var(--on-accent)]" : "text-muted")}>
-                <n.icon className="size-5" />
-                {active && <span className="max-w-[5.5rem] truncate">{t(n.label)}</span>}
-              </Link>
-            );
-          })}
-          <button onClick={() => setDrawer(true)} aria-label={t("More")} className="flex h-12 flex-1 items-center justify-center rounded-full text-muted"><Menu className="size-5" /></button>
-        </div>
+      {/* A single dashboard control opens the same vertical navigation used on desktop. */}
+      <nav aria-label={t("Mobile dashboard menu")} className="pb-safe fixed inset-x-0 bottom-3 z-40 flex justify-center px-4 lg:hidden">
+        <button onClick={() => setDrawer(true)} aria-label={t("Open dashboard navigation")} aria-expanded={drawer} className="glass-panel flex h-12 min-w-[176px] items-center justify-center gap-2 rounded-full px-6 text-sm font-semibold shadow-xl">
+          <LayoutDashboard className="size-[18px]" />
+          <span>{t("Dashboard")}</span>
+        </button>
       </nav>
       <AnimatePresence>
         {drawer && (
           <motion.div className="fixed inset-0 z-[70] lg:hidden" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <div className="absolute inset-0 backdrop-blur-sm" style={{ background: "var(--overlay)" }} onClick={() => setDrawer(false)} />
-            <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 30, stiffness: 300 }} className="popover pb-safe absolute inset-x-0 bottom-0 max-h-[85dvh] overflow-y-auto rounded-b-none p-4" style={{ borderRadius: "var(--radius-lg) var(--radius-lg) 0 0" }}>
-              <div className="mb-3 flex items-center justify-between"><Brand /><Button variant="ghost" size="icon" onClick={() => setDrawer(false)} aria-label={t("Close menu")}><X className="size-5" /></Button></div>
-              <div className="grid grid-cols-3 gap-2">
-                {NAV.map((n) => (
-                  <Link key={n.href} href={n.href} className={cn("flex flex-col items-center gap-1.5 rounded-2xl border border-line bg-card p-3 text-center text-xs", path === n.href && "nav-active")}>
-                    <n.icon className="size-5" /> <span className="leading-tight">{t(n.label)}</span>
-                  </Link>
-                ))}
-                <Link href="/profile" className="flex flex-col items-center gap-1.5 rounded-2xl border border-line bg-card p-3 text-center text-xs"><UserIcon className="size-5" />{t("Profile")}</Link>
+            <button type="button" aria-label={t("Close navigation")} className="absolute inset-0 backdrop-blur-sm" style={{ background: "var(--overlay)" }} onClick={() => setDrawer(false)} />
+            <motion.aside
+              initial={{ x: lang === "ar" ? 300 : -300 }}
+              animate={{ x: 0 }}
+              exit={{ x: lang === "ar" ? 300 : -300 }}
+              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+              className="glass-panel absolute inset-y-0 start-0 flex w-[min(84vw,290px)] flex-col p-3 shadow-2xl"
+              aria-label={t("Primary")}
+            >
+              <div className="mb-4 mt-1 flex items-center justify-between gap-2">
+                <Brand />
+                <Button variant="ghost" size="icon" onClick={() => setDrawer(false)} aria-label={t("Close navigation")}><X className="size-5" /></Button>
               </div>
-            </motion.div>
+              <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain">
+                {NAV.map((n) => {
+                  const active = path === n.href || path.startsWith(n.href + "/");
+                  return (
+                    <Link key={n.href} href={n.href} onClick={() => setDrawer(false)} aria-current={active ? "page" : undefined} className={cn("nav-link min-h-11", active && "nav-active")}>
+                      <n.icon className="size-[18px] shrink-0" />
+                      <span className="truncate">{t(n.label)}</span>
+                    </Link>
+                  );
+                })}
+              </nav>
+              <SidebarUser collapsed={false} />
+            </motion.aside>
           </motion.div>
         )}
       </AnimatePresence>
