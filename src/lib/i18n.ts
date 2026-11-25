@@ -489,8 +489,7 @@ const ar: Record<string, string> = {
   "Add task on": "إضافة مهمة يوم",
   "more": "أكتر",
   "Dates follow your timezone": "التواريخ حسب المنطقة الزمنية بتاعتك",
-  "Weeks start Monday.": "الأسبوع بيبدأ يوم الاثنين."
-
+  "Weeks start Monday.": "الأسبوع بيبدأ يوم الاثنين.",
   "Past challenges will appear here.": "التحديات اللي فاتت هتظهر هنا.",
   "Finish your first session and it will be recorded here.": "كمّل أول جلسة ليك وهتتسجل هنا.",
   "Break something meaningful into milestones and watch the journey fill in.": "قسّم هدفك لمراحل صغيرة وشوف تقدمك خطوة بخطوة.",
@@ -500,7 +499,7 @@ const ar: Record<string, string> = {
   "Pick a ready-made habit like Drink Water or Meditation, or create your own.": "اختار عادة جاهزة زي شرب الميه أو التأمل، أو اعمل عادة خاصة بيك.",
   "Log your first session to start a history.": "سجّل أول جلسة عشان يبدأ يظهر عندك سجل.",
   "Capture ideas, things you learned, and reflections — all private.": "سجّل أفكارك والحاجات اللي اتعلمتها وتأملاتك، وكل ده خاص بيك.",
-  "Autosaves as you type.": "بيحفظ تلقائيًا وإنت بتكتب."
+  "Autosaves as you type.": "بيحفظ تلقائيًا وإنت بتكتب.",
   "Connect Spotify to see what you're listening to.": "اربط Spotify عشان تشوف إنت بتسمع إيه دلوقتي.",
   "Spotify isn't configured on this server yet.": "Spotify لسه مش متظبط على السيرفر ده.",
   "Connect": "ربط",
@@ -523,9 +522,10 @@ const ar: Record<string, string> = {
   "Learning": "تعلّم",
   "Finance": "مالية",
   "Career": "المسار المهني",
-  "Creativity": "إبداع"
+  "Creativity": "إبداع",
   "Switch to English": "التبديل إلى الإنجليزية",
   "Switch to Arabic": "التبديل إلى العربية"
+
 };
 
 export function translate(lang: Lang, s: string): string {
