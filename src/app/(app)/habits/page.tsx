@@ -46,7 +46,7 @@ function Inner() {
     habits.reload();
   }
   async function remove(h: Habit) {
-    if (!(await confirm(`Delete “${h.name}” and all its history?`, "Delete"))) return;
+    if (!(await confirm(t("Delete “{title}” and all its history?").replace("{title}", t(h.name)), t("Delete")))) return;
     if (await run(() => api(`/api/habits/${h.id}`, { method: "DELETE" }), t("Habit deleted"))) reloadAll();
   }
 
@@ -67,7 +67,7 @@ function Inner() {
                 <div className="flex items-start gap-3">
                   <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-card text-accent"><HabitIcon name={h.icon} /></span>
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2"><p className="truncate font-medium">{h.name}</p>{special && <Badge>{t("auto")}</Badge>}</div>
+                    <div className="flex items-center gap-2"><p className="truncate font-medium">{t(h.name)}</p>{special && <Badge>{t("auto")}</Badge>}</div>
                     <p className="truncate text-xs text-muted">{h.description ? t(h.description) : h.days.length === 7 ? t("Every day") : h.days.map((d) => dayLabels[d]).join(" ")}</p>
                   </div>
                   <Button variant="ghost" size="icon" onClick={() => setModal({ habit: h })} aria-label={t("Edit {title}").replace("{title}", h.name)}><Pencil className="size-4" /></Button>
@@ -79,7 +79,7 @@ function Inner() {
                   ) : h.target > 1 ? (
                     <div className="flex flex-1 items-center gap-2"><Button size="icon" onClick={() => log(h, h.todayAmount - 1)} aria-label={t("Decrease")}><Minus className="size-4" /></Button><div className="flex-1"><Progress value={pct} /><p className="mt-1.5 text-xs text-muted">{h.todayAmount}/{h.target} {h.unit}</p></div><Button size="icon" onClick={() => log(h, h.todayAmount + 1)} aria-label={t("Increase")}><Plus className="size-4" /></Button></div>
                   ) : (
-                    <label className="flex flex-1 items-center gap-3 text-sm"><Checkbox checked={h.todayDone} onChange={(v) => log(h, v ? 1 : 0)} label={`${t("Mark")} ${h.name} ${t(h.todayDone ? "incomplete" : "done")} ${t("today")}`} />{t(h.todayDone ? "Done today" : h.days.includes(new Date().getDay()) ? "Mark as done" : "Not scheduled today")}</label>
+                    <label className="flex flex-1 items-center gap-3 text-sm"><Checkbox checked={h.todayDone} onChange={(v) => log(h, v ? 1 : 0)} label={`${t("Mark")} ${t(h.name)} ${t(h.todayDone ? "incomplete" : "done")} ${t("today")}`} />{t(h.todayDone ? "Done today" : h.days.includes(new Date().getDay()) ? "Mark as done" : "Not scheduled today")}</label>
                   )}
                   <div className="flex items-center gap-1 text-sm font-medium"><Flame className="size-4 text-orange-400" />{h.current}<span className="text-xs font-normal text-faint">/ {t("best")} {h.longest}</span></div>
                 </div>
