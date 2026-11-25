@@ -15,7 +15,7 @@ export type Theme = {
   preset: string; mode: "dark" | "light" | "system"; accent: string;
   glassOpacity: number; blur: number; borderOpacity: number; brightness: number; glow: number; cardOpacity: number;
   background: "solid" | "soft" | "ambient"; noise: boolean; mouseLight: boolean; radius: number;
-  density: "compact" | "comfortable" | "spacious"; font: "inter" | "plex" | "cairo" | "manrope" | "serif" | "system";
+  density: "compact" | "comfortable" | "spacious"; font: "inter" | "plex" | "cairo" | "manrope" | "serif" | "system" | "sniglet" | "kavoon" | "merienda" | "shantell";
   animation: number; speed: number; reducedMotion: boolean; gradientPreset: string; gradient: GradientCfg;
   targets: Record<TargetKey, boolean>;
 };
@@ -32,7 +32,7 @@ export const PRESETS = [
 ] as const;
 export const DEFAULT_THEME: Theme = {
  preset:"midnight",mode:"dark",accent:"#8b7cff",glassOpacity:7,blur:22,borderOpacity:11,brightness:100,glow:15,cardOpacity:7,
- background:"ambient",noise:true,mouseLight:true,radius:20,density:"comfortable",font:"inter",animation:70,speed:100,reducedMotion:false,
+ background:"ambient",noise:true,mouseLight:true,radius:20,density:"comfortable",font:"sniglet",animation:70,speed:100,reducedMotion:false,
  gradientPreset:"aurora",gradient:{kind:"linear",angle:135,stops:[{color:"#6d5dfc",pos:0},{color:"#2f6bff",pos:100}],intensity:35,opacity:18,blend:"soft-light",animated:false,animSpeed:30,animIntensity:25,animDirection:"alternate"},
  targets:{app:false,dashboard:false,cards:false,buttons:false,accent:false,progress:false,charts:false,nav:false,profile:false},
 };
