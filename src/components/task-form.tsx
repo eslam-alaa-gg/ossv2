@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useApp } from "@/components/providers";
 import { api, useFetch } from "@/lib/client";
 import { Badge, Button, Field, Modal, useUI } from "./ui";
 
@@ -20,6 +21,7 @@ export function PriorityBadge({ p }: { p: Task["priority"] }) {
 const empty = { title: "", description: "", category: "General", priority: "medium", status: "todo", dueDate: "", dueTime: "", reminderMinutes: "", tags: "", recurrence: "none", goalId: "" };
 
 export function TaskModal({ open, onClose, task, defaults, onSaved, onDelete }: { open: boolean; onClose: () => void; task?: Task | null; defaults?: Partial<typeof empty>; onSaved: () => void; onDelete?: (t: Task) => void }) {
+  const { t } = useApp();
   const { run } = useUI();
   const [f, setF] = useState(empty);
   const [err, setErr] = useState<string | null>(null);
@@ -46,20 +48,20 @@ export function TaskModal({ open, onClose, task, defaults, onSaved, onDelete }: 
   }
   return (
     <Modal open={open} onClose={onClose} title={task ? "Task details" : "New task"} wide footer={<>
-      {task && onDelete && <Button variant="danger" className="me-auto" onClick={() => onDelete(task)}>Delete</Button>}
-      <Button onClick={onClose}>Cancel</Button><Button variant="primary" loading={busy} onClick={save}>{task ? "Save changes" : "Create task"}</Button></>}>
+      {task && onDelete && <Button variant="danger" className="me-auto" onClick={() => onDelete(task)}>{t("Delete")}</Button>}
+      <Button onClick={onClose}>{t("Cancel")}</Button><Button variant="primary" loading={busy} onClick={save}>{task ? "Save changes" : "Create task"}</Button></>}>
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Title" error={err} className="sm:col-span-2"><input className="input" value={f.title} onChange={set("title")} maxLength={200} placeholder="What needs to be done?" aria-label="Title" /></Field>
-        <Field label="Description" className="sm:col-span-2"><textarea className="input min-h-20" value={f.description} onChange={set("description")} maxLength={5000} aria-label="Description" /></Field>
-        <Field label="Category"><input className="input" list="cats" value={f.category} onChange={set("category")} maxLength={40} aria-label="Category" /><datalist id="cats">{CATEGORIES.map((c) => <option key={c} value={c} />)}</datalist></Field>
-        <Field label="Priority"><select className="input" value={f.priority} onChange={set("priority")} aria-label="Priority">{PRIORITIES.map((p) => <option key={p} value={p} className="capitalize">{p[0].toUpperCase() + p.slice(1)}</option>)}</select></Field>
-        <Field label="Due date"><input className="input" type="date" value={f.dueDate} onChange={set("dueDate")} aria-label="Due date" /></Field>
-        <Field label="Due time"><input className="input" type="time" value={f.dueTime} onChange={set("dueTime")} aria-label="Due time" /></Field>
-        <Field label="Reminder"><select className="input" value={f.reminderMinutes} onChange={set("reminderMinutes")} aria-label="Reminder"><option value="">None</option><option value="0">At due time</option><option value="15">15 minutes before</option><option value="60">1 hour before</option><option value="1440">1 day before</option></select></Field>
-        <Field label="Repeat"><select className="input" value={f.recurrence} onChange={set("recurrence")} aria-label="Repeat"><option value="none">Does not repeat</option><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option></select></Field>
-        {task && <Field label="Status"><select className="input" value={f.status} onChange={set("status")} aria-label="Status"><option value="todo">To Do</option><option value="in_progress">In Progress</option><option value="archived">Archived</option></select></Field>}
-        <Field label="Tags" hint="Comma separated"><input className="input" value={f.tags} onChange={set("tags")} placeholder="deep-work, urgent" aria-label="Tags" /></Field>
-        <Field label="Linked goal" className="sm:col-span-2"><select className="input" value={f.goalId} onChange={set("goalId")} aria-label="Linked goal"><option value="">No goal</option>{goals.data?.goals.map((g) => <option key={g.id} value={g.id}>{g.title}</option>)}</select></Field>
+        <Field label={t("Title")} error={err} className="sm:col-span-2"><input className="input" value={f.title} onChange={set("title")} maxLength={200} placeholder={t("What needs to be done?")} aria-label={t("Title")} /></Field>
+        <Field label={t("Description")} className="sm:col-span-2"><textarea className="input min-h-20" value={f.description} onChange={set("description")} maxLength={5000} aria-label={t("Description")} /></Field>
+        <Field label={t("Category")}><input className="input" list="cats" value={f.category} onChange={set("category")} maxLength={40} aria-label={t("Category")} /><datalist id="cats">{CATEGORIES.map((c) => <option key={c} value={c} />)}</datalist></Field>
+        <Field label={t("Priority")}><select className="input" value={f.priority} onChange={set("priority")} aria-label={t("Priority")}>{PRIORITIES.map((p) => <option key={p} value={p} className="capitalize">{p[0].toUpperCase() + p.slice(1)}</option>)}</select></Field>
+        <Field label={t("Due date")}><input className="input" type="date" value={f.dueDate} onChange={set("dueDate")} aria-label={t("Due date")} /></Field>
+        <Field label={t("Due time")}><input className="input" type="time" value={f.dueTime} onChange={set("dueTime")} aria-label={t("Due time")} /></Field>
+        <Field label={t("Reminder")}><select className="input" value={f.reminderMinutes} onChange={set("reminderMinutes")} aria-label={t("Reminder")}><option value="">{t("None")}</option><option value="0">{t("At due time")}</option><option value="15">{t("15 minutes before")}</option><option value="60">{t("1 hour before")}</option><option value="1440">{t("1 day before")}</option></select></Field>
+        <Field label={t("Repeat")}><select className="input" value={f.recurrence} onChange={set("recurrence")} aria-label={t("Repeat")}><option value="none">{t("Does not repeat")}</option><option value="daily">{t("Daily")}</option><option value="weekly">{t("Weekly")}</option><option value="monthly">{t("Monthly")}</option></select></Field>
+        {task && <Field label={t("Status")}><select className="input" value={f.status} onChange={set("status")} aria-label={t("Status")}><option value="todo">{t("To Do")}</option><option value="in_progress">{t("In Progress")}</option><option value="archived">{t("Archived")}</option></select></Field>}
+        <Field label={t("Tags")} hint={t("Comma separated")}><input className="input" value={f.tags} onChange={set("tags")} placeholder={t("deep-work, urgent")} aria-label={t("Tags")} /></Field>
+        <Field label={t("Linked goal")} className="sm:col-span-2"><select className="input" value={f.goalId} onChange={set("goalId")} aria-label={t("Linked goal")}><option value="">{t("No goal")}</option>{goals.data?.goals.map((g) => <option key={g.id} value={g.id}>{g.title}</option>)}</select></Field>
         {task && <p className="text-xs text-faint sm:col-span-2">Created {new Date(task.createdAt).toLocaleString()}{task.completedAt ? ` · Completed ${new Date(task.completedAt).toLocaleString()}` : ""}</p>}
       </div>
     </Modal>
