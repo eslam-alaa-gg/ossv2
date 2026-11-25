@@ -810,6 +810,18 @@ const ar: Record<string, string> = {
   "One Week Strong": "أسبوع من الالتزام",
   "Reach a 7-day activity streak.": "حافظ على نشاطك لمدة 7 أيام متتالية.",
   "Achievement unlocked": "تم فتح إنجاز",
+  "Not enough activity yet for trends — insights appear once you have at least 5 active days across a week.": "لا توجد بيانات نشاط كافية لاستخراج الاتجاهات بعد — ستظهر الرؤى عندما تسجل نشاطًا في 5 أيام على الأقل خلال أسبوع.",
+  "Your highest average activity is on": "أعلى متوسط لنشاطك يكون يوم",
+  "This week's score is": "نتيجتك هذا الأسبوع",
+  "vs last week": "مقارنة بالأسبوع الماضي",
+  "vs": "مقابل",
+  "up": "ارتفاعًا",
+  "down": "انخفاضًا",
+  "You were active on": "كنت نشطًا خلال",
+  "of the last 30 days": "من آخر 30 يومًا",
+  "Most consistent habit (30 days)": "العادة الأكثر انتظامًا خلال 30 يومًا",
+  "at": "بنسبة",
+  "from": "من",
 };
 
 export function translate(lang: Lang, s: string): string {
