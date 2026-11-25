@@ -191,9 +191,9 @@ export function NowPlayingWidget() {
         <div className="grid size-14 place-items-center rounded-2xl bg-card text-accent"><Music2 className="size-6" /></div>
         <div className="min-w-0 flex-1">
           <p className="font-medium">{tr("Spotify Now Playing")}</p>
-          <p className="text-sm text-muted">{status?.configured ? "Connect Spotify to see what you're listening to." : "Spotify isn't configured on this server yet."}</p>
+          <p className="text-sm text-muted">{status?.configured ? tr("Connect Spotify to see what you're listening to.") : tr("Spotify isn't configured on this server yet.")}</p>
         </div>
-        <Link href="/music" className="glass-btn btn-sm">{status?.configured ? "Connect" : "Details"}</Link>
+        <Link href="/music" className="glass-btn btn-sm">{status?.configured ? tr("Connect") : tr("Details")}</Link>
       </Card>
     );
   }
@@ -212,7 +212,7 @@ export function NowPlayingWidget() {
             <>
               <div className="flex items-center gap-2 text-xs text-muted">
                 <span className={`size-1.5 rounded-full ${np.playing ? "bg-emerald-400" : "bg-amber-400"}`} />
-                {np.playing ? "Playing" : "Paused"} {np.device ? `· ${np.device.name}` : ""}
+                {np.playing ? tr("Playing") : tr("Paused")} {np.device ? `· ${np.device.name}` : ""}
               </div>
               <p className="truncate text-base font-semibold">{t.title}</p>
               <p className="truncate text-sm text-muted">{t.artists.map((a) => a.name).join(", ")} · {t.album.name}</p>
