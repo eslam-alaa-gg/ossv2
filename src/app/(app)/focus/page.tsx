@@ -119,7 +119,7 @@ export default function FocusPage() {
         {phase === "paused" && <Button variant="primary" className="h-12 px-6" onClick={resume}><Play className="size-5" /> {t("Resume")}</Button>}
         {phase !== "idle" && <Button className="h-12" onClick={() => end(false)}><Square className="size-4" /> {t("End")}</Button>}
         {phase !== "idle" && <Button variant="ghost" className="h-12" onClick={() => end(true)} aria-label={t("Reset")}><RotateCcw className="size-4" /> {t("Reset")}</Button>}
-        <Button variant="ghost" size="icon" className="h-12 w-12" onClick={toggleZen} aria-label={zen ? "Exit fullscreen focus" : "Fullscreen focus mode"}>{zen ? <Minimize2 className="size-5" /> : <Maximize2 className="size-5" />}</Button>
+        <Button variant="ghost" size="icon" className="h-12 w-12" onClick={toggleZen} aria-label={zen ? t("Exit fullscreen focus") : t("Fullscreen focus mode")}>{zen ? <Minimize2 className="size-5" /> : <Maximize2 className="size-5" />}</Button>
       </div>
       {phase !== "idle" && <p className="mt-3 text-xs text-faint">{t("Rewards are only granted when the full duration has elapsed on the server.")}</p>}
     </div>
@@ -165,11 +165,11 @@ export default function FocusPage() {
               {SOUNDS.map((s) => <button key={s.id} onClick={() => { setSound(s.id); setAudioOn(true); }} aria-pressed={sound === s.id} className={cn("rounded-xl border px-3 py-2 text-sm", sound === s.id ? "border-accent bg-accent/10" : "border-line hover:bg-card")}>{s.label}</button>)}
             </div>
             <div className="mt-4 flex items-center gap-3">
-              <Button size="icon" onClick={() => setAudioOn(!audioOn)} disabled={sound === "none"} aria-label={audioOn ? "Pause sound" : "Play sound"}>{audioOn && sound !== "none" ? <Pause className="size-4" /> : <Play className="size-4" />}</Button>
+              <Button size="icon" onClick={() => setAudioOn(!audioOn)} disabled={sound === "none"} aria-label={audioOn ? t("Pause sound") : t("Play sound")}>{audioOn && sound !== "none" ? <Pause className="size-4" /> : <Play className="size-4" />}</Button>
               {volume === 0 ? <VolumeX className="size-4 text-muted" /> : <Volume2 className="size-4 text-muted" />}
               <input type="range" min={0} max={1} step={0.01} value={volume} onChange={(e) => setVolume(Number(e.target.value))} aria-label={t("Volume")} />
             </div>
-            <p className="mt-2 text-xs text-faint">Sounds are synthesised in your browser. Never autoplays; your choice is remembered.</p>
+            <p className="mt-2 text-xs text-faint">{t("Sounds are synthesised in your browser. Never autoplays; your choice is remembered.")}</p>
           </Card>
           <Card>
             <h2 className="mb-3 text-sm font-medium text-muted">{t("Your focus")}</h2>
