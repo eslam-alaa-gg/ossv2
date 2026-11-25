@@ -4,12 +4,12 @@ import { db } from "@/db";
 import { dailyChallenges, focusSessions, goalMilestones, habitLogs, tasks } from "@/db/schema";
 import { addDays, todayIn, dow } from "@/lib/dates";
 
-export const SCORE = { task: 3, habit: 2, challenge: 2, focus: 1, milestone: 3 } as const;
+export const SCORE = { task: 1, habit: 1, challenge: 2, focus: 2, milestone: 2 } as const;
 export type ActivityDay = { date: string; tasks: number; habits: number; challenges: number; focus: number; milestones: number; focusMinutes: number; score: number; level: number };
 export function emptyDay(date: string): ActivityDay { return { date, tasks: 0, habits: 0, challenges: 0, focus: 0, milestones: 0, focusMinutes: 0, score: 0, level: 0 }; }
 function finish(d: ActivityDay, goal: number) {
   d.score = d.tasks * SCORE.task + d.habits * SCORE.habit + d.challenges * SCORE.challenge + d.focus * SCORE.focus + d.milestones * SCORE.milestone;
-  d.level = d.score >= goal * 2 ? 4 : d.score >= goal * 1.5 ? 3 : d.score >= goal ? 2 : d.score > 0 ? 1 : 0;
+  d.level = d.score >= goal ? 4 : d.score >= goal * (2 / 3) ? 3 : d.score >= goal / 3 ? 2 : d.score > 0 ? 1 : 0;
   return d;
 }
 export async function activityByDay(userId: string, tz: string, from: string, to: string, dailyGoal: number) {
