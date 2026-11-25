@@ -20,7 +20,7 @@ type Device = { id: string; name: string; type: string; active: boolean; restric
 type Recent = { playedAt: string; track: NPTrack }[];
 
 function MusicBridgeLink({ label }: { label: string }) {
-  return <a href="/music-bridge" className="glass-btn btn-secondary inline-flex h-10 items-center gap-2 px-4 text-sm"><Smartphone className="size-4" />{label}</a>;
+  return <a href="/music-bridge?pair=android" className="glass-btn btn-secondary inline-flex h-10 items-center gap-2 px-4 text-sm"><Smartphone className="size-4" />{label}</a>;
 }
 
 function DeviceIcon({ type }: { type: string }) {
