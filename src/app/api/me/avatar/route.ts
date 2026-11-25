@@ -5,7 +5,7 @@ import { ApiError, handle } from "@/lib/server/api";
 import { requireUser } from "@/lib/server/auth";
 
 export const dynamic = "force-dynamic";
-const MAX = 1_500_000;
+const MAX = 600 * 1024;
 
 function sniff(b: Buffer): string | null {
   if (b.length > 12 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return "image/jpeg";
@@ -29,7 +29,7 @@ export const POST = handle(async (req) => {
   const form = await req.formData().catch(() => null);
   const file = form?.get("file");
   if (!(file instanceof File)) throw new ApiError(400, "Choose an image to upload.");
-  if (file.size > MAX) throw new ApiError(413, "Image is too large (max 1.5 MB after optimisation).");
+  if (file.size > MAX) throw new ApiError(413, "Image is too large (max 600 KB after optimisation).");
   const buf = Buffer.from(await file.arrayBuffer());
   const mime = sniff(buf);
   if (!mime) throw new ApiError(400, "Only JPG, PNG or WebP images are supported.");
