@@ -32,7 +32,7 @@ function Inner() {
   const progress = useProgress(np);
   const connected = !!status?.connected;
   const premium = status?.profile?.product === "premium";
-  const track = np && !np.idle ? np.track : null;
+  const track = np && !np.idle && np.playing ? np.track : null;
   const recent = useFetch<{ items: Recent }>(connected ? "/api/spotify/recent" : null);
   const devices = useFetch<{ devices: Device[] }>(connected ? "/api/spotify/devices" : null);
   const artistId = track?.artists[0]?.id;
@@ -62,13 +62,13 @@ function Inner() {
         <PageHeader title={t("Music Hub")} subtitle={t("Your Spotify, inside LIFE OS.")} />
         <Card className="max-w-2xl space-y-4">
           <div className="flex items-center gap-3"><AlertTriangle className="size-5 text-amber-400" /><h2 className="font-semibold">{t("Spotify isn't configured on this server")}</h2></div>
-          <p className="text-sm text-muted">{t("The integration is fully implemented (Authorization Code Flow with PKCE) but needs a Spotify app. The server administrator should:")}</p>
+          <p className="text-sm text-muted">{t("The integration is fully implemented (Authorization Code Flow with PKCE) but needs a Spotify app. The server administrator should configure the Spotify app and the server encryption key first:")}</p>
           <ol className="list-decimal space-y-1.5 ps-5 text-sm text-muted">
             <li>{t("Create an app at")} <a className="text-accent underline" href="https://developer.spotify.com/dashboard" target="_blank" rel="noreferrer">{t("developer.spotify.com/dashboard")}</a>.</li>
             <li>{t("Add this Redirect URI:")} <code className="rounded bg-[var(--input)] px-1.5 py-0.5 text-xs text-fg">{status?.redirectUri}</code> {t("(must be HTTPS, or http://127.0.0.1 for local development).")}</li>
-            <li>{t("Set")} <code className="text-fg">{t("SPOTIFY_CLIENT_ID")}</code> {t("(and optionally")} <code className="text-fg">{t("SPOTIFY_REDIRECT_URI")}</code>) {t("in the server environment and restart.")}</li>
+            <li>{t("Set")} <code className="text-fg">{t("SPOTIFY_CLIENT_ID")}</code> {t("and")} <code className="text-fg">{t("APP_SECRET")}</code> {t("(at least 32 characters; keep it private) in the server environment. Set")} <code className="text-fg">{t("SPOTIFY_REDIRECT_URI")}</code> {t("only if you need a custom callback URL, then redeploy.")}</li>
           </ol>
-          <p className="text-xs text-faint">{t("No client secret is needed or used — PKCE keeps the flow secret-free. Tokens are encrypted at rest and never reach the browser.")}</p>
+          <p className="text-xs text-faint">{t("A Spotify client secret is not needed because PKCE is used. APP_SECRET is only the site encryption key for securely storing tokens. Tokens never reach the browser.")}</p>
         </Card>
       </>
     );
