@@ -132,6 +132,19 @@ const ar: Record<string, string> = {
   "English": "الإنجليزية",
   "Arabic": "العربية"
 
+
+  "No habits scheduled today": "مفيش عادات متسجلة لنهارده",
+  "Add habit": "إضافة عادة",
+  "Water, reading & learning habits complete from their trackers.": "عادات شرب الميه والقراءة والتعلّم بتتسجل من صفحات المتابعة بتاعتها.",
+  "Open challenge": "افتح التحدي",
+  "Review": "مراجعة",
+  "Activity score by day this week": "مستوى نشاطك يوم بيوم الأسبوع ده",
+  "Arabic font applies automatically when Arabic is selected, independently from the English font.": "الخط العربي بيتطبق تلقائيًا لما تختار اللغة العربية، بشكل مستقل عن خط الإنجليزي.",
+  "Not configured on this server (VAPID keys missing)": "الإعداد ده مش متاح على السيرفر حاليًا (مفاتيح VAPID ناقصة).",
+  "Blocked in browser settings": "الإشعارات محظورة من إعدادات المتصفح.",
+  "Delivered through your browser's push service": "الإشعارات بتوصلك من خلال خدمة الإشعارات في المتصفح.",
+  "Requires an email provider (RESEND_API_KEY) on the server": "الميزة دي محتاجة إعداد خدمة بريد إلكتروني على السيرفر."
+
 };
 
 export function translate(lang: Lang, s: string): string {
