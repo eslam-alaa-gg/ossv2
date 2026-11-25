@@ -62,7 +62,7 @@ function Inner() {
           {habits.data.habits.map((h) => {
             const special = h.kind !== "standard";
             const pct = Math.min(100, (100 * h.todayAmount) / h.target);
-            const displayAmount = h.kind === "water" ? Math.floor(h.todayAmount / 250) : h.todayAmount;
+            const displayAmount = h.kind === "water" ? Number((h.todayAmount / 250).toFixed(1)) : h.todayAmount;
             const displayTarget = h.kind === "water" ? Math.ceil(h.target / 250) : h.target;
             const displayUnit = h.kind === "water" ? t("cups") : t(h.unit);
             return (
@@ -78,11 +78,11 @@ function Inner() {
                 </div>
                 <div className="mt-4 flex items-center gap-3">
                   {special ? (
-                    <button onClick={() => setTab(h.kind === "water" ? "water" : h.kind === "reading" ? "reading" : "learning")} className="flex-1 text-start"><Progress value={pct} /><p className="mt-1.5 text-xs text-muted">{displayAmount}/{displayTarget} {displayUnit} {t("today — open tracker")}</p></button>
+                    <button onClick={() => setTab(h.kind === "water" ? "water" : h.kind === "reading" ? "reading" : "learning")} className="flex-1 text-start"><Progress value={pct} /><p className="mt-1.5 text-xs text-muted">{displayAmount}/{displayTarget} {displayUnit} {t("today — open tracker")}</p>{h.todayAmount < h.target && <p className="mt-1 text-[11px] text-faint">{t("Goal not reached yet.")}</p>}</button>
                   ) : h.target > 1 ? (
                     <div className="flex flex-1 items-center gap-2"><Button size="icon" onClick={() => log(h, h.todayAmount - 1)} aria-label={t("Decrease")}><Minus className="size-4" /></Button><div className="flex-1"><Progress value={pct} /><p className="mt-1.5 text-xs text-muted">{h.todayAmount}/{h.target} {h.unit}</p></div><Button size="icon" onClick={() => log(h, h.todayAmount + 1)} aria-label={t("Increase")}><Plus className="size-4" /></Button></div>
                   ) : (
-                    <label className="flex flex-1 items-center gap-3 text-sm"><Checkbox checked={h.todayDone} onChange={(v) => log(h, v ? 1 : 0)} label={`${t("Mark")} ${t(h.name)} ${t(h.todayDone ? "incomplete" : "done")} ${t("today")}`} />{t(h.todayDone ? "Done today" : h.days.includes(new Date().getDay()) ? "Mark as done" : "Not scheduled today")}</label>
+                    <label className="flex flex-1 items-center gap-3 text-sm"><Checkbox checked={h.todayDone} onChange={(v) => log(h, v ? 1 : 0)} label={`${t("Mark")} ${t(h.name)} ${t(h.todayDone ? "incomplete" : "done")} ${t("today")}`} />{t(h.todayDone ? "Done today" : h.days.includes(new Date(habits.data!.today + "T00:00:00Z").getUTCDay()) ? "Mark as done" : "Not scheduled today")}</label>
                   )}
                   <div className="flex items-center gap-1 text-sm font-medium"><Flame className="size-4 text-orange-400" />{h.current}<span className="text-xs font-normal text-faint">/ {t("best")} {h.longest}</span></div>
                 </div>
@@ -98,15 +98,16 @@ function Inner() {
       {tab === "water" && trackers.data && (
         <div className="grid gap-[var(--gap)] md:grid-cols-2">
           <Card className="flex flex-col items-center gap-4">
-            <Ring value={(100 * trackers.data.water.total) / trackers.data.water.goal} size={170} stroke={11}><div><Droplets className="mx-auto mb-1 size-5 text-accent" /><p className="text-2xl font-semibold tabular-nums">{Math.floor(trackers.data.water.total / 250)}</p><p className="text-xs text-faint">{t("of")} {Math.ceil(trackers.data.water.goal / 250)} {t("cups")}</p></div></Ring>
+            <Ring value={(100 * trackers.data.water.total) / trackers.data.water.goal} size={170} stroke={11}><div><Droplets className="mx-auto mb-1 size-5 text-accent" /><p className="text-2xl font-semibold tabular-nums">{Number((trackers.data.water.total / 250).toFixed(1))}</p><p className="text-xs text-faint">{t("of")} {Math.ceil(trackers.data.water.goal / 250)} {t("cups")}</p></div></Ring>
+            {trackers.data.water.total < trackers.data.water.goal && <p className="text-xs text-faint">{t("Goal not reached yet.")}</p>}
             <div className="flex flex-wrap justify-center gap-2">{[1, 2, 3].map((cups) => <Button key={cups} onClick={async () => { await run(() => api("/api/trackers/water", { body: { ml: cups * 250 } })); reloadAll(); }}>+{cups} {t(cups === 1 ? "cup" : "cups")}</Button>)}</div>
             <div className="flex w-full items-end gap-2"><Field label={t("Daily goal (cups)")} className="flex-1"><input className="input" type="number" min={2} max={16} step={1} defaultValue={Math.ceil(prefs.waterGoal / 250)} onBlur={async (e) => { const cups = Number(e.target.value); const v = cups * 250; if (v !== prefs.waterGoal && Number.isInteger(cups) && cups >= 2 && cups <= 16) { await run(() => savePrefs({ waterGoal: v }), t("Water goal updated")); reloadAll(); } }} aria-label={t("Daily water goal")} /></Field></div>
           </Card>
           <Card>
             <h3 className="mb-3 text-sm font-medium text-muted">{t("Last 14 days")}</h3>
-            <Bars days={trackers.data.water.days.map((d) => ({ ...d, v: Math.floor(d.v / 250) }))} today={trackers.data.today} max={Math.max(Math.ceil(trackers.data.water.goal / 250), ...trackers.data.water.days.map((d) => Math.floor(d.v / 250)))} unit={t("cups")} />
+            <Bars days={trackers.data.water.days.map((d) => ({ ...d, v: Number((d.v / 250).toFixed(1)) }))} today={trackers.data.today} max={Math.max(Math.ceil(trackers.data.water.goal / 250), ...trackers.data.water.days.map((d) => Math.floor(d.v / 250)))} unit={t("cups")} />
             <h3 className="mb-2 mt-5 text-sm font-medium text-muted">{t("Today's intake")}</h3>
-            {trackers.data.water.entries.length === 0 ? <p className="text-sm text-muted">{t("No water logged yet today.")}</p> : <ul className="space-y-1.5">{trackers.data.water.entries.map((w) => <li key={w.id} className="flex items-center justify-between text-sm"><span>{Math.max(1, Math.round(w.ml / 250))} {t("cups")} <span className="text-xs text-faint">· {new Date(w.createdAt).toLocaleTimeString(lang === "ar" ? "ar-EG" : "en", { hour: "2-digit", minute: "2-digit" })}</span></span><Button variant="ghost" size="icon" aria-label={t("Remove entry")} onClick={async () => { await run(() => api(`/api/trackers/water?id=${w.id}`, { method: "DELETE" })); reloadAll(); }}><Trash2 className="size-3.5" /></Button></li>)}</ul>}
+            {trackers.data.water.entries.length === 0 ? <p className="text-sm text-muted">{t("No water logged yet today.")}</p> : <ul className="space-y-1.5">{trackers.data.water.entries.map((w) => <li key={w.id} className="flex items-center justify-between text-sm"><span>{Number((w.ml / 250).toFixed(1))} {t("cups")} <span className="text-xs text-faint">· {new Date(w.createdAt).toLocaleTimeString(lang === "ar" ? "ar-EG" : "en", { hour: "2-digit", minute: "2-digit" })}</span></span><Button variant="ghost" size="icon" aria-label={t("Remove entry")} onClick={async () => { await run(() => api(`/api/trackers/water?id=${w.id}`, { method: "DELETE" })); reloadAll(); }}><Trash2 className="size-3.5" /></Button></li>)}</ul>}
           </Card>
         </div>
       )}
