@@ -53,7 +53,7 @@ export default function SettingsPage() {
 
   return (
     <>
-      <PageHeader title={t("Settings")} subtitle={t(t("Account, notifications and data."))} />
+      <PageHeader title={t("Settings")} subtitle={t("Account, notifications and data.")} />
       <div className="grid gap-[var(--gap)] lg:grid-cols-2">
         <Card>
           <h2 className="mb-2 flex items-center gap-2 text-sm font-medium text-muted"><Bell className="size-4" /> {t("Notifications")}</h2>
@@ -79,12 +79,12 @@ export default function SettingsPage() {
             <h2 className="mb-2 flex items-center gap-2 text-sm font-medium text-muted"><KeyRound className="size-4" /> {t("Account")}</h2>
             {user.isDemo ? <p className="rounded-xl bg-card p-4 text-sm text-muted">{t("You're in ")}<b className="text-fg">{t("Demo Mode")}</b>{t(". Password changes, email verification, account deletion and push notifications are disabled.")} <Link href="/signup" className="text-accent underline">{t("Create a free account")}</Link>{t(" to unlock them.")}</p> : (
               <>
-                <Row title={user.email} hint={t("Email address cannot be changed here")}><Badge tone={user.emailVerified ? "green" : "amber"}>{user.emailVerified ? "Verified" : "Unverified"}</Badge></Row>
+                <Row title={user.email} hint={t("Email address cannot be changed here")}><Badge tone={user.emailVerified ? "green" : "amber"}>{t(user.emailVerified ? "Verified" : "Unverified")}</Badge></Row>
                 {!user.emailVerified && <Button size="sm" onClick={async () => { const r = await run(() => api<{ emailSent: boolean }>("/api/auth/resend", { body: {} })); if (r) toast(r.emailSent ? "success" : "info", r.emailSent ? "Verification email sent" : "Email delivery isn't configured on this server."); }}><Mail className="size-4" /> {t("Resend verification")}</Button>}
                 <form className="mt-4 space-y-3" onSubmit={async (e) => { e.preventDefault(); if (await run(() => api("/api/me/account", { body: { current: pw.current, next: pw.next } }), t("Password changed"))) setPw({ current: "", next: "" }); }}>
-                  {user.hasPassword && <Field label={t("Current password")}><input className="input" type="password" autoComplete="current-password" value={pw.current} onChange={(e) => setPw({ ...pw, current: e.target.value })} aria-label="Current password" /></Field>}
-                  <Field label={user.hasPassword ? "New password" : "Set a password"} hint={t("At least 8 characters")}><input className="input" type="password" autoComplete="new-password" minLength={8} value={pw.next} onChange={(e) => setPw({ ...pw, next: e.target.value })} aria-label={t("New password")} /></Field>
-                  <Button type="submit" disabled={(user.hasPassword && !pw.current) || pw.next.length < 8}>{user.hasPassword ? "Change password" : "Set password"}</Button>
+                  {user.hasPassword && <Field label={t("Current password")}><input className="input" type="password" autoComplete="current-password" value={pw.current} onChange={(e) => setPw({ ...pw, current: e.target.value })} aria-label={t("Current password")} /></Field>}
+                  <Field label={t(user.hasPassword ? "New password" : "Set a password")} hint={t("At least 8 characters")}><input className="input" type="password" autoComplete="new-password" minLength={8} value={pw.next} onChange={(e) => setPw({ ...pw, next: e.target.value })} aria-label={t("New password")} /></Field>
+                  <Button type="submit" disabled={(user.hasPassword && !pw.current) || pw.next.length < 8}>{t(user.hasPassword ? "Change password" : "Set password")}</Button>
                 </form>
               </>
             )}
