@@ -15,6 +15,13 @@
       "when": 1795578882167,
       "tag": "0001_ossv2_foreign_key_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1795578972536,
+      "tag": "0002_ossv2_google_password_setup",
+      "breakpoints": true
     }
   ]
 }
