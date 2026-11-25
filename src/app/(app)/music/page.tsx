@@ -25,7 +25,7 @@ function DeviceIcon({ type }: { type: string }) {
 }
 
 function Inner() {
-  const { prefs, savePrefs, t } = useApp();
+  const { prefs, savePrefs, t, lang } = useApp();
   const { run, toast, confirm } = useUI();
   const sp = useSearchParams();
   const { status, np, error, errorCode, loadingStatus, refresh, reloadStatus, setBoost } = useSpotify();
@@ -144,7 +144,7 @@ function Inner() {
         </Card>
         <Card>
           <h3 className="mb-3 text-sm font-medium text-muted">{t("Artist")}</h3>
-          {track && artist.data ? <div className="flex items-start gap-3">{artist.data.image && <img src={artist.data.image} alt="" className="size-14 rounded-full object-cover" />}<div className="min-w-0 text-sm"><p className="font-medium">{artist.data.name}</p>{artist.data.genres.length > 0 && <p className="mt-1 flex flex-wrap gap-1">{artist.data.genres.slice(0, 3).map((g) => <Badge key={g}>{g}</Badge>)}</p>}{artist.data.followers !== null && <p className="mt-1 text-muted">{artist.data.followers.toLocaleString()} {t("followers")}</p>}{artist.data.url && <div className="pt-3"><OpenInSpotify url={artist.data.url} label={t("Open artist")} /></div>}</div></div> : track ? <p className="text-sm text-muted">{artist.loading ? t("Loading…") : artist.error ?? track.artists.map((a) => a.name).join(", ")}</p> : <p className="text-sm text-muted">{t("Play something to see artist details.")}</p>}
+          {track && artist.data ? <div className="flex items-start gap-3">{artist.data.image && <img src={artist.data.image} alt="" className="size-14 rounded-full object-cover" />}<div className="min-w-0 text-sm"><p className="font-medium">{artist.data.name}</p>{artist.data.genres.length > 0 && <p className="mt-1 flex flex-wrap gap-1">{artist.data.genres.slice(0, 3).map((g) => <Badge key={g}>{g}</Badge>)}</p>}{artist.data.followers !== null && <p className="mt-1 text-muted">{artist.data.followers.toLocaleString()} {t("followers")}</p>}{artist.data.url && <div className="pt-3"><OpenInSpotify url={artist.data.url} label={t("Open artist")} /></div>}</div></div> : track ? <p className="text-sm text-muted">{artist.loading ? t("Loading…") : artist.error ? (lang === "ar" ? t("Something went wrong.") : artist.error) : track.artists.map((a) => a.name).join(", ")}</p> : <p className="text-sm text-muted">{t("Play something to see artist details.")}</p>}
         </Card>
         <Card>
           <h3 className="mb-3 text-sm font-medium text-muted">{t("Spotify profile")}</h3>
@@ -155,7 +155,7 @@ function Inner() {
       <div className="mt-[var(--gap)] grid gap-[var(--gap)] lg:grid-cols-2">
         <Card>
           <div className="mb-3 flex items-center justify-between"><h3 className="text-sm font-medium text-muted">{t("Devices")}</h3><Button size="sm" variant="ghost" onClick={devices.reload}>{t("Refresh")}</Button></div>
-          {devices.error ? <p className="text-sm text-amber-300">{devices.error}</p> : !devices.data ? <Skeleton className="h-16" /> : devices.data.devices.length === 0 ? <p className="text-sm text-muted">{t("No devices found. Open Spotify on a phone, computer or speaker.")}</p> : <ul className="space-y-2">{devices.data.devices.map((d) => <li key={d.id} className="flex items-center gap-3 rounded-xl bg-card px-3 py-2.5 text-sm"><DeviceIcon type={d.type} /><span className="min-w-0 flex-1 truncate">{d.name}<span className="ms-2 text-xs text-faint">{d.type}</span></span>{d.active ? <Badge tone="green">{t("Active")}</Badge> : premium && !d.restricted ? <Button size="sm" onClick={() => control("transfer", { deviceId: d.id })}>{t("Play here")}</Button> : <Badge>{d.restricted ? t("Restricted") : t("Premium only")}</Badge>}</li>)}</ul>}
+          {devices.error ? <p className="text-sm text-amber-300">{devices.error}</p> : !devices.data ? <Skeleton className="h-16" /> : devices.data.devices.length === 0 ? <p className="text-sm text-muted">{t("No devices found. Open Spotify on a phone, computer or speaker.")}</p> : <ul className="space-y-2">{devices.data.devices.map((d) => <li key={d.id} className="flex items-center gap-3 rounded-xl bg-card px-3 py-2.5 text-sm"><DeviceIcon type={d.type} /><span className="min-w-0 flex-1 truncate">{d.name}<span className="ms-2 text-xs text-faint">{t(d.type)}</span></span>{d.active ? <Badge tone="green">{t("Active")}</Badge> : premium && !d.restricted ? <Button size="sm" onClick={() => control("transfer", { deviceId: d.id })}>{t("Play here")}</Button> : <Badge>{d.restricted ? t("Restricted") : t("Premium only")}</Badge>}</li>)}</ul>}
         </Card>
         <Card>
           <h3 className="mb-3 text-sm font-medium text-muted">{t("Recently played")}</h3>
