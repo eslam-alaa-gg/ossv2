@@ -75,7 +75,9 @@ export async function generateNotifications(a: NotifyUser) {
   return db.insert(notifications).values(candidates).onConflictDoNothing().returning();
 }
 
-export async function sendPush(userId: string, notification: typeof notifications.$inferSelect) {
+type PushMessage = Pick<typeof notifications.$inferSelect, "title" | "body"> & Partial<Pick<typeof notifications.$inferSelect, "href" | "dedupeKey">>;
+
+export async function sendPush(userId: string, notification: PushMessage) {
   if (!pushClientReady()) return 0;
   const subscriptions = await db.select().from(pushSubscriptions).where(eq(pushSubscriptions.userId, userId));
   let delivered = 0;
@@ -83,7 +85,7 @@ export async function sendPush(userId: string, notification: typeof notification
     title: notification.title,
     body: notification.body,
     url: notification.href || "/dashboard",
-    tag: notification.dedupeKey,
+    tag: notification.dedupeKey || `manual:${Date.now()}`,
   });
   for (const sub of subscriptions) {
     try {
