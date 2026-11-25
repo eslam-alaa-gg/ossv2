@@ -55,7 +55,7 @@ function Inner() {
       <div className="mb-5"><Segmented value={tab} onChange={setTab} label={t("Habit sections")} options={[{ value: "habits", label: "My habits" }, { value: "water", label: "Water" }, { value: "reading", label: "Reading" }, { value: "learning", label: "Learning" }]} /></div>
 
       {tab === "habits" && (habits.error && !habits.data ? <ErrorState message={habits.error} retry={habits.reload} /> : !habits.data ? <ListSkeleton /> : habits.data.habits.length === 0 ? (
-        <EmptyState icon={<Repeat className="size-6" />} title={t("Build your first habit")} text="Pick a ready-made habit like Drink Water or Meditation, or create your own." action={<Button variant="primary" onClick={() => setModal({})}>{t("Add habit")}</Button>} />
+        <EmptyState icon={<Repeat className="size-6" />} title={t("Build your first habit")} text={t("Pick a ready-made habit like Drink Water or Meditation, or create your own.")} action={<Button variant="primary" onClick={() => setModal({})}>{t("Add habit")}</Button>} />
       ) : (
         <div className="grid gap-[var(--gap)] md:grid-cols-2">
           {habits.data.habits.map((h) => {
@@ -132,7 +132,7 @@ function ReadingTab({ t, reload }: { t: Trackers; reload: () => void }) {
       </Card>
       <Card>
         <h3 className="mb-3 text-sm font-medium text-muted">{t("Reading history")}</h3>
-        {t.reading.entries.length === 0 ? <EmptyState icon={<BookOpen className="size-5" />} title={t("No reading yet")} text="Log your first session to start a history." /> : <ul className="divide-y divide-[var(--border)]">{t.reading.entries.map((r) => <li key={r.id} className="flex items-center justify-between py-2.5 text-sm"><span className="min-w-0"><span className="block truncate">{r.book}</span><span className="text-xs text-faint">{fmtShort(r.date)} · {r.pages} pages</span></span><Button variant="ghost" size="icon" aria-label={t("Remove entry")} onClick={async () => { await run(() => api(`/api/trackers/reading?id=${r.id}`, { method: "DELETE" })); reload(); }}><Trash2 className="size-3.5" /></Button></li>)}</ul>}
+        {t.reading.entries.length === 0 ? <EmptyState icon={<BookOpen className="size-5" />} title={t("No reading yet")} text={t("Log your first session to start a history.")} /> : <ul className="divide-y divide-[var(--border)]">{t.reading.entries.map((r) => <li key={r.id} className="flex items-center justify-between py-2.5 text-sm"><span className="min-w-0"><span className="block truncate">{r.book}</span><span className="text-xs text-faint">{fmtShort(r.date)} · {r.pages} pages</span></span><Button variant="ghost" size="icon" aria-label={t("Remove entry")} onClick={async () => { await run(() => api(`/api/trackers/reading?id=${r.id}`, { method: "DELETE" })); reload(); }}><Trash2 className="size-3.5" /></Button></li>)}</ul>}
       </Card>
     </div>
   );
