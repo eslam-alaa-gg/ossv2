@@ -4,9 +4,9 @@
   "version": "7",
   "dialect": "postgresql",
   "tables": {
-    "public.auth_tokens": {
+    "ossv2.auth_tokens": {
       "name": "auth_tokens",
-      "schema": "",
+      "schema": "ossv2",
       "columns": {
         "id": {
           "name": "id",
@@ -83,9 +83,9 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.avatars": {
+    "ossv2.avatars": {
       "name": "avatars",
-      "schema": "",
+      "schema": "ossv2",
       "columns": {
         "user_id": {
           "name": "user_id",
@@ -135,9 +135,9 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.daily_challenges": {
+    "ossv2.daily_challenges": {
       "name": "daily_challenges",
-      "schema": "",
+      "schema": "ossv2",
       "columns": {
         "id": {
           "name": "id",
@@ -269,9 +269,9 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.focus_sessions": {
+    "ossv2.focus_sessions": {
       "name": "focus_sessions",
-      "schema": "",
+      "schema": "ossv2",
       "columns": {
         "id": {
           "name": "id",
@@ -390,9 +390,9 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.goal_milestones": {
+    "ossv2.goal_milestones": {
       "name": "goal_milestones",
-      "schema": "",
+      "schema": "ossv2",
       "columns": {
         "id": {
           "name": "id",
@@ -519,9 +519,9 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.goals": {
+    "ossv2.goals": {
       "name": "goals",
-      "schema": "",
+      "schema": "ossv2",
       "columns": {
         "id": {
           "name": "id",
@@ -648,9 +648,9 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.habit_logs": {
+    "ossv2.habit_logs": {
       "name": "habit_logs",
-      "schema": "",
+      "schema": "ossv2",
       "columns": {
         "id": {
           "name": "id",
@@ -777,9 +777,9 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.habits": {
+    "ossv2.habits": {
       "name": "habits",
-      "schema": "",
+      "schema": "ossv2",
       "columns": {
         "id": {
           "name": "id",
@@ -908,9 +908,9 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.journal_entries": {
+    "ossv2.journal_entries": {
       "name": "journal_entries",
-      "schema": "",
+      "schema": "ossv2",
       "columns": {
         "id": {
           "name": "id",
@@ -996,9 +996,9 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.learning_entries": {
+    "ossv2.learning_entries": {
       "name": "learning_entries",
-      "schema": "",
+      "schema": "ossv2",
       "columns": {
         "id": {
           "name": "id",
@@ -1084,9 +1084,9 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.notes": {
+    "ossv2.notes": {
       "name": "notes",
-      "schema": "",
+      "schema": "ossv2",
       "columns": {
         "id": {
           "name": "id",
@@ -1216,9 +1216,9 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.notifications": {
+    "ossv2.notifications": {
       "name": "notifications",
-      "schema": "",
+      "schema": "ossv2",
       "columns": {
         "id": {
           "name": "id",
@@ -1322,9 +1322,9 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.push_subscriptions": {
+    "ossv2.push_subscriptions": {
       "name": "push_subscriptions",
-      "schema": "",
+      "schema": "ossv2",
       "columns": {
         "id": {
           "name": "id",
@@ -1395,9 +1395,9 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.reading_logs": {
+    "ossv2.reading_logs": {
       "name": "reading_logs",
-      "schema": "",
+      "schema": "ossv2",
       "columns": {
         "id": {
           "name": "id",
@@ -1482,9 +1482,9 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.sessions": {
+    "ossv2.sessions": {
       "name": "sessions",
-      "schema": "",
+      "schema": "ossv2",
       "columns": {
         "id": {
           "name": "id",
@@ -1565,9 +1565,9 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.spotify_connections": {
+    "ossv2.spotify_connections": {
       "name": "spotify_connections",
-      "schema": "",
+      "schema": "ossv2",
       "columns": {
         "user_id": {
           "name": "user_id",
@@ -1664,9 +1664,9 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.tasks": {
+    "ossv2.tasks": {
       "name": "tasks",
-      "schema": "",
+      "schema": "ossv2",
       "columns": {
         "id": {
           "name": "id",
@@ -1871,9 +1871,9 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.user_achievements": {
+    "ossv2.user_achievements": {
       "name": "user_achievements",
-      "schema": "",
+      "schema": "ossv2",
       "columns": {
         "id": {
           "name": "id",
@@ -1946,9 +1946,9 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.users": {
+    "ossv2.users": {
       "name": "users",
-      "schema": "",
+      "schema": "ossv2",
       "columns": {
         "id": {
           "name": "id",
@@ -2061,9 +2061,9 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.water_logs": {
+    "ossv2.water_logs": {
       "name": "water_logs",
-      "schema": "",
+      "schema": "ossv2",
       "columns": {
         "id": {
           "name": "id",
@@ -2142,9 +2142,9 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.weekly_reviews": {
+    "ossv2.weekly_reviews": {
       "name": "weekly_reviews",
-      "schema": "",
+      "schema": "ossv2",
       "columns": {
         "id": {
           "name": "id",
@@ -2245,9 +2245,9 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.wishlist_items": {
+    "ossv2.wishlist_items": {
       "name": "wishlist_items",
-      "schema": "",
+      "schema": "ossv2",
       "columns": {
         "id": {
           "name": "id",
@@ -2334,9 +2334,9 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.xp_transactions": {
+    "ossv2.xp_transactions": {
       "name": "xp_transactions",
-      "schema": "",
+      "schema": "ossv2",
       "columns": {
         "id": {
           "name": "id",
@@ -2436,7 +2436,11 @@
     }
   },
   "enums": {},
-  "schemas": {},
+  "schemas": {
+    "ossv2": {
+      "name": "ossv2"
+    }
+  },
   "sequences": {},
   "roles": {},
   "policies": {},
