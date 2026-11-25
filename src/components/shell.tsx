@@ -170,8 +170,8 @@ function Bell_() {
                 <button key={n.id} onClick={async () => { await api("/api/notifications", { method: "POST", body: { id: n.id } }); setOpen(false); reload(); if (n.href) router.push(n.href); }} className="flex w-full gap-3 rounded-lg px-3 py-2.5 text-start hover:bg-card">
                   <span className={cn("mt-1.5 size-2 shrink-0 rounded-full", n.readAt ? "bg-transparent" : "bg-accent")} />
                   <span className="min-w-0">
-                    <span className="block text-sm font-medium">{n.title}</span>
-                    {n.body && <span className="block truncate text-xs text-muted">{n.body}</span>}
+                    <span className="block text-sm font-medium">{t(n.title)}</span>
+                    {n.body && <span className="block truncate text-xs text-muted">{n.kind === "habit_reminder" ? `${t("Remember your habit:")} ${t(n.body.replace("Remember your habit: ", ""))}` : n.kind === "challenge_reminder" ? t(n.body) : n.body}</span>}
                   </span>
                 </button>
               ))}
@@ -224,7 +224,7 @@ function CommandMenu({ open, onClose }: { open: boolean; onClose: () => void }) 
           <li key={a.kind + a.title + i}>
             <button role="option" aria-selected={i === sel} onMouseEnter={() => setSel(i)} onClick={() => go(a.href)} className={cn("flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm", i === sel && "bg-card")}>
               <span className="truncate">{a.kind === "Action" || a.kind === "Go to" || a.kind === "Account" ? t(a.title) : a.title}</span>
-              <span className="chip">{a.kind}</span>
+              <span className="chip">{t(a.kind)}</span>
             </button>
           </li>
         ))}
