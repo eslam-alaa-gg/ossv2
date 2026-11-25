@@ -97,8 +97,8 @@ export default function DashboardPage() {
                     <ul className="space-y-2">
                       {data.habits.list.map((h) => (
                         <li key={h.id} className="flex items-center gap-3 text-sm">
-                          <Checkbox checked={h.done} onChange={() => toggleHabit(h.id, h.done)} label={`Mark ${h.name} ${h.done ? "incomplete" : "complete"}`} />
-                          <HabitIcon name={h.icon} className="size-4 text-muted" /> <span className={h.done ? "text-muted line-through" : ""}>{h.name}</span>
+                          <Checkbox checked={h.done} onChange={() => toggleHabit(h.id, h.done)} label={`${t("Mark")} ${t(h.name)} ${t(h.done ? "incomplete" : "complete")}`} />
+                          <HabitIcon name={h.icon} className="size-4 text-muted" /> <span className={h.done ? "text-muted line-through" : ""}>{t(h.name)}</span>
                         </li>
                       ))}
                     </ul>
