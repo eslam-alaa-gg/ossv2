@@ -63,7 +63,7 @@ export default function ProfilePage() {
     if (f.size > 10 * 1024 * 1024) return setFileErr("That image is over 10 MB. Choose a smaller one.");
     try {
       const b = await compress(f);
-      if (b.size > 1_400_000) return setFileErr("Image is still too large after optimisation. Try another.");
+      if (b.size > 600 * 1024) return setFileErr("الصورة بعد الضغط لازم تكون أقل من 600 كيلوبايت. جرّب صورة تانية.");
       setBlob(b);
       setPreview(URL.createObjectURL(b));
     } catch {
@@ -144,7 +144,7 @@ export default function ProfilePage() {
           <input ref={input} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(e) => { pick(e.target.files?.[0]); e.target.value = ""; }} aria-label="Choose image" />
           <div className="flex flex-wrap justify-center gap-2"><Button onClick={() => input.current?.click()} disabled={prog !== null}><Camera className="size-4" /> {preview ? "Choose another" : user.avatarVersion ? "Replace picture" : "Choose picture"}</Button>{user.avatarVersion && !preview && <Button variant="danger" onClick={remove}><Trash2 className="size-4" /> Remove</Button>}</div>
           {fileErr && <p role="alert" className="text-sm text-red-400">{fileErr}</p>}
-          <p className="text-center text-xs text-faint">JPG, PNG or WebP. Images are cropped to a square and optimised in your browser before upload. Only you can view or change your picture.</p>
+          <p className="text-center text-xs text-faint">JPG, PNG or WebP. Maximum size after optimisation: 600 KB. Images are cropped to a square and optimised in your browser before upload.</p>
         </div>
       </Modal>
       <span className="hidden">{String(!!refresh)}</span>
