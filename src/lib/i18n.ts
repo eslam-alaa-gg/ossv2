@@ -772,6 +772,21 @@ const ar: Record<string, string> = {
   "Something went wrong.": "حدث خطأ ما.",
   "Confirm": "تأكيد",
   "Are you sure?": "هل أنت متأكد؟",
+  "weeks": "أسابيع",
+  "Tasks in": "المهام في",
+  "in": "في",
+  "open": "مفتوحة",
+  "due": "مستحقة",
+  "completed": "مكتملة",
+  "Delete {title} permanently?": "هل تريد حذف {title} نهائيًا؟",
+  "Task completed": "اكتملت المهمة",
+  "Task deleted": "تم حذف المهمة",
+  "Task restored": "تمت استعادة المهمة",
+  "Task archived": "تمت أرشفة المهمة",
+  "daily": "يومي",
+  "weekly": "أسبوعي",
+  "monthly": "شهري",
+  "none": "بدون تكرار",
 };
 
 export function translate(lang: Lang, s: string): string {
