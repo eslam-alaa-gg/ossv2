@@ -89,7 +89,7 @@ export default function ThemesPage() {
                 <input className="input w-32 font-mono" value={hex ?? theme.accent} onChange={(e) => { setHex(e.target.value); const n = normalizeHex(e.target.value); if (n) set({ accent: n }); }} onBlur={() => setHex(null)} aria-label={t("Accent HEX")} aria-invalid={hex !== null && !normalizeHex(hex)} placeholder="#8b7cff" />
                 {hex !== null && !normalizeHex(hex) && <span className="text-xs text-red-400">{t("Enter a valid HEX color")}</span>}
               </div>
-              <div className="flex flex-wrap gap-2">{ACCENT_PALETTE.map((c) => <button key={c} onClick={() => { set({ accent: c }); setHex(null); }} aria-label={`Accent ${c}`} aria-pressed={theme.accent === c} className={cn("size-9 rounded-full border-2 transition-transform hover:scale-110", theme.accent === c ? "border-fg" : "border-transparent")} style={{ background: c }} />)}</div>
+              <div className="flex flex-wrap gap-2">{ACCENT_PALETTE.map((c) => <button key={c} onClick={() => { set({ accent: c }); setHex(null); }} aria-label={`${t("Accent")} ${c}`} aria-pressed={theme.accent === c} className={cn("size-9 rounded-full border-2 transition-transform hover:scale-110", theme.accent === c ? "border-fg" : "border-transparent")} style={{ background: c }} />)}</div>
               <p className="text-xs text-faint">{t("The accent drives buttons, icons, active navigation, progress, charts, highlights and focus rings. Text on accent adapts automatically for contrast.")}</p>
             </Card>
           )}
@@ -108,8 +108,8 @@ export default function ThemesPage() {
           {tab === "background" && (
             <Card className="space-y-4">
               <Field label={t("Background style")}><Segmented value={theme.background} onChange={(v) => set({ background: v })} label={t("Background")} options={[{ value: "solid", label: t("Solid") }, { value: "soft", label: t("Soft gradient") }, { value: "ambient", label: t("Ambient glow") }]} /></Field>
-              <Row label="Film grain" hint="Very subtle texture"><Switch checked={theme.noise} onChange={(v) => set({ noise: v })} label="Film grain" /></Row>
-              <Row label="Mouse-following light" hint="Desktop pointer only"><Switch checked={theme.mouseLight} onChange={(v) => set({ mouseLight: v })} label="Mouse light" /></Row>
+              <Row label={t("Film grain")} hint="Very subtle texture"><Switch checked={theme.noise} onChange={(v) => set({ noise: v })} label="Film grain" /></Row>
+              <Row label="Mouse-following light" hint="Desktop pointer only"><Switch checked={theme.mouseLight} onChange={(v) => set({ mouseLight: v })} label={t("Mouse light")} /></Row>
               <p className="text-xs text-faint">Enable “App background” under Gradients to layer a custom gradient on top.</p>
             </Card>
           )}
@@ -132,22 +132,22 @@ export default function ThemesPage() {
                   <Slider label={t(g.kind === "radial" ? "Direction (focal point)" : "Angle")} value={g.angle} max={360} unit="°" onChange={(v) => setG({ angle: v })} />
                   <Slider label="Intensity" value={g.intensity} onChange={(v) => setG({ intensity: v })} hint="Color strength" />
                   <Slider label="Opacity" value={g.opacity} onChange={(v) => setG({ opacity: v })} hint="Background layer" />
-                  <Field label={t("Background blending")}><select className="input" value={g.blend} onChange={(e) => setG({ blend: e.target.value as GradientCfg["blend"] })} aria-label={t("Blend mode")}>{["normal", "overlay", "soft-light", "screen", "lighten"].map((b) => <option key={b}>{b}</option>)}</select></Field>
+                  <Field label={t("Background blending")}><select className="input" value={g.blend} onChange={(e) => setG({ blend: e.target.value as GradientCfg["blend"] })} aria-label={t("Blend mode")}>{["normal", "overlay", "soft-light", "screen", "lighten"].map((b) => <option key={b} value={b}>{t(b)}</option>)}</select></Field>
                 </div>
                 <div>
                   <p className="mb-2 text-xs font-medium text-muted">{t("Color stops")}</p>
-                  <ul className="space-y-2">{g.stops.map((s, i) => <li key={i} className="flex items-center gap-3"><input type="color" value={s.color} onChange={(e) => stopPos(i, { color: e.target.value })} aria-label={`Stop ${i + 1} color`} /><input type="range" min={0} max={100} value={s.pos} onChange={(e) => stopPos(i, { pos: Number(e.target.value) })} aria-label={`Stop ${i + 1} position`} /><span className="w-10 text-xs tabular-nums text-faint">{s.pos}%</span><Button variant="ghost" size="icon" disabled={g.stops.length <= 2} aria-label={t("Remove stop")} onClick={() => setG({ stops: g.stops.filter((_, j) => j !== i) })}><Trash2 className="size-3.5" /></Button></li>)}</ul>
+                  <ul className="space-y-2">{g.stops.map((s, i) => <li key={i} className="flex items-center gap-3"><input type="color" value={s.color} onChange={(e) => stopPos(i, { color: e.target.value })} aria-label={t("Stop {n} color").replace("{n}", String(i + 1))} /><input type="range" min={0} max={100} value={s.pos} onChange={(e) => stopPos(i, { pos: Number(e.target.value) })} aria-label={t("Stop {n} position").replace("{n}", String(i + 1))} /><span className="w-10 text-xs tabular-nums text-faint">{s.pos}%</span><Button variant="ghost" size="icon" disabled={g.stops.length <= 2} aria-label={t("Remove stop")} onClick={() => setG({ stops: g.stops.filter((_, j) => j !== i) })}><Trash2 className="size-3.5" /></Button></li>)}</ul>
                   <Button size="sm" className="mt-2" disabled={g.stops.length >= 6} onClick={() => setG({ stops: [...g.stops, { color: "#4b5bd1", pos: 100 }] })}><Plus className="size-4" /> {t("Add stop")}</Button>
                 </div>
               </Card>
               <Card className="space-y-3">
                 <h2 className="text-sm font-medium text-muted">{t("Apply gradient to")}</h2>
                 <p className="text-xs text-faint">{t("Off by default so hierarchy and readability stay intact. Enable only what you like.")}</p>
-                <div className="grid gap-x-8 sm:grid-cols-2">{TARGET_KEYS.map((k) => <Row key={k} label={t(TARGET_LABEL[k])}><Switch checked={theme.targets[k]} onChange={(v) => set({ targets: { ...theme.targets, [k]: v } })} label={TARGET_LABEL[k]} /></Row>)}</div>
+                <div className="grid gap-x-8 sm:grid-cols-2">{TARGET_KEYS.map((k) => <Row key={k} label={t(TARGET_LABEL[k])}><Switch checked={theme.targets[k]} onChange={(v) => set({ targets: { ...theme.targets, [k]: v } })} label={t(TARGET_LABEL[k])} /></Row>)}</div>
               </Card>
               <Card className="space-y-4">
                 <Row label={t("Animated gradient")} hint="Slow, subtle drift. Disabled automatically with reduced motion."><Switch checked={g.animated} onChange={(v) => setG({ animated: v })} label="Animated gradient" /></Row>
-                {g.animated && <div className="grid gap-4 sm:grid-cols-2"><Slider label="Animation speed" value={g.animSpeed} min={1} onChange={(v) => setG({ animSpeed: v })} /><Slider label="Animation intensity" value={g.animIntensity} min={1} onChange={(v) => setG({ animIntensity: v })} /><Field label="Direction"><select className="input" value={g.animDirection} onChange={(e) => setG({ animDirection: e.target.value as GradientCfg["animDirection"] })} aria-label="Animation direction"><option value="normal">Forward</option><option value="reverse">Reverse</option><option value="alternate">Alternate</option></select></Field></div>}
+                {g.animated && <div className="grid gap-4 sm:grid-cols-2"><Slider label="Animation speed" value={g.animSpeed} min={1} onChange={(v) => setG({ animSpeed: v })} /><Slider label="Animation intensity" value={g.animIntensity} min={1} onChange={(v) => setG({ animIntensity: v })} /><Field label={t("Direction")}><select className="input" value={g.animDirection} onChange={(e) => setG({ animDirection: e.target.value as GradientCfg["animDirection"] })} aria-label="Animation direction"><option value="normal">{t("Forward")}</option><option value="reverse">{t("Reverse")}</option><option value="alternate">{t("Alternate")}</option></select></Field></div>}
                 {g.animated && !theme.targets.app && <p className="text-xs text-amber-300">{t("Animation shows on the app background — enable “App background” above.")}</p>}
               </Card>
             </div>
