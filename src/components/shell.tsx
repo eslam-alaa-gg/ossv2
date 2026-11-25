@@ -39,7 +39,7 @@ export function useSignOut() {
 
 function Brand({ collapsed }: { collapsed?: boolean }) {
   return (
-    <Link href="/dashboard" className="flex items-center gap-2.5 px-2" aria-label="LIFE OS home">
+    <Link href="/dashboard" className="flex items-center gap-2.5 px-2" aria-label={t("LIFE OS home")}>
       <span className="accent-fill grid size-9 place-items-center rounded-xl text-sm font-bold text-[var(--on-accent)] shadow-lg">L</span>
       {!collapsed && <span className="text-[15px] font-semibold tracking-[0.14em]">LIFE OS</span>}
     </Link>
@@ -66,7 +66,7 @@ function Sidebar({ collapsed, setCollapsed }: { collapsed: boolean; setCollapsed
         })}
       </nav>
       <Button variant="ghost" size="sm" onClick={() => setCollapsed(!collapsed)} aria-label={collapsed ? t("Expand sidebar") : t("Collapse sidebar")} className="mt-2 justify-start">
-        {collapsed ? <ChevronsRight className="size-4 rtl:rotate-180" /> : <><ChevronsLeft className="size-4 rtl:rotate-180" /> <span className="text-muted">Collapse</span></>}
+        {collapsed ? <ChevronsRight className="size-4 rtl:rotate-180" /> : <><ChevronsLeft className="size-4 rtl:rotate-180" /> <span className="text-muted">{t("Collapse")}</span></>}
       </Button>
       <SidebarUser collapsed={collapsed} />
     </aside>
@@ -77,7 +77,7 @@ function SidebarUser({ collapsed }: { collapsed: boolean }) {
   const { user } = useApp();
   if (!user) return null;
   return (
-    <Link href="/profile" className="mt-2 flex items-center gap-3 rounded-[calc(var(--radius)*.6)] p-2 transition-colors hover:bg-card" aria-label="Open profile">
+    <Link href="/profile" className="mt-2 flex items-center gap-3 rounded-[calc(var(--radius)*.6)] p-2 transition-colors hover:bg-card" aria-label={t("Open profile")}>
       <Avatar size={34} ring />
       {!collapsed && (
         <span className="min-w-0">
@@ -152,7 +152,7 @@ function Bell_() {
   const markAll = async () => { await api("/api/notifications", { method: "POST", body: { all: true } }); reload(); };
   return (
     <div ref={ref} className="relative">
-      <Button variant="ghost" size="icon" className="header-icon-btn h-10 w-10" title={t("Notifications")} aria-label={`${t("Notifications")}${data?.unread ? `, ${data.unread} unread` : ""}`} onClick={() => { setOpen(!open); if (!open) reload(); }}>
+      <Button variant="ghost" size="icon" className="header-icon-btn h-10 w-10" title={t("Notifications")} aria-label={`${t("Notifications")}${data?.unread ? `, ${data.unread} ${t("unread")}` : ""}`} onClick={() => { setOpen(!open); if (!open) reload(); }}>
         <Bell className="size-[19px]" />
         {!!data?.unread && <span className="absolute end-1.5 top-1.5 grid min-w-4 place-items-center rounded-full bg-accent px-1 text-[10px] font-bold text-[var(--on-accent)]">{data.unread}</span>}
       </Button>
@@ -296,7 +296,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <motion.div className="fixed inset-0 z-[70] lg:hidden" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <div className="absolute inset-0 backdrop-blur-sm" style={{ background: "var(--overlay)" }} onClick={() => setDrawer(false)} />
             <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 30, stiffness: 300 }} className="popover pb-safe absolute inset-x-0 bottom-0 max-h-[85dvh] overflow-y-auto rounded-b-none p-4" style={{ borderRadius: "var(--radius-lg) var(--radius-lg) 0 0" }}>
-              <div className="mb-3 flex items-center justify-between"><Brand /><Button variant="ghost" size="icon" onClick={() => setDrawer(false)} aria-label="Close menu"><X className="size-5" /></Button></div>
+              <div className="mb-3 flex items-center justify-between"><Brand /><Button variant="ghost" size="icon" onClick={() => setDrawer(false)} aria-label={t("Close menu")}><X className="size-5" /></Button></div>
               <div className="grid grid-cols-3 gap-2">
                 {NAV.map((n) => (
                   <Link key={n.href} href={n.href} className={cn("flex flex-col items-center gap-1.5 rounded-2xl border border-line bg-card p-3 text-center text-xs", path === n.href && "nav-active")}>
