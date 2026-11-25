@@ -52,7 +52,7 @@ export const POST = handle<{ action: string }>(async (req, { action }) => {
       rateLimit(`login:${ip}:${d.email}`, 8, 15 * 60000);
       const [u] = await db.select().from(users).where(eq(users.email, d.email)).limit(1);
       const ok = verifyPassword(d.password, u?.passwordHash ?? DUMMY_HASH);
-      if (!u || !ok || u.isDemo) throw new ApiError(401, "Incorrect email or password.");
+      if (!u || !u.hasPassword || !ok || u.isDemo) throw new ApiError(401, "Incorrect email or password.");
       await createSession(u.id);
       return { ok: true };
     }
@@ -93,7 +93,7 @@ export const POST = handle<{ action: string }>(async (req, { action }) => {
         .where(and(eq(authTokens.tokenHash, sha256(d.token)), eq(authTokens.type, "reset"), isNull(authTokens.usedAt), gt(authTokens.expiresAt, new Date())))
         .limit(1);
       if (!t) throw new ApiError(400, "This reset link is invalid or has expired.");
-      await db.update(users).set({ passwordHash: hashPassword(d.password), updatedAt: new Date() }).where(eq(users.id, t.userId));
+      await db.update(users).set({ passwordHash: hashPassword(d.password), hasPassword: true, updatedAt: new Date() }).where(eq(users.id, t.userId));
       await db.update(authTokens).set({ usedAt: new Date() }).where(eq(authTokens.id, t.id));
       await db.delete(sessions).where(eq(sessions.userId, t.userId));
       return { ok: true };
