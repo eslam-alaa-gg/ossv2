@@ -1,9 +1,9 @@
 import "server-only";
 import webpush from "web-push";
-import { and, eq, inArray, isNull } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { dailyChallenges, habits, habitLogs, notifications, pushSubscriptions, tasks } from "@/db/schema";
-import { hourIn, todayIn } from "@/lib/dates";
+import { todayIn } from "@/lib/dates";
 import type { Authed, DbUser } from "./auth";
 import type { Prefs } from "@/lib/prefs";
 
@@ -21,7 +21,7 @@ function inQuietHours(now: string, start: string, end: string) {
 }
 
 export async function generateNotifications(context: NotifyContext) {
-  const { user, id, tz, prefs } = context;
+  const { id, tz, prefs } = context;
   if (!prefs.notifications.inApp) return [];
   const today = todayIn(tz);
   const now = new Intl.DateTimeFormat("en-GB", { timeZone: tz, hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date());
@@ -35,23 +35,21 @@ export async function generateNotifications(context: NotifyContext) {
   ]);
 
   const candidates: { kind: string; title: string; body: string; href: string; dedupeKey: string }[] = dueTasks.map((t) => ({
-    kind: "task_due", title: "Task due today", body: t.title, href: "/tasks", dedupeKey: `task-due:${t.id}:${today}`,
+    kind: "task_due", title: "Task due today", body: t.title, href: "/tasks", dedupeKey: \`task-due:\${t.id}:\${today}\`,
   }));
   const challenge = challengeRows.find((c) => !c.completedAt);
-  if (challenge) candidates.push({ kind: "challenge", title: "Your daily challenge is waiting", body: challenge.title, href: "/challenge", dedupeKey: `challenge:${challenge.id}` });
+  if (challenge) candidates.push({ kind: "challenge", title: "Your daily challenge is waiting", body: challenge.title, href: "/challenge", dedupeKey: \`challenge:\${challenge.id}\` });
 
   const completed = new Set(todayLogs.map((l) => l.habitId));
   const weekday = new Date(today + "T00:00:00Z").getUTCDay();
   for (const habit of activeHabits) {
     if (completed.has(habit.id) || !habit.days.includes(weekday)) continue;
     if (habit.reminderTime && now < habit.reminderTime) continue;
-    candidates.push({ kind: "habit", title: "Habit reminder", body: habit.name, href: "/habits", dedupeKey: `habit:${habit.id}:${today}` });
+    candidates.push({ kind: "habit", title: "Habit reminder", body: habit.name, href: "/habits", dedupeKey: \`habit:\${habit.id}:\${today}\` });
   }
 
   if (!candidates.length) return [];
-  const inserted = await db.insert(notifications).values(candidates.map((c) => ({ userId: id, ...c }))).onConflictDoNothing().returning();
-  void user;
-  return inserted;
+  return db.insert(notifications).values(candidates.map((c) => ({ userId: id, ...c }))).onConflictDoNothing().returning();
 }
 
 export async function sendPush(userId: string, message: PushMessage): Promise<number> {
