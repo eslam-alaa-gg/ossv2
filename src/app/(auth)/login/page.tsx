@@ -2,7 +2,7 @@
 import { Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
-import { AuthShell } from "@/components/auth";
+import { AuthShell, GoogleSignInButton } from "@/components/auth";
 import { Button, Field } from "@/components/ui";
 import { api } from "@/lib/client";
 
@@ -38,6 +38,8 @@ export default function LoginPage() {
   }
   return (
     <AuthShell title="Welcome back" subtitle="Sign in to your private workspace" footer={<>New to LIFE OS? <Link href="/signup" className="font-medium text-accent">Create an account</Link></>}>
+      <GoogleSignInButton next="/dashboard" />
+      <div className="my-5 flex items-center gap-3 text-xs text-faint"><span className="h-px flex-1 bg-[var(--border)]" /> or use email <span className="h-px flex-1 bg-[var(--border)]" /></div>
       <form onSubmit={submit} className="space-y-4" noValidate>
         <Field label="Email">
           <input className="input" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" aria-label="Email" />
