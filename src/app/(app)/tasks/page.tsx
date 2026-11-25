@@ -57,8 +57,8 @@ function Inner() {
     const done = task.status === "completed";
     return (
       <div className="glass card-hover flex items-center gap-3 px-4 py-3" style={{ borderRadius: "var(--radius-sm)" }}>
-        <Checkbox checked={done} label={`${done ? "Restore" : "Complete"} ${task.title}`} onChange={(v) => patch(t, { status: v ? "completed" : "todo" })} disabled={task.status === "archived"} />
-        <button onClick={() => setModal({ task: t })} className="min-w-0 flex-1 text-start">
+        <Checkbox checked={done} label={`${done ? "Restore" : "Complete"} ${task.title}`} onChange={(v) => patch(task, { status: v ? "completed" : "todo" })} disabled={task.status === "archived"} />
+        <button onClick={() => setModal({ task })} className="min-w-0 flex-1 text-start">
           <p className={cn("truncate text-sm font-medium", done && "text-muted line-through")}>{task.title}</p>
           <div className="mt-1 flex flex-wrap items-center gap-1.5">
             <PriorityBadge p={task.priority} />
@@ -69,7 +69,7 @@ function Inner() {
             {task.tags.map((x) => <Badge key={x}>#{x}</Badge>)}
           </div>
         </button>
-        {task.status === "archived" ? <Button size="sm" onClick={() => patch(t, { status: "todo" }, "Task restored")}><RotateCcw className="size-3.5" /> {t("Restore")}</Button> : <Button variant="ghost" size="icon" aria-label={t("Archive task")} onClick={() => patch(t, { status: "archived" }, "Task archived")}><Archive className="size-4" /></Button>}
+        {task.status === "archived" ? <Button size="sm" onClick={() => patch(task, { status: "todo" }, "Task restored")}><RotateCcw className="size-3.5" /> {t("Restore")}</Button> : <Button variant="ghost" size="icon" aria-label={t("Archive task")} onClick={() => patch(task, { status: "archived" }, "Task archived")}><Archive className="size-4" /></Button>}
       </div>
     );
   };
