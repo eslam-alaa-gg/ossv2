@@ -41,9 +41,9 @@ export function useSignOut() {
 function Brand({ collapsed }: { collapsed?: boolean }) {
   const { t } = useApp();
   return (
-    <Link href="/dashboard" className="flex items-center gap-2.5 px-2" aria-label={t("LIFE OS home")}>
+    <Link href="/dashboard" className="flex items-center gap-2.5 px-2" aria-label={t("Ukiyo home")}>
       <span className="accent-fill grid size-9 place-items-center rounded-xl text-sm font-bold text-[var(--on-accent)] shadow-lg">L</span>
-      {!collapsed && <span className="text-[15px] font-semibold tracking-[0.14em]">LIFE OS</span>}
+      {!collapsed && <span className="text-[15px] font-semibold tracking-[0.14em]">Ukiyo</span>}
     </Link>
   );
 }
@@ -242,8 +242,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [drawer, setDrawer] = useState(false);
   const [cmd, setCmd] = useState(false);
-  useEffect(() => { setCollapsed(localStorage.getItem("lifeos.sidebar") === "1"); }, []);
-  const toggle = (b: boolean) => { setCollapsed(b); localStorage.setItem("lifeos.sidebar", b ? "1" : "0"); };
+  useEffect(() => { setCollapsed(localStorage.getItem("ukiyo.sidebar") === "1"); }, []);
+  const toggle = (b: boolean) => { setCollapsed(b); localStorage.setItem("ukiyo.sidebar", b ? "1" : "0"); };
   useEffect(() => setDrawer(false), [path]);
   useEffect(() => {
     const h = (e: KeyboardEvent) => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); setCmd((c) => !c); } };
