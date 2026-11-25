@@ -5,6 +5,7 @@ import { pushSubscriptions } from "@/db/schema";
 import { ApiError, body, handle } from "@/lib/server/api";
 import { assertNotDemo, requireUser } from "@/lib/server/auth";
 import { pushConfigured, sendPush } from "@/lib/server/notify";
+import { translate } from "@/lib/i18n";
 
 export const dynamic = "force-dynamic";
 
