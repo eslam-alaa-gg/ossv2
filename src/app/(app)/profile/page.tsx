@@ -153,7 +153,7 @@ export default function ProfilePage() {
 }
 
 function PrefsCard() {
-  const { user, patchUser, theme } = useApp();
+  const { user, patchUser, theme, t } = useApp();
   const { run } = useUI();
   const router = useRouter();
   if (!user) return null;
@@ -162,10 +162,10 @@ function PrefsCard() {
     <Card>
       <h2 className="mb-4 text-sm font-medium text-muted">Account preferences</h2>
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Language"><select className="input" value={user.language} onChange={async (e) => { await run(() => patchUser({ language: e.target.value as "en" | "ar" }), "Language updated"); router.refresh(); }} aria-label="Language"><option value="en">English (LTR)</option><option value="ar">العربية (RTL)</option></select></Field>
-        <Field label="Timezone"><select className="input" value={user.timezone} onChange={(e) => run(() => patchUser({ timezone: e.target.value }), "Timezone updated")} aria-label="Timezone">{(tzs.includes(user.timezone) ? tzs : [user.timezone, ...tzs]).map((z) => <option key={z}>{z}</option>)}</select></Field>
-        <Field label="Daily productivity goal (points)"><input className="input" type="number" min={1} max={30} defaultValue={user.dailyGoal} onBlur={(e) => { const v = Number(e.target.value); if (v >= 1 && v <= 30 && v !== user.dailyGoal) run(() => patchUser({ dailyGoal: v }), "Daily goal updated"); }} aria-label="Daily goal" /></Field>
-        <Field label="Appearance"><Link href="/themes" className="glass-btn w-full justify-between"><span className="flex items-center gap-2"><Palette className="size-4 text-accent" /> Theme Studio</span><span className="text-xs capitalize text-muted">{theme.mode}</span></Link></Field>
+        <Field label={t("Language")}><select className="input" value={user.language} onChange={async (e) => { await run(() => patchUser({ language: e.target.value as "en" | "ar" }), "Language updated"); router.refresh(); }} aria-label="Language"><option value="en">{t("English")} (LTR)</option><option value="ar">{t("Arabic")} (RTL)</option></select></Field>
+        <Field label={t("Timezone")}><select className="input" value={user.timezone} onChange={(e) => run(() => patchUser({ timezone: e.target.value }), "Timezone updated")} aria-label="Timezone">{(tzs.includes(user.timezone) ? tzs : [user.timezone, ...tzs]).map((z) => <option key={z}>{z}</option>)}</select></Field>
+        <Field label={t("Daily productivity goal (points)")}><input className="input" type="number" min={1} max={30} defaultValue={user.dailyGoal} onBlur={(e) => { const v = Number(e.target.value); if (v >= 1 && v <= 30 && v !== user.dailyGoal) run(() => patchUser({ dailyGoal: v }), "Daily goal updated"); }} aria-label="Daily goal" /></Field>
+        <Field label={t("Appearance")}><Link href="/themes" className="glass-btn w-full justify-between"><span className="flex items-center gap-2"><Palette className="size-4 text-accent" /> Theme Studio</span><span className="text-xs capitalize text-muted">{theme.mode}</span></Link></Field>
       </div>
       <p className="mt-4 text-xs text-faint">Notification channels, quiet hours and data export live in <Link href="/settings" className="text-accent">Settings</Link>.</p>
     </Card>
