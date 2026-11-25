@@ -14,6 +14,7 @@ const TYPES = { daily: "Daily", weekly: "Weekly", monthly: "Monthly", yearly: "Y
 const CATS = ["Personal Growth", "Learning", "Health", "Career", "Creativity", "Lifestyle", "Other"];
 
 function Journey({ g }: { g: Goal }) {
+  const { t } = useApp();
   const ms = g.milestones;
   if (!ms.length) return <p className="text-xs text-faint">{t("Add milestones to visualise the journey.")}</p>;
   return (
@@ -115,19 +116,21 @@ function Inner() {
   );
 }
 
-function MilestoneAdd({ onAdd }: { onAdd: (t: string, d: string) => void }) {
-  const [t, setT] = useState("");
+function MilestoneAdd({ onAdd }: { onAdd: (title: string, d: string) => void }) {
+  const { t } = useApp();
+  const [value, setValue] = useState("");
   const [d, setD] = useState("");
   return (
-    <form className="mt-3 flex flex-wrap gap-2" onSubmit={(e) => { e.preventDefault(); if (t.trim()) { onAdd(t.trim(), d); setT(""); setD(""); } }}>
-      <input className="input min-w-40 flex-1" placeholder={t("Add a milestone…")} value={t} onChange={(e) => setT(e.target.value)} maxLength={160} aria-label={t("Milestone name")} />
+    <form className="mt-3 flex flex-wrap gap-2" onSubmit={(e) => { e.preventDefault(); if (value.trim()) { onAdd(value.trim(), d); setValue(""); setD(""); } }}>
+      <input className="input min-w-40 flex-1" placeholder={t("Add a milestone…")} value={value} onChange={(e) => setValue(e.target.value)} maxLength={160} aria-label={t("Milestone name")} />
       <input className="input w-auto" type="date" value={d} onChange={(e) => setD(e.target.value)} aria-label={t("Milestone deadline")} />
-      <Button type="submit" disabled={!t.trim()}><Plus className="size-4" /> {t("Add")}</Button>
+      <Button type="submit" disabled={!value.trim()}><Plus className="size-4" /> {t("Add")}</Button>
     </form>
   );
 }
 
 function GoalModal({ goal, onClose, onSaved }: { goal: Goal | "new" | null; onClose: () => void; onSaved: () => void }) {
+  const { t } = useApp();
   const { run } = useUI();
   const g = goal && goal !== "new" ? goal : null;
   const [f, setF] = useState({ title: "", description: "", type: "monthly", category: "Personal Growth", startDate: "", targetDate: "", priority: "medium", manualProgress: 0 });
@@ -150,6 +153,7 @@ function GoalModal({ goal, onClose, onSaved }: { goal: Goal | "new" | null; onCl
 }
 
 function Wishlist({ wish }: { wish: ReturnType<typeof useFetch<{ items: Wish[] }>> }) {
+  const { t } = useApp();
   const { run } = useUI();
   const [f, setF] = useState({ title: "", note: "", url: "" });
   return (
