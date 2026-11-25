@@ -2126,6 +2126,13 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
+        },
+        "has_password": {
+          "name": "has_password",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
         }
       },
       "indexes": {
