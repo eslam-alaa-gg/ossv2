@@ -36,7 +36,7 @@ export default function FocusPage() {
   const finishing = useRef(false);
   const restored = useRef(false);
 
-  useEffect(() => { try { setBackgroundImage(localStorage.getItem("ukiyo.focus.background")); } catch { /* storage may be unavailable */ } }, []);
+  useEffect(() => { let cancelled = false; try { const saved = localStorage.getItem("ukiyo.focus.background"); if (saved) void Promise.resolve().then(() => { if (!cancelled) setBackgroundImage(saved); }); } catch { /* storage may be unavailable */ } return () => { cancelled = true; }; }, []);
 
   // restore a session that is still running on the server (e.g. after reload)
   useEffect(() => {
