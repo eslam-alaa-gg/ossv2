@@ -21,7 +21,7 @@ export default function ChallengePage() {
     setBusy(c.id);
     const r = await run(() => api<{ xp: number; unlocked: string[] }>(`/api/challenges/${c.id}/complete`, { method: "POST", body: {} }));
     setBusy(null);
-    if (r) { toast("success", `${t("Challenge complete")} · +${r.xp} XP`); r.unlocked.forEach((u) => toast("success", `🏆 ${u}`)); reload(); }
+    if (r) { toast("success", `${t("Challenge complete")} · +${r.xp} XP`); r.unlocked.forEach((u) => toast("success", `🏆 ${t(u)}`)); reload(); }
   }
   const main = data?.today.filter((c) => !c.isCustom) ?? [];
   const custom = data?.today.filter((c) => c.isCustom) ?? [];
