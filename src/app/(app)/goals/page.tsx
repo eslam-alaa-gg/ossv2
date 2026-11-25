@@ -47,12 +47,12 @@ function Inner() {
   const cur = goals.find((g) => g.id === detail) ?? null;
 
   const GoalCard = ({ g }: { g: Goal }) => (
-    <Card hover className="cursor-pointer" onClick={() => setDetail(g.id)} role="button" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && setDetail(g.id)} aria-label={`Open goal ${g.title}`}>
-      <div className="mb-3 flex flex-wrap items-center gap-1.5"><Badge tone="accent">{g.category}</Badge><Badge>{t(TYPES[g.type as keyof typeof TYPES])}</Badge>{g.status === "paused" && <Badge tone="amber">{t("Paused")}</Badge>}{g.status === "completed" && <Badge tone="green">{t("Completed")}</Badge>}</div>
+    <Card hover className="cursor-pointer" onClick={() => setDetail(g.id)} role="button" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && setDetail(g.id)} aria-label={t("Open goal {title}").replace("{title}", g.title)}>
+      <div className="mb-3 flex flex-wrap items-center gap-1.5"><Badge tone="accent">{t(g.category)}</Badge><Badge>{t(TYPES[g.type as keyof typeof TYPES])}</Badge>{g.status === "paused" && <Badge tone="amber">{t("Paused")}</Badge>}{g.status === "completed" && <Badge tone="green">{t("Completed")}</Badge>}</div>
       <h3 className="font-semibold leading-snug">{g.title}</h3>
       {g.description && <p className="mt-1 line-clamp-2 text-sm text-muted">{g.description}</p>}
       <div className="mt-4 flex items-center gap-3"><Progress value={g.progress} className="flex-1" /><span className="text-sm font-medium tabular-nums">{g.progress}%</span></div>
-      <p className="mt-2 text-xs text-faint">{g.milestones.filter((m) => m.completedAt).length}/{g.milestones.length} milestones{g.targetDate ? ` · target ${fmtShort(g.targetDate, lang)}` : ""}</p>
+      <p className="mt-2 text-xs text-faint">{g.milestones.filter((m) => m.completedAt).length}/{g.milestones.length} {t("milestones")}{g.targetDate ? ` · ${t("Target")} ${fmtShort(g.targetDate, lang)}` : ""}</p>
     </Card>
   );
 
@@ -86,7 +86,7 @@ function Inner() {
       {tab === "milestones" && data && (() => {
         const all = active.flatMap((g) => g.milestones.map((m) => ({ ...m, goal: g.title }))).sort((a, b) => (a.deadline ?? "9999").localeCompare(b.deadline ?? "9999"));
         return all.length === 0 ? <EmptyState icon={<Check className="size-6" />} title={t("No milestones yet")} text={t("Open a goal and add the first step.")} /> : (
-          <Card pad={false}><ul className="divide-y divide-[var(--border)]">{all.map((m) => <li key={m.id} className="flex items-center gap-3 px-4 py-3"><Checkbox checked={!!m.completedAt} onChange={() => toggleMs(m)} label={`Toggle ${m.title}`} /><span className="min-w-0 flex-1"><span className={cn("block truncate text-sm", m.completedAt && "text-muted line-through")}>{m.title}</span><span className="text-xs text-faint">{m.goal}</span></span>{m.deadline && <Badge tone={m.deadline < today && !m.completedAt ? "red" : undefined}>{fmtShort(m.deadline, lang)}</Badge>}</li>)}</ul></Card>
+          <Card pad={false}><ul className="divide-y divide-[var(--border)]">{all.map((m) => <li key={m.id} className="flex items-center gap-3 px-4 py-3"><Checkbox checked={!!m.completedAt} onChange={() => toggleMs(m)} label={t("Toggle {title}").replace("{title}", m.title)} /><span className="min-w-0 flex-1"><span className={cn("block truncate text-sm", m.completedAt && "text-muted line-through")}>{m.title}</span><span className="text-xs text-faint">{m.goal}</span></span>{m.deadline && <Badge tone={m.deadline < today && !m.completedAt ? "red" : undefined}>{fmtShort(m.deadline, lang)}</Badge>}</li>)}</ul></Card>
         );
       })()}
       {tab === "completed" && data && (done.length === 0 ? <EmptyState icon={<Check className="size-6" />} title={t("No completed goals yet")} text={t("Finished goals are celebrated here.")} /> : <div className="grid gap-[var(--gap)] md:grid-cols-2 xl:grid-cols-3">{done.map((g) => <GoalCard key={g.id} g={g} />)}</div>)}
@@ -94,12 +94,12 @@ function Inner() {
 
       <GoalModal goal={edit} onClose={() => setEdit(null)} onSaved={reload} />
       <Modal open={!!cur} onClose={() => setDetail(null)} title={cur?.title ?? t("Goal")} wide footer={cur && <>
-        <Button variant="danger" className="me-auto" onClick={async () => { if (await confirm(t("Delete goal and its milestones?").replace("{title}", cur.title), t("Delete")) && (await run(() => api(`/api/goals/${cur.id}`, { method: "DELETE" }), "Goal deleted"))) { setDetail(null); reload(); } }}>{t("Delete")}</Button>
+        <Button variant="danger" className="me-auto" onClick={async () => { if (await confirm(t("Delete goal and its milestones?").replace("{title}", cur.title), t("Delete")) && (await run(() => api(`/api/goals/${cur.id}`, { method: "DELETE" }), t("Goal deleted")))) { setDetail(null); reload(); } }}>{t("Delete")}</Button>
         <Button onClick={() => { setEdit(cur); setDetail(null); }}><Pencil className="size-4" /> {t("Edit")}</Button>
         {cur.status === "completed" ? <Button onClick={async () => { await run(() => api(`/api/goals/${cur.id}`, { method: "PATCH", body: { status: "active" } })); reload(); }}>{t("Reopen")}</Button> : <Button variant="primary" onClick={async () => { const r = await run(() => api<{ xp: number }>(`/api/goals/${cur.id}`, { method: "PATCH", body: { status: "completed" } })); if (r) { toast("success", r.xp ? `${t("Goal completed")} · +${r.xp} XP 🎉` : t("Goal completed")); reload(); } }}>{t("Mark goal completed")}</Button>}</>}>
         {cur && (
           <div className="space-y-5">
-            <div className="flex flex-wrap gap-1.5"><Badge tone="accent">{cur.category}</Badge><Badge>{TYPES[cur.type as keyof typeof TYPES]}</Badge><Badge>{t(cur.priority)} {t("priority")}</Badge>{cur.targetDate && <Badge>Target {fmtShort(cur.targetDate, lang)}</Badge>}</div>
+            <div className="flex flex-wrap gap-1.5"><Badge tone="accent">{t(cur.category)}</Badge><Badge>{t(TYPES[cur.type as keyof typeof TYPES])}</Badge><Badge>{t(cur.priority)} {t("priority")}</Badge>{cur.targetDate && <Badge>{t("Target")} {fmtShort(cur.targetDate, lang)}</Badge>}</div>
             {cur.description && <p className="text-sm text-muted">{cur.description}</p>}
             <div><div className="mb-1.5 flex justify-between text-sm"><span>{t("Progress")}</span><span className="tabular-nums">{cur.progress}%</span></div><Progress value={cur.progress} />{cur.milestones.length === 0 && <p className="mt-1 text-xs text-faint">{t("No milestones — progress uses your manual value")} ({cur.manualProgress}%). {t("Add milestones for automatic tracking.")}</p>}</div>
             <Journey g={cur} />
