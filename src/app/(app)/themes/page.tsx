@@ -170,13 +170,13 @@ export default function ThemesPage() {
           {tab === "interface" && (
             <Card className="space-y-5">
               <div className="grid gap-5 sm:grid-cols-2">
-                <Slider label="Animation intensity" value={theme.animation} onChange={(v) => set({ animation: v })} hint={t("0 turns motion off")} />
+                <Slider label={t("Animation intensity")} value={theme.animation} onChange={(v) => set({ animation: v })} hint={t("0 turns motion off")} />
                 <Slider label={t("Transition speed")} value={theme.speed} min={50} max={200} unit="%" onChange={(v) => set({ speed: v })} />
                 <Slider label={t("Rounded corners")} value={theme.radius} min={6} max={32} unit="px" onChange={(v) => set({ radius: v })} />
                 <Field label={t("Interface density")}><Segmented value={theme.density} onChange={(v) => set({ density: v })} label={t("Density")} options={[{ value: "compact", label: t("Compact") }, { value: "comfortable", label: t("Comfortable") }, { value: "spacious", label: t("Spacious") }]} /></Field>
                 <Field label={t("Font selection")}><p className="text-sm text-muted">{t("Manage typefaces in the dedicated Fonts section.")}</p></Field>
               </div>
-              <Row label={t("Reduced motion")} hint={t("Stops animated gradients, pointer light and transitions")}><Switch checked={theme.reducedMotion} onChange={(v) => set({ reducedMotion: v })} label="Reduced motion" /></Row>
+              <Row label={t("Reduced motion")} hint={t("Stops animated gradients, pointer light and transitions")}><Switch checked={theme.reducedMotion} onChange={(v) => set({ reducedMotion: v })} label={t("Reduced motion")} /></Row>
               <p className="text-xs text-faint">{t("Your operating system's reduced-motion setting is always respected, too. Arabic uses Playpen Sans Arabic automatically. English uses the selected font.")}</p>
             </Card>
           )}
