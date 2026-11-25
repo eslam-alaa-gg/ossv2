@@ -94,7 +94,7 @@ export default function ProfilePage() {
   }
   function closePic() { setPic(false); setBlob(null); setPreview(null); setFileErr(null); }
   async function remove() {
-    if (!(await confirm(t("Remove your profile picture?"), "Remove"))) return;
+    if (!(await confirm(t("Remove your profile picture?"), t("Remove")))) return;
     const r = await run(() => fetch("/api/me/avatar", { method: "DELETE" }).then((x) => { if (!x.ok) throw new Error(t("Couldn't remove the picture.")); return x.json(); }), t("Picture removed"));
     if (r) { setAvatarVersion(null); closePic(); router.refresh(); }
   }
@@ -112,7 +112,7 @@ export default function ProfilePage() {
           {editing ? (
             <div className="mt-5 w-full space-y-3 text-start">
               <Field label={t("Display name")} error={nameErr} hint={`${trimmed.length}/40`}><input className="input" value={name} onChange={(e) => { setName(e.target.value); setNameErr(null); }} onKeyDown={(e) => { if (e.key === "Enter") saveName(); if (e.key === "Escape") setEditing(false); }} maxLength={60} autoFocus aria-label={t("Display name")} /></Field>
-              <p className="text-xs text-muted">{t("Preview:")} <b className="text-fg">{first}</b> — {t(" — only your display name changes; your email and sign-in stay the same.")}</p>
+              <p className="text-xs text-muted">{t("Preview:")} <b className="text-fg">{first}</b>{t(" — only your display name changes; your email and sign-in stay the same.")}</p>
               <div className="flex gap-2"><Button className="flex-1" onClick={() => { setEditing(false); setNameErr(null); }}>{t("Cancel")}</Button><Button variant="primary" className="flex-1" loading={saving} onClick={saveName}>{t("Save")}</Button></div>
             </div>
           ) : (
