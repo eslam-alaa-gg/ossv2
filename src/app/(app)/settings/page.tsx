@@ -71,7 +71,7 @@ export default function SettingsPage() {
             <Field label={t("Challenge reminder")}><input className="input" type="time" value={n.challengeTime} onChange={(e) => e.target.value && setN({ challengeTime: e.target.value })} aria-label={t("Challenge reminder")} /></Field>
             <Field label={t("Habit reminder")}><input className="input" type="time" value={n.habitTime} onChange={(e) => e.target.value && setN({ habitTime: e.target.value })} aria-label={t("Habit reminder")} /></Field>
           </div>
-          <p className="mt-4 text-xs text-faint">{t("In-app reminders are generated from your real tasks and habits whenever you use LIFE OS. Background push/email delivery runs only when the server's scheduler (")}<code>/api/cron/notify</code>{t(") and provider keys are configured — see the setup guide.")}</p>
+          <p className="mt-4 text-xs text-faint">{t("In-app reminders are generated from your real tasks and habits whenever you use Ukiyo. Background push/email delivery runs only when the server's scheduler (")}<code>/api/cron/notify</code>{t(") and provider keys are configured — see the setup guide.")}</p>
         </Card>
 
         <div className="space-y-[var(--gap)]">
@@ -95,7 +95,7 @@ export default function SettingsPage() {
           </Card>
           <Card>
             <h2 className="mb-2 flex items-center gap-2 text-sm font-medium text-muted"><Download className="size-4" /> {t("Your data")}</h2>
-            <p className="mb-3 text-sm text-muted">{t("Download everything LIFE OS stores about you as JSON.")}</p>
+            <p className="mb-3 text-sm text-muted">{t("Download everything Ukiyo stores about you as JSON.")}</p>
             <a href="/api/export" className="glass-btn"><Download className="size-4" /> {t("Export my data")}</a>
           </Card>
           {!user.isDemo && <Card className="border-red-400/30"><h2 className="mb-2 flex items-center gap-2 text-sm font-medium text-red-400"><ShieldAlert className="size-4" /> {t("Danger zone")}</h2><p className="mb-3 text-sm text-muted">{t("Permanently delete your account and all associated data. This can't be undone.")}</p><Button variant="danger" onClick={() => setDel(true)}><Trash2 className="size-4" /> {t("Delete account")}</Button></Card>}
