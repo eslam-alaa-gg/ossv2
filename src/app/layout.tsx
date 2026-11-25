@@ -6,12 +6,18 @@ import { Backdrop } from "@/components/effects";
 import { getSessionUser, publicUser } from "@/lib/server/auth";
 import { DEFAULT_PREFS, parsePrefs } from "@/lib/prefs";
 
-export const metadata: Metadata = {
-  title: { default: "LIFE OS — Your Life. Your Goals. Your Progress.", template: "%s · LIFE OS" },
-  description: "A premium personal operating system for tasks, habits, goals, focus and progress.",
-  manifest: "/manifest.webmanifest",
-  icons: { icon: "/icon.svg" },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const u = await getSessionUser();
+  const ar = u?.language === "ar";
+  return {
+    title: { default: "LIFE OS", template: "%s · LIFE OS" },
+    description: ar
+      ? "مساحة شخصية لتنظيم المهام والعادات والأهداف والتركيز ومتابعة التقدم."
+      : "A personal space for tasks, habits, goals, focus and progress.",
+    manifest: "/manifest.webmanifest",
+    icons: { icon: "/icon.svg" },
+  };
+}
 export const viewport: Viewport = { themeColor: "#0b0b10", viewportFit: "cover", width: "device-width", initialScale: 1 };
 
 const FONTS =
