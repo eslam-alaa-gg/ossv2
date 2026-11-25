@@ -47,7 +47,7 @@ export default function ChallengePage() {
           <p className="text-xs text-faint">Custom challenges (max 3 per day) earn half XP. Reminder time: {prefs.notifications.challengeTime} — change it in Settings → Notifications. {data.completedTotal} challenges completed overall.</p>
           <div>
             <h2 className="mb-3 text-sm font-medium text-muted">{t("History")}</h2>
-            {data.history.length === 0 ? <EmptyState icon={<Zap className="size-5" />} title={t("No history yet")} text="Past challenges will appear here." /> : (
+            {data.history.length === 0 ? <EmptyState icon={<Zap className="size-5" />} title={t("No history yet")} text={t("Past challenges will appear here.")} /> : (
               <Card pad={false}><ul className="divide-y divide-[var(--border)]">{data.history.map((c) => <li key={c.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm"><span className="min-w-0"><span className="block truncate">{c.title}</span><span className="text-xs text-faint">{fmtShort(c.date)} · {c.difficulty}</span></span>{c.completedAt ? <span className="flex shrink-0 items-center gap-1.5 text-xs text-emerald-400"><CheckCircle2 className="size-4" />+{c.xp} XP</span> : <span className="text-xs text-faint">{t("Missed — no penalty")}</span>}</li>)}</ul></Card>
             )}
           </div>
