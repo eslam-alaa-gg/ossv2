@@ -10,6 +10,16 @@ import { fmtLong } from "@/lib/dates";
 
 const TYPES = ["image/jpeg", "image/png", "image/webp"];
 
+function timezoneLabel(zone: string, lang: "ar" | "en", t: (s: string) => string) {
+  if (lang !== "ar") return zone;
+  try {
+    const parts = new Intl.DateTimeFormat("ar-EG", { timeZone: zone, timeZoneName: "long" }).formatToParts(new Date());
+    const offset = new Intl.DateTimeFormat("ar-EG", { timeZone: zone, timeZoneName: "longOffset" }).formatToParts(new Date()).find((part) => part.type === "timeZoneName")?.value;
+    const name = parts.find((part) => part.type === "timeZoneName")?.value;
+    return [name, offset].filter(Boolean).join(" · ") || t("Timezone");
+  } catch { return t("Timezone"); }
+}
+
 /** Center-crop + downscale to 512px WebP (JPEG fallback) in the browser before upload. */
 async function compress(file: File): Promise<Blob> {
   const bmp = await createImageBitmap(file);
@@ -130,7 +140,7 @@ export default function ProfilePage() {
               <div className="flex items-center justify-between gap-4 py-3"><dt className="flex items-center gap-2 text-muted"><Pencil className="size-4" /> {t("Display name")}</dt><dd className="flex items-center gap-2">{user.displayName}<Button size="sm" variant="ghost" onClick={() => setEditing(true)}>{t("Change Name")}</Button></dd></div>
               <div className="flex items-center justify-between gap-4 py-3"><dt className="flex items-center gap-2 text-muted"><Mail className="size-4" /> {t("Email")}</dt><dd className="flex items-center gap-2 truncate">{user.isDemo ? "—" : user.email}{!user.isDemo && <Badge tone={user.emailVerified ? "green" : "amber"}>{t(user.emailVerified ? "Verified" : "Unverified")}</Badge>}<Badge>{t("read-only")}</Badge></dd></div>
               <div className="flex items-center justify-between gap-4 py-3"><dt className="flex items-center gap-2 text-muted"><Calendar className="size-4" /> {t("Member since")}</dt><dd>{fmtLong(user.createdAt.slice(0, 10), lang)}</dd></div>
-              <div className="flex items-center justify-between gap-4 py-3"><dt className="flex items-center gap-2 text-muted"><Globe className="size-4" /> {t("Timezone")}</dt><dd>{user.timezone}</dd></div>
+              <div className="flex items-center justify-between gap-4 py-3"><dt className="flex items-center gap-2 text-muted"><Globe className="size-4" /> {t("Timezone")}</dt><dd>{timezoneLabel(user.timezone, lang, t)}</dd></div>
             </dl>
           </Card>
           <PrefsCard />
@@ -153,7 +163,7 @@ export default function ProfilePage() {
 }
 
 function PrefsCard() {
-  const { user, patchUser, theme, t } = useApp();
+  const { user, patchUser, theme, lang, t } = useApp();
   const { run } = useUI();
   const router = useRouter();
   if (!user) return null;
@@ -163,7 +173,7 @@ function PrefsCard() {
       <h2 className="mb-4 text-sm font-medium text-muted">{t("Account preferences")}</h2>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label={t("Language")}><select className="input" value={user.language} onChange={async (e) => { await run(() => patchUser({ language: e.target.value as "en" | "ar" }), t("Language updated")); router.refresh(); }} aria-label={t("Language")}><option value="en">{t("English")} ({t("left to right")})</option><option value="ar">{t("Arabic")} ({t("right to left")})</option></select></Field>
-        <Field label={t("Timezone")}><select className="input" value={user.timezone} onChange={(e) => run(() => patchUser({ timezone: e.target.value }), t("Timezone updated"))} aria-label={t("Timezone")}>{(tzs.includes(user.timezone) ? tzs : [user.timezone, ...tzs]).map((z) => <option key={z}>{z}</option>)}</select></Field>
+        <Field label={t("Timezone")}><select className="input" value={user.timezone} onChange={(e) => run(() => patchUser({ timezone: e.target.value }), t("Timezone updated"))} aria-label={t("Timezone")}>{(tzs.includes(user.timezone) ? tzs : [user.timezone, ...tzs]).map((z) => <option key={z} value={z}>{timezoneLabel(z, lang, t)}</option>)}</select></Field>
         <Field label={t("Daily productivity goal (points)")}><input className="input" type="number" min={1} max={30} defaultValue={user.dailyGoal} onBlur={(e) => { const v = Number(e.target.value); if (v >= 1 && v <= 30 && v !== user.dailyGoal) run(() => patchUser({ dailyGoal: v }), t("Daily goal updated")); }} aria-label={t("Daily goal")} /></Field>
         <Field label={t("Appearance")}><Link href="/themes" className="glass-btn w-full justify-between"><span className="flex items-center gap-2"><Palette className="size-4 text-accent" /> {t("Theme Studio")}</span><span className="text-xs capitalize text-muted">{t(theme.mode)}</span></Link></Field>
       </div>
