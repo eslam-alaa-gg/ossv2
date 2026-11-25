@@ -49,7 +49,7 @@ function Inner() {
   }
   async function del(task: Task) {
     if (!(await confirm(t("Delete {title} permanently?").replace("{title}", task.title), t("Delete")))) return;
-    if (await run(() => api(`/api/tasks/${t.id}`, { method: "DELETE" }), t("Task deleted"))) { setModal(null); reload(); }
+    if (await run(() => api(`/api/tasks/${task.id}`, { method: "DELETE" }), t("Task deleted"))) { setModal(null); reload(); }
   }
 
   const Row = ({ task }: { task: Task }) => {
