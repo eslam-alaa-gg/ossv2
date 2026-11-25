@@ -108,7 +108,7 @@ function Inner() {
               <ul className="space-y-1">{cur.milestones.map((m) => <li key={m.id} className="flex items-center gap-3 rounded-lg px-1 py-1.5"><Checkbox checked={!!m.completedAt} onChange={() => toggleMs(m)} label={`Toggle ${m.title}`} /><span className={cn("flex-1 text-sm", m.completedAt && "text-muted line-through")}>{m.title}{m.deadline && <span className="ms-2 text-xs text-faint">{fmtShort(m.deadline, lang)}</span>}</span><Button variant="ghost" size="icon" aria-label={t("Delete milestone")} onClick={async () => { if (await run(() => api(`/api/milestones/${m.id}`, { method: "DELETE" }))) reload(); }}><Trash2 className="size-3.5" /></Button></li>)}</ul>
               <MilestoneAdd onAdd={(t, d) => saveMilestone(cur.id, t, d)} />
             </div>
-            <div><h3 className="mb-2 text-sm font-medium">Linked tasks ({cur.tasksDone}/{cur.tasks.length} done)</h3>{cur.tasks.length === 0 ? <p className="text-xs text-faint">Link tasks from the task editor (“Linked goal”).</p> : <ul className="space-y-1 text-sm">{cur.tasks.map((t) => <li key={t.id} className={cn(t.status === "completed" && "text-muted line-through")}>• {t.title}</li>)}</ul>}</div>
+            <div><h3 className="mb-2 text-sm font-medium">{t("Linked tasks")} ({cur.tasksDone}/{cur.tasks.length} {t("done")})</h3>{cur.tasks.length === 0 ? <p className="text-xs text-faint">{t("Link tasks from the task editor (Linked goal).")}</p> : <ul className="space-y-1 text-sm">{cur.tasks.map((t) => <li key={t.id} className={cn(t.status === "completed" && "text-muted line-through")}>• {t.title}</li>)}</ul>}</div>
           </div>
         )}
       </Modal>
