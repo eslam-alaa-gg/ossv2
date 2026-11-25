@@ -44,7 +44,7 @@ function Inner() {
     if (!r) return;
     setData((d) => d && { tasks: d.tasks.map((x) => (x.id === t.id ? r.task : x)) });
     if (r.xp) toast("success", `${t("Task completed")} · +${r.xp} XP`);
-    r.unlocked?.forEach((u) => toast("success", `🏆 Achievement unlocked: ${t(u)}`));
+    r.unlocked?.forEach((u) => toast("success", `🏆 ${t("Achievement unlocked")}: ${t(u)}`));
     if (body.status === "completed") reload();
   }
   async function del(t: Task) {
