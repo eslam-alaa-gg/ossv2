@@ -82,9 +82,9 @@ export default function SettingsPage() {
                 <Row title={user.email} hint="Email address cannot be changed here"><Badge tone={user.emailVerified ? "green" : "amber"}>{user.emailVerified ? "Verified" : "Unverified"}</Badge></Row>
                 {!user.emailVerified && <Button size="sm" onClick={async () => { const r = await run(() => api<{ emailSent: boolean }>("/api/auth/resend", { body: {} })); if (r) toast(r.emailSent ? "success" : "info", r.emailSent ? "Verification email sent" : "Email delivery isn't configured on this server."); }}><Mail className="size-4" /> Resend verification</Button>}
                 <form className="mt-4 space-y-3" onSubmit={async (e) => { e.preventDefault(); if (await run(() => api("/api/me/account", { body: { current: pw.current, next: pw.next } }), "Password changed")) setPw({ current: "", next: "" }); }}>
-                  <Field label="Current password"><input className="input" type="password" autoComplete="current-password" value={pw.current} onChange={(e) => setPw({ ...pw, current: e.target.value })} aria-label="Current password" /></Field>
-                  <Field label="New password" hint="At least 8 characters"><input className="input" type="password" autoComplete="new-password" minLength={8} value={pw.next} onChange={(e) => setPw({ ...pw, next: e.target.value })} aria-label="New password" /></Field>
-                  <Button type="submit" disabled={!pw.current || pw.next.length < 8}>Change password</Button>
+                  {user.hasPassword && <Field label="Current password"><input className="input" type="password" autoComplete="current-password" value={pw.current} onChange={(e) => setPw({ ...pw, current: e.target.value })} aria-label="Current password" /></Field>}
+                  <Field label={user.hasPassword ? "New password" : "Set a password"} hint="At least 8 characters"><input className="input" type="password" autoComplete="new-password" minLength={8} value={pw.next} onChange={(e) => setPw({ ...pw, next: e.target.value })} aria-label="New password" /></Field>
+                  <Button type="submit" disabled={(user.hasPassword && !pw.current) || pw.next.length < 8}>{user.hasPassword ? "Change password" : "Set password"}</Button>
                 </form>
               </>
             )}
