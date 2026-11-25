@@ -190,7 +190,7 @@ export default function DashboardPage() {
           {WIDGETS.map((k) => (
             <li key={k} className="flex items-center justify-between rounded-lg px-1 py-2 text-sm">
               <span>{LABELS[k]}</span>
-              <Switch checked={show(k)} label={LABELS[k]} onChange={(v) => run(() => savePrefs({ dashboard: { widgets: { ...w, [k]: v } } }))} />
+              <Switch checked={show(k)} label={LABELS[k]} onChange={(v) => run(() => savePrefs({ dashboard: { widgets: { ...w, [k]: v }, order: prefs.dashboard.order, sizes: prefs.dashboard.sizes } }))} />
             </li>
           ))}
         </ul>
