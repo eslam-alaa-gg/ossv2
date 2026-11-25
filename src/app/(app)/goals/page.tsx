@@ -142,10 +142,10 @@ function GoalModal({ goal, onClose, onSaved }: { goal: Goal | "new" | null; onCl
         <Field label={t("Title")} className="sm:col-span-2"><input className="input" value={f.title} onChange={s("title")} maxLength={160} aria-label={t("Goal title")} /></Field>
         <Field label={t("Description")} className="sm:col-span-2"><textarea className="input min-h-20" value={f.description} onChange={s("description")} maxLength={2000} aria-label={t("Description")} /></Field>
         <Field label={t("Type")}><select className="input" value={f.type} onChange={s("type")} aria-label={t("Type")}>{Object.entries(TYPES).map(([k, v]) => <option key={k} value={k}>{t(v)}</option>)}</select></Field>
-        <Field label={t("Category")}><select className="input" value={f.category} onChange={s("category")} aria-label={t("Category")}>{CATS.map((c) => <option key={c}>{t(c)}</option>)}</select></Field>
+        <Field label={t("Category")}><select className="input" value={f.category} onChange={s("category")} aria-label={t("Category")}>{CATS.map((c) => <option key={c} value={c}>{t(c)}</option>)}</select></Field>
         <Field label={t("Start date")}><input className="input" type="date" value={f.startDate} onChange={s("startDate")} aria-label={t("Start date")} /></Field>
         <Field label={t("Target date")}><input className="input" type="date" value={f.targetDate} onChange={s("targetDate")} aria-label={t("Target date")} /></Field>
-        <Field label={t("Priority")}><select className="input" value={f.priority} onChange={s("priority")} aria-label={t("Priority")}>{["low", "medium", "high", "urgent"].map((c) => <option key={c}>{c}</option>)}</select></Field>
+        <Field label={t("Priority")}><select className="input" value={f.priority} onChange={s("priority")} aria-label={t("Priority")}>{["low", "medium", "high", "urgent"].map((c) => <option key={c} value={c}>{t(c)}</option>)}</select></Field>
         <Field label={`Manual progress (${f.manualProgress}%)`} hint={t("Used only while the goal has no milestones")}><input type="range" min={0} max={100} value={f.manualProgress} onChange={s("manualProgress")} aria-label={t("Manual progress")} /></Field>
       </div>
     </Modal>
