@@ -5,8 +5,10 @@ import { useSearchParams } from "next/navigation";
 import { AuthShell } from "@/components/auth";
 import { Button, Field } from "@/components/ui";
 import { api } from "@/lib/client";
+import { useApp } from "@/components/providers";
 
 function Inner() {
+  const { t } = useApp();
   const token = useSearchParams().get("token") ?? "";
   const [pw, setPw] = useState("");
   const [done, setDone] = useState(false);
@@ -20,19 +22,19 @@ function Inner() {
       await api("/api/auth/reset", { body: { token, password: pw } });
       setDone(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't reset the password.");
+      setError(err instanceof Error ? t(err.message) : t("Couldn't reset the password."));
     }
     setBusy(false);
   }
   return (
-    <AuthShell title="Choose a new password" footer={<Link href="/login" className="font-medium text-accent">Back to sign in</Link>}>
-      {!token ? <p className="text-sm text-red-300">This link is missing its token. Request a new reset email.</p> : done ? (
-        <p className="text-sm" role="status">Password updated. All other sessions were signed out. <Link href="/login" className="font-medium text-accent">Sign in</Link></p>
+    <AuthShell title="Choose a new password" footer={<Link href="/login" className="font-medium text-accent">{t("Back to sign in")}</Link>}>
+      {!token ? <p className="text-sm text-red-300">{t("This link is missing its token. Request a new reset email.")}</p> : done ? (
+        <p className="text-sm" role="status">{t("Password updated. All other sessions were signed out.")} <Link href="/login" className="font-medium text-accent">{t("Sign in")}</Link></p>
       ) : (
         <form onSubmit={submit} className="space-y-4">
-          <Field label="New password" hint="At least 8 characters"><input className="input" type="password" minLength={8} required autoComplete="new-password" value={pw} onChange={(e) => setPw(e.target.value)} aria-label="New password" /></Field>
+          <Field label={t("New password")} hint={t("At least 8 characters")}><input className="input" type="password" minLength={8} required autoComplete="new-password" value={pw} onChange={(e) => setPw(e.target.value)} aria-label={t("New password")} /></Field>
           {error && <p role="alert" className="text-sm text-red-300">{error}</p>}
-          <Button type="submit" variant="primary" className="h-11 w-full" loading={busy} disabled={pw.length < 8}>Update password</Button>
+          <Button type="submit" variant="primary" className="h-11 w-full" loading={busy} disabled={pw.length < 8}>{t("Update password")}</Button>
         </form>
       )}
     </AuthShell>
