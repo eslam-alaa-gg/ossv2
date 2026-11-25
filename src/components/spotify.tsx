@@ -144,7 +144,7 @@ function AlbumGlow() {
   const { prefs, theme } = useApp();
   const { np } = useSpotify() ?? { np: null };
   const [cols, setCols] = useState<[string, string] | null>(null);
-  const img = np && !np.idle ? np.track.album.image : null;
+  const img = np && !np.idle && np.playing ? np.track.album.image : null;
   useEffect(() => {
     if (!img || !prefs.spotify.ambience) {
       setCols(null);
@@ -197,7 +197,7 @@ export function NowPlayingWidget() {
       </Card>
     );
   }
-  const t = np && !np.idle ? np.track : null;
+  const t = np && !np.idle && np.playing ? np.track : null;
   return (
     <Card className="relative overflow-hidden">
       {error && errorCode !== "rate_limited" && <p className="mb-2 text-xs text-amber-400" role="status">{error} <button className="underline" onClick={() => refresh().catch(() => {})}>{tr("Retry")}</button></p>}
