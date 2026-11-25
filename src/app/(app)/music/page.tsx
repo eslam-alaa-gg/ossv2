@@ -64,7 +64,7 @@ function Inner() {
     return (
       <>
         <PageHeader title={t("Music Hub")} subtitle={t("Your Spotify, inside LIFE OS.")} actions={<MusicBridgeLink label={lang === "ar" ? "ربط جهاز بدون Spotify" : "Connect device without Spotify"} />} />
-        <Card className="mx-auto max-w-xl py-10 text-center>
+        <Card className="mx-auto max-w-xl py-10 text-center">
           <span className="mx-auto mb-4 grid size-16 place-items-center rounded-3xl bg-card text-muted"><Music2 className="size-8" /></span>
           <h2 className="text-xl font-semibold">{lang === "ar" ? "Spotify غير متاح حاليًا" : "Spotify is temporarily unavailable"}</h2>
           <p className="mx-auto mt-2 max-w-md text-sm text-muted">{lang === "ar" ? "خدمة ربط Spotify غير جاهزة في الوقت الحالي. حاول مرة أخرى لاحقًا، أو تواصل مع مسؤول الموقع." : "Spotify connection isn't ready right now. Please try again later or contact the site administrator."}</p>
