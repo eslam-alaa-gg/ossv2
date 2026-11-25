@@ -26,7 +26,7 @@ export default function AchievementsPage() {
         <Card className="space-y-3"><div className="flex items-center gap-3"><Flame className="size-6 text-orange-400" /><div><p className="text-xl font-semibold">{data.streak.current} day streak</p><p className="text-xs text-faint">longest {data.streak.longest} days</p></div></div><div className="flex items-center gap-3"><CalendarDays className="size-6 text-accent" /><div><p className="text-xl font-semibold">{data.weeklyStreak} week streak</p><p className="text-xs text-faint">{t("weeks with any activity")}</p></div></div></Card>
       </div>
       <h2 className="mb-3 mt-8 text-sm font-medium text-muted">Unlocked badges ({unlocked.length})</h2>
-      {unlocked.length === 0 ? <Card className="text-center text-sm text-muted">No badges yet — complete a task, habit or focus session to earn your first.</Card> : (
+      {unlocked.length === 0 ? <Card className="text-center text-sm text-muted">{t("No badges yet — complete a task, habit or focus session to earn your first.")}</Card> : (
         <div className="grid gap-[var(--gap)] sm:grid-cols-2 lg:grid-cols-3">{unlocked.map((a) => { const I = ICONS[a.icon] ?? Trophy; return <Card key={a.key} className="flex items-center gap-4"><span className="accent-fill grid size-12 shrink-0 place-items-center rounded-2xl text-[var(--on-accent)] shadow-lg"><I className="size-6" /></span><div className="min-w-0"><p className="font-medium">{a.title}</p><p className="text-xs text-muted">{a.desc}</p><p className="mt-1 text-[11px] text-faint">{fmtShort(a.unlockedAt!.slice(0, 10), lang)}{a.xp ? ` · +${a.xp} XP` : ""}</p></div></Card>; })}</div>
       )}
       <h2 className="mb-3 mt-8 text-sm font-medium text-muted">{t("Upcoming")}</h2>
