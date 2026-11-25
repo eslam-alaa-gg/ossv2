@@ -528,8 +528,7 @@ const ar: Record<string, string> = {
   "Daily goal": "الهدف اليومي",
   "Notification channels, quiet hours and data export live in": "إعدادات قنوات الإشعارات ووقت الهدوء وتصدير البيانات موجودة في",
   "Timezone updated": "تم تحديث المنطقة الزمنية",
-  "Daily goal updated": "تم تحديث الهدف اليومي"
-
+  "Daily goal updated": "تم تحديث الهدف اليومي",
   "Overdue": "متأخرة",
   "unread": "غير مقروء",
   "Sort: due date": "ترتيب حسب موعد الاستحقاق",
