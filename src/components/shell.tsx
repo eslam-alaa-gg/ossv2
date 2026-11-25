@@ -241,7 +241,7 @@ type QuickHabit = { id: string; name: string; kind: "standard" | "water" | "read
 type QuickTrackers = { today: string; water: { goal: number; total: number }; reading: { target: number; todayPages: number }; learning: { entries: { id: string; date: string; title: string }[] } };
 
 function HabitQuickPanel() {
-  const { t, lang } = useApp();
+  const { t } = useApp();
   const { run, toast } = useUI();
   const [open, setOpen] = useState(false);
   const [habits, setHabits] = useState<QuickHabit[]>([]);
@@ -287,11 +287,10 @@ function HabitQuickPanel() {
   const special = habits.filter((h) => h.kind !== "standard");
   const standard = habits.filter((h) => h.kind === "standard");
   const cup = 250;
-  const waterCups = tracker ? Math.floor(tracker.water.total / cup) : 0;
+  const waterCups = tracker ? Number((tracker.water.total / cup).toFixed(1)) : 0;
   const waterGoal = tracker ? Math.ceil(tracker.water.goal / cup) : 0;
   const reading = special.find((h) => h.kind === "reading");
   const learning = special.find((h) => h.kind === "learning");
-  const water = special.find((h) => h.kind === "water");
   const addWater = () => act(() => api("/api/trackers/water", { body: { ml: cup } }), t("Water logged"));
   const addReading = async (e: FormEvent) => {
     e.preventDefault();
@@ -336,7 +335,7 @@ function HabitQuickPanel() {
                 {learning && tracker && <div className="rounded-xl border border-line bg-card p-3">
                   <div className="mb-2 flex items-center gap-2"><Lightbulb className="size-4 text-accent" /><p className="flex-1 text-sm font-medium">{t("Learn Something New")}</p><span className="text-xs tabular-nums text-muted">{tracker.learning.entries.filter((x) => x.date === tracker.today).length}/{learning.target}</span></div>
                   <form onSubmit={addLearning} className="flex gap-1.5"><input className="input min-w-0 flex-1 text-xs" value={learnTitle} onChange={(e) => setLearnTitle(e.target.value)} placeholder={t("What did you learn?")} maxLength={120} required /><button type="submit" disabled={busy} className="glass-btn btn-primary h-9 w-9 shrink-0 justify-center" aria-label={t("Save entry")}><Plus className="size-4" /></button></form>
-                  {tracker.learning.entries.length === 0 && <p className="mt-1 text-[11px] text-faint">{t("Goal not reached yet.")}</p>}
+                  {tracker.learning.entries.filter((x) => x.date === tracker.today).length < learning.target && <p className="mt-1 text-[11px] text-faint">{t("Goal not reached yet.")}</p>}
                 </div>}
                 {standard.map((h) => <div key={h.id} className="rounded-xl border border-line bg-card p-3">
                   <div className="flex items-center gap-2"><p className="min-w-0 flex-1 truncate text-sm font-medium">{t(h.name)}</p><span className="text-xs tabular-nums text-muted">{h.todayAmount}/{h.target} {t(h.unit)}</span></div>
@@ -347,7 +346,7 @@ function HabitQuickPanel() {
                   </div>
                   {h.todayAmount < h.target && <p className="mt-1 text-[11px] text-faint">{t("Goal not reached yet.")}</p>}
                 </div>)}
-                {!special.length && !standard.length && <p className="py-5 text-center text-xs text-muted">{t("Add a habit with a daily target to see it here.")}</p>}
+                {!reading && !learning && !standard.length && <p className="py-5 text-center text-xs text-muted">{t("Add a habit with a daily target to see it here.")}</p>}
               </div>
             )}
             <div className="mt-3 border-t border-line pt-2"><Link href="/habits" onClick={() => setOpen(false)} className="block text-center text-xs text-accent">{t("Open all habits")}</Link></div>
