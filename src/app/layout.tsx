@@ -46,7 +46,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <AppProvider initialUser={u ? publicUser(u) : null} initialPrefs={prefs} initialLang={initialLang}>
           <Backdrop />
           <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:start-3 focus:top-3 focus:z-[200] focus:rounded-lg focus:bg-accent focus:px-3 focus:py-2 focus:text-[var(--on-accent)]">
-            Skip to content
+            {lang === "ar" ? "تخطي إلى المحتوى" : "Skip to content"}
           </a>
           {children}
         </AppProvider>
