@@ -491,6 +491,16 @@ const ar: Record<string, string> = {
   "Dates follow your timezone": "التواريخ حسب المنطقة الزمنية بتاعتك",
   "Weeks start Monday.": "الأسبوع بيبدأ يوم الاثنين."
 
+  "Past challenges will appear here.": "التحديات اللي فاتت هتظهر هنا.",
+  "Finish your first session and it will be recorded here.": "كمّل أول جلسة ليك وهتتسجل هنا.",
+  "Break something meaningful into milestones and watch the journey fill in.": "قسّم هدفك لمراحل صغيرة وشوف تقدمك خطوة بخطوة.",
+  "Open a goal and add the first step.": "افتح هدف وضيف أول خطوة.",
+  "Finished goals are celebrated here.": "الأهداف اللي خلصتها هتظهر هنا للاحتفال بإنجازك.",
+  "Things you'd love to own, learn or experience.": "حاجات نفسك تمتلكها أو تتعلمها أو تجربها.",
+  "Pick a ready-made habit like Drink Water or Meditation, or create your own.": "اختار عادة جاهزة زي شرب الميه أو التأمل، أو اعمل عادة خاصة بيك.",
+  "Log your first session to start a history.": "سجّل أول جلسة عشان يبدأ يظهر عندك سجل.",
+  "Capture ideas, things you learned, and reflections — all private.": "سجّل أفكارك والحاجات اللي اتعلمتها وتأملاتك، وكل ده خاص بيك.",
+  "Autosaves as you type.": "بيحفظ تلقائيًا وإنت بتكتب."
 };
 
 export function translate(lang: Lang, s: string): string {
