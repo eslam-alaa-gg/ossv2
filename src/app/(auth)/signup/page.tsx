@@ -5,9 +5,10 @@ import { AuthShell, GoogleSignInButton } from "@/components/auth";
 import { Button, Field } from "@/components/ui";
 import { api } from "@/lib/client";
 import { useApp } from "@/components/providers";
+import { translateError } from "@/lib/i18n";
 
 export default function SignupPage() {
-  const { t } = useApp();
+  const { t, lang } = useApp();
   const [f, setF] = useState({ displayName: "", email: "", password: "" });
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -22,7 +23,7 @@ export default function SignupPage() {
       await api("/api/auth/signup", { body: { ...f, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone } });
       window.location.href = "/onboarding";
     } catch (err) {
-      setError(err instanceof Error ? t(err.message) : t("Couldn't create the account."));
+      setError(err instanceof Error ? translateError(lang, err.message) : t("Something went wrong."));
       setBusy(false);
     }
   }
