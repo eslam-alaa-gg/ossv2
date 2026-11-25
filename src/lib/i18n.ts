@@ -501,6 +501,29 @@ const ar: Record<string, string> = {
   "Log your first session to start a history.": "سجّل أول جلسة عشان يبدأ يظهر عندك سجل.",
   "Capture ideas, things you learned, and reflections — all private.": "سجّل أفكارك والحاجات اللي اتعلمتها وتأملاتك، وكل ده خاص بيك.",
   "Autosaves as you type.": "بيحفظ تلقائيًا وإنت بتكتب."
+  "Connect Spotify to see what you're listening to.": "اربط Spotify عشان تشوف إنت بتسمع إيه دلوقتي.",
+  "Spotify isn't configured on this server yet.": "Spotify لسه مش متظبط على السيرفر ده.",
+  "Connect": "ربط",
+  "Details": "التفاصيل",
+  "Playing": "بيشتغل",
+  "Task details": "تفاصيل المهمة",
+  "Save changes": "حفظ التعديلات",
+  "Title is required": "لازم تكتب عنوان للمهمة.",
+  "Task updated": "تم تحديث المهمة",
+  "Task created": "تم إنشاء المهمة",
+  "Created": "اتعملت يوم",
+  "low": "منخفضة",
+  "medium": "متوسطة",
+  "high": "عالية",
+  "urgent": "عاجلة",
+  "General": "عام",
+  "Work": "شغل",
+  "Personal": "شخصي",
+  "Health": "صحة",
+  "Learning": "تعلّم",
+  "Finance": "مالية",
+  "Career": "المسار المهني",
+  "Creativity": "إبداع"
 };
 
 export function translate(lang: Lang, s: string): string {
