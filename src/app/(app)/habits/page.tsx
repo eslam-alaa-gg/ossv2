@@ -14,7 +14,7 @@ type Trackers = {
   today: string;
   water: { goal: number; total: number; entries: { id: string; ml: number; createdAt: string }[]; days: { d: string; v: number }[] };
   reading: { target: number; todayPages: number; entries: { id: string; date: string; book: string; pages: number }[]; days: { d: string; v: number }[] };
-  learning: { entries: { id: string; date: string; title: string; explanation: string }[] };
+  learning: { target: number; todayCount: number; entries: { id: string; date: string; title: string; explanation: string }[] };
 };
 const DAYS = ["S", "M", "T", "W", "T", "F", "S"];
 
@@ -127,7 +127,7 @@ function ReadingTab({ tracker, reload }: { tracker: Trackers; reload: () => void
   return (
     <div className="grid gap-[var(--gap)] md:grid-cols-2">
       <Card>
-        <div className="mb-4 flex items-center gap-3"><BookOpen className="size-5 text-accent" /><div className="flex-1"><p className="font-medium">{t("Today")}: {tracker.reading.todayPages} / {tracker.reading.target} {t("pages")}</p><Progress value={(100 * tracker.reading.todayPages) / tracker.reading.target} className="mt-2" /></div></div>
+        <div className="mb-4 flex items-center gap-3"><BookOpen className="size-5 text-accent" /><div className="flex-1"><p className="font-medium">{t("Today")}: {tracker.reading.todayPages} / {tracker.reading.target} {t("pages")}</p><Progress value={(100 * tracker.reading.todayPages) / tracker.reading.target} className="mt-2" />{tracker.reading.todayPages < tracker.reading.target && <p className="mt-1 text-xs text-faint">{t("Goal not reached yet.")}</p>}</div></div>
         <form className="space-y-3" onSubmit={async (e) => { e.preventDefault(); if (await run(() => api("/api/trackers/reading", { body: { book, pages: Number(pages) } }), t("Reading logged"))) { setPages(""); reload(); } }}>
           <Field label={t("Book name")}><input className="input" value={book} onChange={(e) => setBook(e.target.value)} maxLength={120} required aria-label={t("Book name")} list="books" /><datalist id="books">{[...new Set(tracker.reading.entries.map((e) => e.book))].map((b) => <option key={b} value={b} />)}</datalist></Field>
           <Field label={t("Pages read")}><input className="input" type="number" min={1} max={2000} value={pages} onChange={(e) => setPages(e.target.value)} required aria-label={t("Pages read")} /></Field>
@@ -152,7 +152,8 @@ function LearningTab({ tracker, reload }: { tracker: Trackers; reload: () => voi
   return (
     <div className="grid gap-[var(--gap)] md:grid-cols-2">
       <Card>
-        <div className="mb-4 flex items-center gap-2"><Lightbulb className="size-5 text-accent" /><p className="font-medium">{t("What did you learn?")}</p></div>
+        <div className="mb-4 flex items-center gap-2"><Lightbulb className="size-5 text-accent" /><div className="flex-1"><p className="font-medium">{t("What did you learn?")}</p><p className="text-xs text-muted">{tracker.learning.todayCount}/{tracker.learning.target} {t("entries today")}</p><Progress value={(100 * tracker.learning.todayCount) / tracker.learning.target} className="mt-2" /></div></div>
+        {tracker.learning.todayCount < tracker.learning.target && <p className="mb-3 text-xs text-faint">{t("Goal not reached yet.")}</p>}
         <form className="space-y-3" onSubmit={async (e) => { e.preventDefault(); if (await run(() => api("/api/trackers/learning", { body: { title, explanation: text } }), t("Learning saved"))) { setTitle(""); setText(""); reload(); } }}>
           <Field label={t("New knowledge")}><input className="input" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} required aria-label={t("New knowledge")} /></Field>
           <Field label={t("Short explanation")}><textarea className="input min-h-24" value={text} onChange={(e) => setText(e.target.value)} maxLength={1000} aria-label={t("Explanation")} /></Field>
