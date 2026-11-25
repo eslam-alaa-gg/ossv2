@@ -57,6 +57,7 @@ export async function GET(request: Request) {
         googleAuthId: data.user.id,
         displayName,
         emailVerified: true,
+        hasPassword: false,
         preferences: DEFAULT_PREFS,
       }).returning();
     }
