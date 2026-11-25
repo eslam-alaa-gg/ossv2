@@ -4,7 +4,7 @@ import { AlertTriangle, Check, CheckCircle2, Info, Loader2, X } from "lucide-rea
 import Link from "next/link";
 import { createContext, forwardRef, useCallback, useContext, useEffect, useId, useRef, useState, type ButtonHTMLAttributes, type ReactNode } from "react";
 import { ApiErr } from "@/lib/client";
-import { translate, type Lang } from "@/lib/i18n";
+import { translate, translateError, type Lang } from "@/lib/i18n";
 
 export const cn = (...a: (string | false | null | undefined)[]) => a.filter(Boolean).join(" ");
 
@@ -111,7 +111,7 @@ export function ErrorState({ message, retry }: { message: string; retry?: () => 
   return (
     <div role="alert" className="flex flex-col items-center gap-3 rounded-[var(--radius)] border border-red-400/30 bg-red-500/5 px-6 py-8 text-center">
       <AlertTriangle className="size-6 text-red-400" />
-      <p className="text-sm">{translate(lang, message)}</p>
+      <p className="text-sm">{translateError(lang, message)}</p>
       {retry && (
         <Button size="sm" onClick={retry}>
           {translate(lang, "Try again")}
@@ -260,7 +260,7 @@ export function UIProvider({ children, lang }: { children: ReactNode; lang: Lang
         return r;
       } catch (e) {
         if (e instanceof ApiErr && e.code === "demo") toast("info", t("Demo accounts have limited access."), { label: t("Create account"), href: "/signup" });
-        else toast("error", e instanceof Error ? t(e.message) : t("Something went wrong."));
+        else toast("error", e instanceof Error ? translateError(lang, e.message) : t("Something went wrong."));
         return undefined;
       }
     },
