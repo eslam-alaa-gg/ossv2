@@ -6,6 +6,7 @@ export type PublicUser = {
   timezone: string;
   dailyGoal: number;
   emailVerified: boolean;
+  hasPassword: boolean;
   isDemo: boolean;
   onboarded: boolean;
   avatarVersion: number | null;
