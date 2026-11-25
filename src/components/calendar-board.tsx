@@ -41,8 +41,8 @@ export function CalendarBoard({ tasksOnly }: { tasksOnly?: boolean }) {
     const items: { key: string; label: string; tone: string; task?: Task }[] = [];
     data?.tasks.filter((t) => t.dueDate === d).forEach((t) => items.push({ key: "t" + t.id, label: `${t.dueTime ? t.dueTime + " " : ""}${t.title}`, tone: t.status === "completed" ? "bg-emerald-500/20 text-emerald-300 line-through" : d < today ? "bg-red-500/20 text-red-300" : "bg-accent/20 text-fg", task: t }));
     if (!tasksOnly) {
-      data?.milestones.filter((m) => m.deadline === d).forEach((m) => items.push({ key: "m" + m.id, label: `◆ ${m.title}`, tone: "bg-amber-500/20 text-amber-300" }));
-      data?.challenges.filter((c) => c.date === d).forEach((c) => items.push({ key: "c" + c.id, label: `⚡ ${c.title}`, tone: c.completedAt ? "bg-emerald-500/15 text-emerald-300" : "bg-sky-500/15 text-sky-300" }));
+      data?.milestones.filter((m) => m.deadline === d).forEach((m) => items.push({ key: "m" + m.id, label: `◆ ${t(m.title)}`, tone: "bg-amber-500/20 text-amber-300" }));
+      data?.challenges.filter((c) => c.date === d).forEach((c) => items.push({ key: "c" + c.id, label: `⚡ ${t(c.title)}`, tone: c.completedAt ? "bg-emerald-500/15 text-emerald-300" : "bg-sky-500/15 text-sky-300" }));
       const hl = data?.habitLogs.filter((l) => l.date === d).length ?? 0;
       if (hl) items.push({ key: "h" + d, label: `✓ ${hl} ${t(hl > 1 ? "habits" : "habit")}`, tone: "bg-card text-muted" });
       const f = data?.activity[d]?.focusMinutes;
