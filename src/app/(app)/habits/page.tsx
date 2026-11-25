@@ -29,9 +29,10 @@ function Bars({ days, today, max, unit }: { days: { d: string; v: number }[]; to
 }
 
 function Inner() {
-  const { prefs, savePrefs, t } = useApp();
+  const { prefs, savePrefs, lang, t } = useApp();
   const { run, toast, confirm } = useUI();
   const sp = useSearchParams();
+  const dayLabels = lang === "ar" ? ["ح", "ن", "ث", "ر", "خ", "ج", "س"] : DAYS;
   const habits = useFetch<{ habits: Habit[]; today: string }>("/api/habits");
   const trackers = useFetch<Trackers>("/api/trackers");
   const [tab, setTab] = useState("habits");
@@ -67,7 +68,7 @@ function Inner() {
                   <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-card text-accent"><HabitIcon name={h.icon} /></span>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2"><p className="truncate font-medium">{h.name}</p>{special && <Badge>{t("auto")}</Badge>}</div>
-                    <p className="truncate text-xs text-muted">{h.description || (h.days.length === 7 ? t("Every day") : h.days.map((d) => t(DAYS[d])).join(" "))}</p>
+                    <p className="truncate text-xs text-muted">{h.description || (h.days.length === 7 ? t("Every day") : h.days.map((d) => dayLabels[d]).join(" "))}</p>
                   </div>
                   <Button variant="ghost" size="icon" onClick={() => setModal({ habit: h })} aria-label={t("Edit {title}").replace("{title}", h.name)}><Pencil className="size-4" /></Button>
                   <Button variant="ghost" size="icon" onClick={() => remove(h)} aria-label={t("Delete {title}").replace("{title}", h.name)}><Trash2 className="size-4" /></Button>
@@ -163,7 +164,7 @@ function LearningTab({ tracker, reload }: { tracker: Trackers; reload: () => voi
 }
 
 function HabitModal({ open, habit, onClose, onSaved, existing }: { open: boolean; habit?: Habit; onClose: () => void; onSaved: () => void; existing: Habit[] }) {
-  const { t } = useApp();
+  const { t, lang } = useApp();
   const { run } = useUI();
   const [f, setF] = useState({ name: "", description: "", icon: "sparkles", days: [0, 1, 2, 3, 4, 5, 6], target: 1, unit: "", reminderTime: "" });
   const [kind, setKind] = useState<"standard" | "water" | "reading" | "learning">("standard");
@@ -179,7 +180,7 @@ function HabitModal({ open, habit, onClose, onSaved, existing }: { open: boolean
       {!habit && (
         <div className="mb-5">
           <p className="mb-2 text-xs font-medium text-muted">{t("Quick add")}</p>
-          <div className="flex flex-wrap gap-2">{PREDEFINED_HABITS_CLIENT.map((h) => <button key={h.key} disabled={have.has(h.name)} onClick={() => { setKind(h.kind); setF({ ...f, name: h.name, description: h.description, icon: h.icon, target: h.target, unit: h.unit }); }} className="chip disabled:opacity-40"><HabitIcon name={h.icon} className="size-3.5" />{h.name}</button>)}</div>
+          <div className="flex flex-wrap gap-2">{PREDEFINED_HABITS_CLIENT.map((h) => <button key={h.key} disabled={have.has(h.name)} onClick={() => { setKind(h.kind); setF({ ...f, name: h.name, description: h.description, icon: h.icon, target: h.target, unit: h.unit }); }} className="chip disabled:opacity-40"><HabitIcon name={h.icon} className="size-3.5" />{t(h.name)}</button>)}</div>
         </div>
       )}
       <div className="grid gap-4 sm:grid-cols-2">
