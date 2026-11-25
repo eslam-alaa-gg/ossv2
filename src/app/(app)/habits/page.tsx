@@ -41,12 +41,12 @@ function Inner() {
 
   async function log(h: Habit, amount: number) {
     const r = await run(() => api<{ completed: boolean; xp: number }>(`/api/habits/${h.id}/log`, { body: { amount: Math.max(0, amount) } }));
-    if (r?.xp) toast("success", `Habit complete · +${r.xp} XP`);
+    if (r?.xp) toast("success", `${t("Habit complete")} · +${r.xp} XP`);
     habits.reload();
   }
   async function remove(h: Habit) {
     if (!(await confirm(`Delete “${h.name}” and all its history?`, "Delete"))) return;
-    if (await run(() => api(`/api/habits/${h.id}`, { method: "DELETE" }), "Habit deleted")) reloadAll();
+    if (await run(() => api(`/api/habits/${h.id}`, { method: "DELETE" }), t("Habit deleted"))) reloadAll();
   }
 
   return (
@@ -67,20 +67,20 @@ function Inner() {
                   <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-card text-accent"><HabitIcon name={h.icon} /></span>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2"><p className="truncate font-medium">{h.name}</p>{special && <Badge>{t("auto")}</Badge>}</div>
-                    <p className="truncate text-xs text-muted">{h.description || (h.days.length === 7 ? "Every day" : h.days.map((d) => DAYS[d]).join(" "))}</p>
+                    <p className="truncate text-xs text-muted">{h.description || (h.days.length === 7 ? t("Every day") : h.days.map((d) => t(DAYS[d])).join(" "))}</p>
                   </div>
                   <Button variant="ghost" size="icon" onClick={() => setModal({ habit: h })} aria-label={`Edit ${h.name}`}><Pencil className="size-4" /></Button>
                   <Button variant="ghost" size="icon" onClick={() => remove(h)} aria-label={`Delete ${h.name}`}><Trash2 className="size-4" /></Button>
                 </div>
                 <div className="mt-4 flex items-center gap-3">
                   {special ? (
-                    <button onClick={() => setTab(h.kind === "water" ? "water" : h.kind === "reading" ? "reading" : "learning")} className="flex-1 text-start"><Progress value={pct} /><p className="mt-1.5 text-xs text-muted">{h.todayAmount}/{h.target} {h.unit} today — open tracker</p></button>
+                    <button onClick={() => setTab(h.kind === "water" ? "water" : h.kind === "reading" ? "reading" : "learning")} className="flex-1 text-start"><Progress value={pct} /><p className="mt-1.5 text-xs text-muted">{h.todayAmount}/{h.target} {h.unit} {t("today — open tracker")}</p></button>
                   ) : h.target > 1 ? (
                     <div className="flex flex-1 items-center gap-2"><Button size="icon" onClick={() => log(h, h.todayAmount - 1)} aria-label={t("Decrease")}><Minus className="size-4" /></Button><div className="flex-1"><Progress value={pct} /><p className="mt-1.5 text-xs text-muted">{h.todayAmount}/{h.target} {h.unit}</p></div><Button size="icon" onClick={() => log(h, h.todayAmount + 1)} aria-label={t("Increase")}><Plus className="size-4" /></Button></div>
                   ) : (
                     <label className="flex flex-1 items-center gap-3 text-sm"><Checkbox checked={h.todayDone} onChange={(v) => log(h, v ? 1 : 0)} label={`${t("Mark")} ${h.name} ${t(h.todayDone ? "incomplete" : "done")} ${t("today")}`} />{t(h.todayDone ? "Done today" : h.days.includes(new Date().getDay()) ? "Mark as done" : "Not scheduled today")}</label>
                   )}
-                  <div className="flex items-center gap-1 text-sm font-medium"><Flame className="size-4 text-orange-400" />{h.current}<span className="text-xs font-normal text-faint">/ best {h.longest}</span></div>
+                  <div className="flex items-center gap-1 text-sm font-medium"><Flame className="size-4 text-orange-400" />{h.current}<span className="text-xs font-normal text-faint">/ {t("best")} {h.longest}</span></div>
                 </div>
                 <div className="mt-4 flex gap-[3px]" aria-label={t("Last 28 days")}>
                   {Array.from({ length: 28 }, (_, i) => addDays(habits.data!.today, i - 27)).map((d) => <span key={d} title={fmtShort(d)} className={cn("hm flex-1", h.history.includes(d) && "hm-3")} style={{ height: 14 }} />)}
