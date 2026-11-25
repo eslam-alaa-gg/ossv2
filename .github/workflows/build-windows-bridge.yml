@@ -1,0 +1,36 @@
+name: Build Windows Music Bridge
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/music-device-bridge
+    paths:
+      - "native/windows/**"
+      - ".github/workflows/build-windows-bridge.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Publish standalone Windows executable
+        run: dotnet publish native/windows/OSSv2MusicBridge.csproj -c Release -r win-x64 --self-contained true -o publish
+
+      - name: Upload Windows bridge
+        uses: actions/upload-artifact@v4
+        with:
+          name: ossv2-windows-music-bridge
+          path: publish/
+          if-no-files-found: error
+          retention-days: 14
