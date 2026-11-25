@@ -31,7 +31,7 @@ export default function DashboardPage() {
   const w = prefs.dashboard.widgets;
   const order = prefs.dashboard.order;
   const sizes = prefs.dashboard.sizes;
-  const saveDashboard = (nextOrder = order, nextSizes = sizes, nextWidgets = w) => run(() => savePrefs({ dashboard: { widgets: nextWidgets, order: nextOrder, sizes: nextSizes } }), "Dashboard layout saved.");
+  const saveDashboard = (nextOrder = order, nextSizes = sizes, nextWidgets = w) => run(() => savePrefs({ dashboard: { widgets: nextWidgets, order: nextOrder, sizes: nextSizes } }), t("Dashboard layout saved."));
   const moveWidget = (key: string, delta: number) => { const next = [...order]; const from = next.indexOf(key); const to = Math.max(0, Math.min(next.length - 1, from + delta)); if (from < 0 || from === to) return; next.splice(from, 1); next.splice(to, 0, key); void saveDashboard(next); };
   const dropWidget = (target: string) => { if (!dragging || dragging === target) return; const next = [...order]; const from = next.indexOf(dragging); const to = next.indexOf(target); if (from < 0 || to < 0) return; next.splice(from, 1); next.splice(to, 0, dragging); setDragging(null); void saveDashboard(next); };
   const widgetProps = (key: string) => ({ className: "dashboard-widget dashboard-widget-" + key + " dashboard-size-" + (sizes[key] ?? "standard") + (key === "challenge" ? " flex flex-col" : ""), draggable: true, onDragStart: (event: DragEvent<HTMLDivElement>) => { setDragging(key); event.dataTransfer.effectAllowed = "move"; event.dataTransfer.setData("text/plain", key); }, onDragOver: (event: DragEvent<HTMLDivElement>) => event.preventDefault(), onDrop: (event: DragEvent<HTMLDivElement>) => { event.preventDefault(); dropWidget(key); }, onDragEnd: () => setDragging(null) });
@@ -112,8 +112,8 @@ export default function DashboardPage() {
                 <div className="mb-3 flex items-center justify-between"><h2 className="text-sm font-medium text-muted">{t("Daily Challenge")}</h2><Zap className="size-4 text-accent" /></div>
                 {data.challenge ? (
                   <>
-                    <p className="text-lg font-semibold leading-snug">{data.challenge.title}</p>
-                    <p className="mt-1 text-sm text-muted">{data.challenge.minutes} min · {data.challenge.difficulty} · +{data.challenge.xp} XP</p>
+                    <p className="text-lg font-semibold leading-snug">{t(data.challenge.title)}</p>
+                    <p className="mt-1 text-sm text-muted">{data.challenge.minutes} {t("min")} · {t(data.challenge.difficulty)} · +{data.challenge.xp} XP</p>
                     <div className="mt-auto pt-4">
                       {data.challenge.completedAt ? <p className="flex items-center gap-2 text-sm text-emerald-400"><CheckCircle2 className="size-4" /> {t("Completed today")}</p> : <Link href="/challenge" className="glass-btn btn-primary btn-sm">{t("Open challenge")}</Link>}
                     </div>
@@ -128,8 +128,8 @@ export default function DashboardPage() {
               <Card {...widgetProps("streak")}>
                 <h2 className="mb-3 text-sm font-medium text-muted">{t("Current streak")}</h2>
                 <div className="flex items-end gap-2"><Flame className="mb-1 size-7 text-orange-400" /><span className="text-4xl font-semibold tabular-nums">{data.streak.current}</span><span className="mb-1.5 text-sm text-muted">{t(data.streak.current === 1 ? "day" : "days")}</span></div>
-                <p className="mt-1 text-xs text-faint">Best {data.streak.longest} · {data.weeklyStreak} week streak</p>
-                <div className="mt-4 flex items-center justify-between text-xs"><span className="font-medium">Level {data.level.level}</span><span className="text-faint">{data.level.into}/{data.level.span} XP</span></div>
+                <p className="mt-1 text-xs text-faint">{t("Best")} {data.streak.longest} · {data.weeklyStreak} {t("week streak")}</p>
+                <div className="mt-4 flex items-center justify-between text-xs"><span className="font-medium">{t("Level")} {data.level.level}</span><span className="text-faint">{data.level.into}/{data.level.span} XP</span></div>
                 <Progress value={(100 * data.level.into) / data.level.span} className="mt-1.5" />
               </Card>
             )}
@@ -169,7 +169,7 @@ export default function DashboardPage() {
                     {data.upcoming.map((u) => (
                       <li key={u.id} className="flex items-center justify-between gap-3 py-2.5 text-sm">
                         <span className="truncate">{u.title}</span>
-                        <span className={`shrink-0 text-xs ${u.dueDate === data.today ? "text-amber-400" : "text-faint"}`}>{u.dueDate === data.today ? "Today" : fmtShort(u.dueDate, lang)}{u.dueTime ? ` · ${u.dueTime}` : ""}</span>
+                        <span className={`shrink-0 text-xs ${u.dueDate === data.today ? "text-amber-400" : "text-faint"}`}>{u.dueDate === data.today ? t("Today") : fmtShort(u.dueDate, lang)}{u.dueTime ? ` · ${u.dueTime}` : ""}</span>
                       </li>
                     ))}
                   </ul>
@@ -182,7 +182,7 @@ export default function DashboardPage() {
                 {data.recent.length === 0 ? <EmptyState icon={<Trophy className="size-5" />} title={t("No badges yet")} text={t("Complete a task, habit or focus session to unlock your first.")} /> : (
                   <ul className="space-y-3">
                     {data.recent.map((r) => (
-                      <li key={r.key} className="flex items-center gap-3"><span className="grid size-10 place-items-center rounded-xl bg-card text-accent"><Trophy className="size-5" /></span><span className="min-w-0"><span className="block text-sm font-medium">{r.title}</span><span className="block truncate text-xs text-muted">{r.desc}</span></span></li>
+                      <li key={r.key} className="flex items-center gap-3"><span className="grid size-10 place-items-center rounded-xl bg-card text-accent"><Trophy className="size-5" /></span><span className="min-w-0"><span className="block text-sm font-medium">{t(r.title)}</span><span className="block truncate text-xs text-muted">{t(r.desc)}</span></span></li>
                     ))}
                   </ul>
                 )}
@@ -201,9 +201,9 @@ export default function DashboardPage() {
             <li key={k} className="flex items-center justify-between rounded-lg px-1 py-2 text-sm">
               <span className="min-w-0 flex-1">{t(LABELS[k])}</span>
               <div className="flex items-center gap-1">
-                <Button variant="ghost" size="icon" aria-label={"Move " + LABELS[k] + " up"} onClick={() => moveWidget(k, -1)} disabled={order.indexOf(k) === 0}>↑</Button>
-                <Button variant="ghost" size="icon" aria-label={"Move " + LABELS[k] + " down"} onClick={() => moveWidget(k, 1)} disabled={order.indexOf(k) === order.length - 1}>↓</Button>
-                <select aria-label={LABELS[k] + " size"} value={sizes[k] ?? "standard"} onChange={(e) => void saveDashboard(order, { ...sizes, [k]: e.target.value as "compact" | "standard" | "wide" })} className="max-w-24 rounded-lg border border-line bg-[var(--input)] px-2 py-1.5 text-xs"><option value="compact">{t("Small")}</option><option value="standard">{t("Medium")}</option><option value="wide">{t("Wide")}</option></select>
+                <Button variant="ghost" size="icon" aria-label={t("Move {widget} up").replace("{widget}", t(LABELS[k]))} onClick={() => moveWidget(k, -1)} disabled={order.indexOf(k) === 0}>↑</Button>
+                <Button variant="ghost" size="icon" aria-label={t("Move {widget} down").replace("{widget}", t(LABELS[k]))} onClick={() => moveWidget(k, 1)} disabled={order.indexOf(k) === order.length - 1}>↓</Button>
+                <select aria-label={t("{widget} size").replace("{widget}", t(LABELS[k]))} value={sizes[k] ?? "standard"} onChange={(e) => void saveDashboard(order, { ...sizes, [k]: e.target.value as "compact" | "standard" | "wide" })} className="max-w-24 rounded-lg border border-line bg-[var(--input)] px-2 py-1.5 text-xs"><option value="compact">{t("Small")}</option><option value="standard">{t("Medium")}</option><option value="wide">{t("Wide")}</option></select>
                 <Switch checked={show(k)} label={t(LABELS[k])} onChange={(v) => void saveDashboard(order, sizes, { ...w, [k]: v })} />
               </div>
             </li>
