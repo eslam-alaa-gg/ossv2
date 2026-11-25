@@ -40,7 +40,7 @@ function Inner() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => { setBoost(true); return () => setBoost(false); }, [setBoost]);
-  useEffect(() => { if (sp.get("connected")) { toast("success", "Spotify connected"); reloadStatus(); } }, [sp]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (sp.get("connected")) { toast("success", t("Spotify connected")); reloadStatus(); } }, [sp]); // eslint-disable-line react-hooks/exhaustive-deps
   const urlError = sp.get("error");
 
   async function control(action: string, extra: object = {}) {
@@ -50,8 +50,8 @@ function Inner() {
     if (ok !== undefined) { setTimeout(() => refresh().catch(() => {}), 500); if (action === "transfer") devices.reload(); }
   }
   async function disconnect() {
-    if (!(await confirm("Disconnect Spotify? Stored tokens will be deleted from LIFE OS.", "Disconnect"))) return;
-    if (await run(() => api("/api/spotify/disconnect", { method: "POST", body: {} }), "Spotify disconnected")) reloadStatus();
+    if (!(await confirm(t("Disconnect Spotify? Stored tokens will be deleted from LIFE OS."), t("Disconnect")))) return;
+    if (await run(() => api("/api/spotify/disconnect", { method: "POST", body: {} }), t("Spotify disconnected"))) reloadStatus();
   }
 
   if (loadingStatus) return <><PageHeader title={t("Music Hub")} /><Skeleton className="h-96" /></>;
@@ -78,7 +78,7 @@ function Inner() {
     return (
       <>
         <PageHeader title={t("Music Hub")} subtitle={t("Your Spotify, inside LIFE OS.")} />
-        {(urlError || errorCode === "expired") && <p role="alert" className="mb-4 rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">{errorCode === "expired" ? "Your Spotify authorization expired. Please reconnect." : ERRORS[urlError!] ?? `Spotify returned an error: ${urlError}`}</p>}
+        {(urlError || errorCode === "expired") && <p role="alert" className="mb-4 rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">{errorCode === "expired" ? t("Your Spotify authorization expired. Please reconnect.") : t(ERRORS[urlError!] ?? "Spotify returned an error: {error}").replace("{error}", urlError ?? "")}</p>}
         <Card className="mx-auto max-w-xl py-10 text-center">
           <span className="mx-auto mb-4 grid size-16 place-items-center rounded-3xl bg-card text-accent"><Music2 className="size-8" /></span>
           <h2 className="text-xl font-semibold">{t("Connect Spotify")}</h2>
