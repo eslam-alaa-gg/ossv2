@@ -75,7 +75,7 @@ export const authTokens = ossv2.table("auth_tokens", {
   expiresAt: ts("expires_at").notNull(),
   usedAt: ts("used_at"),
   createdAt: createdAt(),
-});
+}, (t) => [index("auth_tokens_user_idx").on(t.userId)]);
 
 /* ----------------------------------- goals ----------------------------------- */
 export const goals = ossv2.table(
@@ -138,7 +138,7 @@ export const tasks = ossv2.table(
     createdAt: createdAt(),
     updatedAt: ts("updated_at").notNull().defaultNow(),
   },
-  (t) => [index("tasks_user_status_idx").on(t.userId, t.status), index("tasks_user_due_idx").on(t.userId, t.dueDate)],
+  (t) => [index("tasks_user_status_idx").on(t.userId, t.status), index("tasks_user_due_idx").on(t.userId, t.dueDate), index("tasks_goal_idx").on(t.goalId), index("tasks_milestone_idx").on(t.milestoneId)],
 );
 
 /* ---------------------------------- habits ----------------------------------- */
@@ -250,7 +250,7 @@ export const focusSessions = ossv2.table(
     actualSeconds: integer("actual_seconds").notNull().default(0),
     status: text("status").notNull().default("running"), // running | completed | ended
   },
-  (t) => [index("focus_user_idx").on(t.userId, t.startedAt)],
+  (t) => [index("focus_user_idx").on(t.userId, t.startedAt), index("focus_task_idx").on(t.taskId)],
 );
 
 /* ------------------------------------ notes ---------------------------------- */
@@ -366,7 +366,7 @@ export const pushSubscriptions = ossv2.table("push_subscriptions", {
   p256dh: text("p256dh").notNull(),
   auth: text("auth").notNull(),
   createdAt: createdAt(),
-});
+}, (t) => [index("push_subscriptions_user_idx").on(t.userId)]);
 
 /* ---------------------------------- spotify ---------------------------------- */
 export const spotifyConnections = ossv2.table("spotify_connections", {
