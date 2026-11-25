@@ -1,7 +1,7 @@
 "use client";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  BarChart3, Bell, BookMarked, BookOpen, CalendarCheck, CalendarDays, Check, CheckSquare, ChevronsLeft, ChevronsRight, Droplets, Languages, LayoutDashboard, Lightbulb, LogOut, Minus, Music2, Palette, Plus, Repeat, Search, Settings, Target, Timer,
+  BarChart3, Bell, BookMarked, BookOpen, CalendarCheck, CalendarDays, Check, CheckSquare, ChevronsLeft, ChevronsRight, Droplets, GlassWater, Languages, LayoutDashboard, Lightbulb, LogOut, Minus, Music2, Palette, Plus, Repeat, Search, Settings, Target, Timer,
   Trophy, User as UserIcon, X, Zap,
 } from "lucide-react";
 import Link from "next/link";
@@ -252,6 +252,8 @@ function HabitQuickPanel() {
   const [pages, setPages] = useState("5");
   const [learnTitle, setLearnTitle] = useState("");
   const [message, setMessage] = useState("");
+  const [visibleIds, setVisibleIds] = useState<string[]>([]);
+  const [customizing, setCustomizing] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const load = useCallback(async () => {
     setLoading(true);
@@ -262,6 +264,17 @@ function HabitQuickPanel() {
       ]);
       setHabits(h.habits);
       setTracker(tr);
+      try {
+        const saved = localStorage.getItem("ukiyo.habit-quick.visible");
+        if (saved === null) {
+          const all = h.habits.map((item) => item.id);
+          setVisibleIds(all);
+          localStorage.setItem("ukiyo.habit-quick.visible", JSON.stringify(all));
+        } else {
+          const parsed: unknown = JSON.parse(saved);
+          setVisibleIds(Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === "string" && h.habits.some((item) => item.id === id)) : h.habits.map((item) => item.id));
+        }
+      } catch { setVisibleIds(h.habits.map((item) => item.id)); }
       setMessage("");
     } catch (e) {
       setMessage(e instanceof Error ? e.message : t("Could not load habit progress."));
@@ -269,15 +282,16 @@ function HabitQuickPanel() {
       setLoading(false);
     }
   }, [t]);
+  useEffect(() => { void load(); }, [load]);
   useEffect(() => {
     if (!open) return;
-    void load();
+    if (!tracker) void load();
     const outside = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false); };
     const escape = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
     document.addEventListener("mousedown", outside);
     document.addEventListener("keydown", escape);
     return () => { document.removeEventListener("mousedown", outside); document.removeEventListener("keydown", escape); };
-  }, [open, load]);
+  }, [open, load, tracker]);
   const act = async (fn: () => Promise<unknown>, success?: string) => {
     setBusy(true);
     const result = await run(fn, success);
@@ -289,8 +303,16 @@ function HabitQuickPanel() {
   const cup = 250;
   const waterCups = tracker ? Number((tracker.water.total / cup).toFixed(1)) : 0;
   const waterGoal = tracker ? Math.ceil(tracker.water.goal / cup) : 0;
-  const reading = special.find((h) => h.kind === "reading");
-  const learning = special.find((h) => h.kind === "learning");
+  const waterHabit = special.find((h) => h.kind === "water");
+  const reading = special.find((h) => h.kind === "reading" && visibleIds.includes(h.id));
+  const learning = special.find((h) => h.kind === "learning" && visibleIds.includes(h.id));
+  const waterVisible = !waterHabit || visibleIds.includes(waterHabit.id);
+  const waterProgress = tracker ? Math.min(100, tracker.water.goal ? (100 * tracker.water.total) / tracker.water.goal : 0) : 0;
+  const toggleVisible = (id: string) => {
+    const next = visibleIds.includes(id) ? visibleIds.filter((x) => x !== id) : [...visibleIds, id];
+    setVisibleIds(next);
+    try { localStorage.setItem("ukiyo.habit-quick.visible", JSON.stringify(next)); } catch { /* storage may be unavailable */ }
+  };
   const addWater = () => act(() => api("/api/trackers/water", { body: { ml: cup } }), t("Water logged"));
   const addReading = async (e: FormEvent) => {
     e.preventDefault();
@@ -313,15 +335,22 @@ function HabitQuickPanel() {
   return (
     <div ref={ref} className="relative">
       <button type="button" onClick={() => setOpen((v) => !v)} className="header-icon-btn glass-btn btn-ghost btn-icon h-9 w-9" aria-label={t("Habit quick tracker")} title={t("Habit quick tracker")} aria-expanded={open}>
-        <Droplets className="size-[19px]" />
+        <span className="relative grid size-7 place-items-center">
+          <svg viewBox="0 0 24 24" className="absolute inset-0 size-7 -rotate-90" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" fill="none" stroke="var(--input)" strokeWidth="1.6" />
+            <circle cx="12" cy="12" r="10" fill="none" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" strokeDasharray={62.83} strokeDashoffset={62.83 * (1 - waterProgress / 100)} />
+          </svg>
+          <GlassWater className="relative size-4" />
+        </span>
       </button>
       <AnimatePresence>
         {open && (
           <motion.div initial={{ opacity: 0, y: -7, scale: .97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -5, scale: .98 }} transition={{ duration: .16 }} className="popover absolute end-0 top-12 z-[80] w-[min(92vw,340px)] p-3 shadow-2xl">
-            <div className="mb-3 flex items-center justify-between"><div><p className="text-sm font-semibold">{t("Quick habit tracker")}</p><p className="text-[11px] text-faint">{t("Your daily targets")}</p></div><button type="button" onClick={() => setOpen(false)} aria-label={t("Close")} className="rounded-lg p-1.5 hover:bg-card"><X className="size-4" /></button></div>
+            <div className="mb-3 flex items-center justify-between"><div><p className="text-sm font-semibold">{t("Quick habit tracker")}</p><p className="text-[11px] text-faint">{t("Your daily targets")}</p></div><div className="flex items-center gap-1"><button type="button" onClick={() => setCustomizing((v) => !v)} className="rounded-lg px-2 py-1 text-[11px] text-accent hover:bg-card">{t(customizing ? "Done" : "Customize")}</button><button type="button" onClick={() => setOpen(false)} aria-label={t("Close")} className="rounded-lg p-1.5 hover:bg-card"><X className="size-4" /></button></div></div>
+            {customizing && <div className="mb-3 grid grid-cols-2 gap-2 rounded-xl border border-line bg-card p-2">{habits.map((h) => <label key={h.id} className="flex min-w-0 items-center gap-2 text-xs"><input type="checkbox" checked={visibleIds.includes(h.id)} onChange={() => toggleVisible(h.id)} /><span className="truncate">{t(h.name)}</span></label>)}</div>}
             {loading && !tracker ? <p className="py-5 text-center text-xs text-muted">{t("Loading…")}</p> : message ? <p role="alert" className="text-xs text-muted">{message}</p> : (
               <div className="max-h-[min(65vh,430px)] space-y-2 overflow-y-auto">
-                {tracker && <div className="rounded-xl border border-line bg-card p-3">
+                {tracker && waterVisible && <div className="rounded-xl border border-line bg-card p-3">
                   <div className="flex items-center gap-2"><Droplets className="size-4 text-accent" /><p className="flex-1 text-sm font-medium">{t("Drink Water")}</p><span className="text-xs tabular-nums text-muted">{waterCups}/{waterGoal} {t("cups")}</span></div>
                   <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[var(--input)]"><div className="h-full rounded-full bg-accent transition-all" style={{ width: `${Math.min(100, waterGoal ? (100 * waterCups) / waterGoal : 0)}%` }} /></div>
                   <button type="button" disabled={busy} onClick={addWater} className="glass-btn btn-secondary mt-2 h-8 w-full text-xs"><Plus className="size-3.5" /> {t("Add one cup")}</button>
@@ -337,7 +366,7 @@ function HabitQuickPanel() {
                   <form onSubmit={addLearning} className="flex gap-1.5"><input className="input min-w-0 flex-1 text-xs" value={learnTitle} onChange={(e) => setLearnTitle(e.target.value)} placeholder={t("What did you learn?")} maxLength={120} required /><button type="submit" disabled={busy} className="glass-btn btn-primary h-9 w-9 shrink-0 justify-center" aria-label={t("Save entry")}><Plus className="size-4" /></button></form>
                   {tracker.learning.todayCount < learning.target && <p className="mt-1 text-[11px] text-faint">{t("Goal not reached yet.")}</p>}
                 </div>}
-                {standard.map((h) => <div key={h.id} className="rounded-xl border border-line bg-card p-3">
+                {standard.filter((h) => visibleIds.includes(h.id)).map((h) => <div key={h.id} className="rounded-xl border border-line bg-card p-3">
                   <div className="flex items-center gap-2"><p className="min-w-0 flex-1 truncate text-sm font-medium">{t(h.name)}</p><span className="text-xs tabular-nums text-muted">{h.todayAmount}/{h.target} {t(h.unit)}</span></div>
                   <div className="mt-2 flex items-center gap-2">
                     {h.target === 1 ? <button type="button" disabled={busy} onClick={() => logStandard(h, h.todayDone ? 0 : 1)} className="glass-btn btn-secondary h-8 w-full text-xs">{h.todayDone ? <><Check className="size-3.5" /> {t("Completed today")}</> : t("Mark as done")}</button> : <>
@@ -346,7 +375,7 @@ function HabitQuickPanel() {
                   </div>
                   {h.todayAmount < h.target && <p className="mt-1 text-[11px] text-faint">{t("Goal not reached yet.")}</p>}
                 </div>)}
-                {!reading && !learning && !standard.length && <p className="py-5 text-center text-xs text-muted">{t("Add a habit with a daily target to see it here.")}</p>}
+                {!reading && !learning && !standard.some((h) => visibleIds.includes(h.id)) && <p className="py-5 text-center text-xs text-muted">{t("Add a habit with a daily target to see it here.")}</p>}
               </div>
             )}
             <div className="mt-3 border-t border-line pt-2"><Link href="/habits" onClick={() => setOpen(false)} className="block text-center text-xs text-accent">{t("Open all habits")}</Link></div>
