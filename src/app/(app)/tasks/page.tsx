@@ -13,7 +13,7 @@ const PRI = { low: 1, medium: 2, high: 3, urgent: 4 };
 type View = "list" | "board" | "calendar";
 
 function Inner() {
-  const { user, lang } = useApp();
+  const { user, lang, t } = useApp();
   const { run, toast, confirm } = useUI();
   const sp = useSearchParams();
   const { data, error, loading, reload, setData } = useFetch<{ tasks: Task[] }>("/api/tasks");
@@ -63,13 +63,13 @@ function Inner() {
           <div className="mt-1 flex flex-wrap items-center gap-1.5">
             <PriorityBadge p={t.priority} />
             <Badge>{t.category}</Badge>
-            {t.status === "in_progress" && <Badge tone="blue">In progress</Badge>}
+            {t.status === "in_progress" && <Badge tone="blue">{t("In progress")}</Badge>}
             {t.dueDate && <Badge tone={overdue ? "red" : t.dueDate === today ? "amber" : undefined}><CalendarClock className="size-3" />{overdue ? "Overdue · " : ""}{t.dueDate === today ? "Today" : fmtShort(t.dueDate, lang)}{t.dueTime ? ` ${t.dueTime}` : ""}</Badge>}
             {t.recurrence !== "none" && <Badge><Repeat2 className="size-3" />{t.recurrence}</Badge>}
             {t.tags.map((x) => <Badge key={x}>#{x}</Badge>)}
           </div>
         </button>
-        {t.status === "archived" ? <Button size="sm" onClick={() => patch(t, { status: "todo" }, "Task restored")}><RotateCcw className="size-3.5" /> Restore</Button> : <Button variant="ghost" size="icon" aria-label="Archive task" onClick={() => patch(t, { status: "archived" }, "Task archived")}><Archive className="size-4" /></Button>}
+        {t.status === "archived" ? <Button size="sm" onClick={() => patch(t, { status: "todo" }, "Task restored")}><RotateCcw className="size-3.5" /> {t("Restore")}</Button> : <Button variant="ghost" size="icon" aria-label={t("Archive task")} onClick={() => patch(t, { status: "archived" }, "Task archived")}><Archive className="size-4" /></Button>}
       </div>
     );
   };
@@ -77,22 +77,22 @@ function Inner() {
   const cols: { key: Task["status"]; label: string }[] = [{ key: "todo", label: "To Do" }, { key: "in_progress", label: "In Progress" }, { key: "completed", label: "Completed" }];
   return (
     <>
-      <PageHeader title="Tasks" subtitle={`${tasks.filter((t) => t.status === "todo" || t.status === "in_progress").length} open · ${tasks.filter((t) => t.status === "completed").length} completed`} actions={<Button variant="primary" onClick={() => setModal({})}><Plus className="size-4" /> New task</Button>} />
+      <PageHeader title={t("Tasks")} subtitle={`${tasks.filter((t) => t.status === "todo" || t.status === "in_progress").length} open · ${tasks.filter((t) => t.status === "completed").length} completed`} actions={<Button variant="primary" onClick={() => setModal({})}><Plus className="size-4" /> {t("New task")}</Button>} />
       <div className="mb-4 flex flex-wrap items-center gap-2">
-        <Segmented value={view} onChange={setView} label="View" options={[{ value: "list", label: "List" }, { value: "board", label: "Board" }, { value: "calendar", label: "Calendar" }]} />
+        <Segmented value={view} onChange={setView} label={t("View")} options={[{ value: "list", label: "List" }, { value: "board", label: "Board" }, { value: "calendar", label: "Calendar" }]} />
         {view !== "calendar" && (
           <>
-            <div className="relative min-w-[180px] flex-1 sm:max-w-xs"><Search className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-faint" /><input className="input ps-9" placeholder="Search tasks…" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search tasks" /></div>
-            {view === "list" && <select className="input w-auto" value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Status filter"><option value="active">Active</option><option value="all">All</option>{Object.entries(STATUS_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>}
-            <select className="input w-auto" value={cat} onChange={(e) => setCat(e.target.value)} aria-label="Category filter"><option value="all">All categories</option>{cats.map((c) => <option key={c}>{c}</option>)}</select>
-            <select className="input w-auto" value={pri} onChange={(e) => setPri(e.target.value)} aria-label="Priority filter"><option value="all">Any priority</option>{["urgent", "high", "medium", "low"].map((p) => <option key={p} value={p}>{p}</option>)}</select>
-            <select className="input w-auto" value={sort} onChange={(e) => setSort(e.target.value)} aria-label="Sort"><option value="due">Sort: due date</option><option value="priority">Sort: priority</option><option value="created">Sort: newest</option><option value="title">Sort: title</option></select>
+            <div className="relative min-w-[180px] flex-1 sm:max-w-xs"><Search className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-faint" /><input className="input ps-9" placeholder={t("Search tasks…")} value={q} onChange={(e) => setQ(e.target.value)} aria-label={t("Search tasks")} /></div>
+            {view === "list" && <select className="input w-auto" value={status} onChange={(e) => setStatus(e.target.value)} aria-label={t("Status filter")}><option value="active">{t("Active")}</option><option value="all">{t("All")}</option>{Object.entries(STATUS_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>}
+            <select className="input w-auto" value={cat} onChange={(e) => setCat(e.target.value)} aria-label={t("Category filter")}><option value="all">{t("All categories")}</option>{cats.map((c) => <option key={c}>{c}</option>)}</select>
+            <select className="input w-auto" value={pri} onChange={(e) => setPri(e.target.value)} aria-label={t("Priority filter")}><option value="all">{t("Any priority")}</option>{["urgent", "high", "medium", "low"].map((p) => <option key={p} value={p}>{p}</option>)}</select>
+            <select className="input w-auto" value={sort} onChange={(e) => setSort(e.target.value)} aria-label={t("Sort")}><option value="due">Sort: due date</option><option value="priority">Sort: priority</option><option value="created">Sort: newest</option><option value="title">Sort: title</option></select>
           </>
         )}
       </div>
 
       {view === "calendar" ? <CalendarBoard tasksOnly /> : error && !data ? <ErrorState message={error} retry={reload} /> : loading && !data ? <ListSkeleton /> : view === "list" ? (
-        list.length === 0 ? <EmptyState icon={<CheckSquare className="size-6" />} title={tasks.length ? "No tasks match your filters" : "No tasks yet"} text={tasks.length ? "Try clearing the search or filters." : "Capture your first task — it only takes a few seconds."} action={!tasks.length && <Button variant="primary" onClick={() => setModal({})}>Create task</Button>} /> : <div className="space-y-2.5">{list.map((t) => <Row key={t.id} t={t} />)}</div>
+        list.length === 0 ? <EmptyState icon={<CheckSquare className="size-6" />} title={tasks.length ? "No tasks match your filters" : "No tasks yet"} text={tasks.length ? "Try clearing the search or filters." : "Capture your first task — it only takes a few seconds."} action={!tasks.length && <Button variant="primary" onClick={() => setModal({})}>{t("Create task")}</Button>} /> : <div className="space-y-2.5">{list.map((t) => <Row key={t.id} t={t} />)}</div>
       ) : (
         <div className="grid gap-4 md:grid-cols-3">
           {cols.map((c) => {
@@ -108,7 +108,7 @@ function Inner() {
                       <div className="mt-2 flex gap-1 md:hidden">{cols.filter((x) => x.key !== c.key).map((x) => <button key={x.key} onClick={() => patch(t, { status: x.key })} className="chip">→ {x.label}</button>)}</div>
                     </div>
                   ))}
-                  {!items.length && <p className="py-6 text-center text-xs text-faint">Drop tasks here</p>}
+                  {!items.length && <p className="py-6 text-center text-xs text-faint">{t("Drop tasks here")}</p>}
                 </div>
               </div>
             );
