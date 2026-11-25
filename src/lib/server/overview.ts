@@ -1,9 +1,10 @@
 import "server-only";
-import { and, desc, eq, gte, lte, sum } from "drizzle-orm";
+import { and, desc, eq, sum } from "drizzle-orm";
 import { db } from "@/db";
-import { dailyChallenges, focusSessions, habitLogs, habits, tasks, xpTransactions } from "@/db/schema";
+import { dailyChallenges, habitLogs, habits, tasks, xpTransactions } from "@/db/schema";
 import { addDays, todayIn, weekStart } from "@/lib/dates";
 import type { Authed } from "./auth";
+import { todaysChallenges } from "./challenges";
 import { activityByDay, computeStreaks } from "./stats";
 
 export async function weeklyStreak(activeDates: string[], today: string): Promise<number> {
@@ -25,13 +26,12 @@ export async function recentXp(a: Authed, limit = 10) {
 
 export async function dashboardData(a: Authed) {
   const today = todayIn(a.tz);
-  const weekStartDate = addDays(weekStart(today), -6);
-  const [allTasks, allHabits, todayLogs, todayChallenges, focusRows, xpTotal, weekActivity] = await Promise.all([
+  const weekStartDate = addDays(today, -6);
+  const todayChallenges = await todaysChallenges(a);
+  const [allTasks, allHabits, todayLogs, xpTotal, weekActivity] = await Promise.all([
     db.select().from(tasks).where(eq(tasks.userId, a.id)).orderBy(desc(tasks.createdAt)).limit(1500),
     db.select().from(habits).where(and(eq(habits.userId, a.id), eq(habits.archived, false))).orderBy(desc(habits.createdAt)),
     db.select().from(habitLogs).where(and(eq(habitLogs.userId, a.id), eq(habitLogs.date, today), eq(habitLogs.completed, true))),
-    db.select().from(dailyChallenges).where(and(eq(dailyChallenges.userId, a.id), eq(dailyChallenges.date, today))),
-    db.select().from(focusSessions).where(and(eq(focusSessions.userId, a.id), eq(focusSessions.status, "completed"), gte(focusSessions.startedAt, new Date(weekStartDate + "T00:00:00.000Z")))),
     db.select({ total: sum(xpTransactions.xp) }).from(xpTransactions).where(eq(xpTransactions.userId, a.id)),
     activityByDay(a.id, a.tz, weekStartDate, today, a.user.dailyGoal),
   ]);
