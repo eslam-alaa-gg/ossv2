@@ -15,7 +15,7 @@ const PRESETS = [15, 25, 45, 60];
 const mmss = (s: number) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 
 export default function FocusPage() {
-  const { savePrefs, prefs } = useApp();
+  const { savePrefs, prefs, t } = useApp();
   const { run, toast } = useUI();
   const { data, reload } = useFetch<FocusData>("/api/focus");
   const [mode, setMode] = useState<Mode>("focus");
@@ -114,14 +114,14 @@ export default function FocusPage() {
         </div>
       </div>
       <div className="mt-6 flex items-center gap-3">
-        {phase === "idle" && <Button variant="primary" className="h-12 px-8 text-base" onClick={start}><Play className="size-5" /> Start</Button>}
-        {phase === "running" && <Button className="h-12 px-6" onClick={pause}><Pause className="size-5" /> Pause</Button>}
-        {phase === "paused" && <Button variant="primary" className="h-12 px-6" onClick={resume}><Play className="size-5" /> Resume</Button>}
-        {phase !== "idle" && <Button className="h-12" onClick={() => end(false)}><Square className="size-4" /> End</Button>}
-        {phase !== "idle" && <Button variant="ghost" className="h-12" onClick={() => end(true)} aria-label="Reset"><RotateCcw className="size-4" /> Reset</Button>}
+        {phase === "idle" && <Button variant="primary" className="h-12 px-8 text-base" onClick={start}><Play className="size-5" /> {t("Start")}</Button>}
+        {phase === "running" && <Button className="h-12 px-6" onClick={pause}><Pause className="size-5" /> {t("Pause")}</Button>}
+        {phase === "paused" && <Button variant="primary" className="h-12 px-6" onClick={resume}><Play className="size-5" /> {t("Resume")}</Button>}
+        {phase !== "idle" && <Button className="h-12" onClick={() => end(false)}><Square className="size-4" /> {t("End")}</Button>}
+        {phase !== "idle" && <Button variant="ghost" className="h-12" onClick={() => end(true)} aria-label={t("Reset")}><RotateCcw className="size-4" /> {t("Reset")}</Button>}
         <Button variant="ghost" size="icon" className="h-12 w-12" onClick={toggleZen} aria-label={zen ? "Exit fullscreen focus" : "Fullscreen focus mode"}>{zen ? <Minimize2 className="size-5" /> : <Maximize2 className="size-5" />}</Button>
       </div>
-      {phase !== "idle" && <p className="mt-3 text-xs text-faint">Rewards are only granted when the full duration has elapsed on the server.</p>}
+      {phase !== "idle" && <p className="mt-3 text-xs text-faint">{t("Rewards are only granted when the full duration has elapsed on the server.")}</p>}
     </div>
   );
 
@@ -133,15 +133,15 @@ export default function FocusPage() {
 
   return (
     <>
-      <PageHeader title="Focus Room" subtitle="Deep work, one session at a time." />
+      <PageHeader title={t("Focus Room")} subtitle={t("Deep work, one session at a time.")} />
       <div className="grid gap-[var(--gap)] lg:grid-cols-[1fr_340px]">
         <Card className="flex flex-col items-center py-8">
           <div className="mb-6 flex w-full flex-col items-center gap-3">
-            <Segmented value={mode} onChange={pickMode} label="Focus mode" options={MODES.map((m) => ({ value: m.value, label: m.label }))} />
+            <Segmented value={mode} onChange={pickMode} label={t("Focus mode")} options={MODES.map((m) => ({ value: m.value, label: m.label }))} />
             {(mode === "focus" || mode === "custom") && (
               <div className="flex flex-wrap items-center justify-center gap-2">
                 {PRESETS.map((p) => <button key={p} disabled={phase !== "idle"} onClick={() => setDuration(p)} aria-pressed={minutes === p} className={cn("chip px-3 py-1 text-sm disabled:opacity-50", minutes === p && "!border-accent !text-fg")}>{p} min</button>)}
-                <label className="chip px-3 py-1 text-sm">Custom <input type="number" min={1} max={240} disabled={phase !== "idle"} value={minutes} onChange={(e) => setDuration(Number(e.target.value))} className="w-14 bg-transparent text-center outline-none" aria-label="Custom minutes" /> min</label>
+                <label className="chip px-3 py-1 text-sm">{t("Custom")} <input type="number" min={1} max={240} disabled={phase !== "idle"} value={minutes} onChange={(e) => setDuration(Number(e.target.value))} className="w-14 bg-transparent text-center outline-none" aria-label={t("Custom minutes")} /> {t("min")}</label>
               </div>
             )}
           </div>
@@ -149,38 +149,38 @@ export default function FocusPage() {
         </Card>
         <div className="space-y-[var(--gap)]">
           <Card>
-            <Field label="Focus on a task (optional)">
-              <select className="input" value={taskId} onChange={(e) => setTaskId(e.target.value)} disabled={phase !== "idle"} aria-label="Task">
-                <option value="">No task — general focus</option>
+            <Field label={t("Focus on a task (optional)")}>
+              <select className="input" value={taskId} onChange={(e) => setTaskId(e.target.value)} disabled={phase !== "idle"} aria-label={t("Task")}>
+                <option value="">{t("No task — general focus")}</option>
                 {data?.tasks.map((t) => <option key={t.id} value={t.id}>{t.title}</option>)}
               </select>
             </Field>
             {task && <div className="mt-3 flex items-center gap-2 text-sm"><PriorityBadge p={task.priority} /><span className="truncate text-muted">{task.title}</span></div>}
-            {data && data.tasks.length === 0 && <p className="mt-2 text-xs text-faint">No pending tasks. Create one to link sessions to it.</p>}
+            {data && data.tasks.length === 0 && <p className="mt-2 text-xs text-faint">{t("No pending tasks. Create one to link sessions to it.")}</p>}
           </Card>
           <Card>
-            <div className="mb-3 flex items-center justify-between"><h2 className="text-sm font-medium text-muted">Ambient sound</h2><Badge>optional</Badge></div>
+            <div className="mb-3 flex items-center justify-between"><h2 className="text-sm font-medium text-muted">{t("Ambient sound")}</h2><Badge>{t("optional")}</Badge></div>
             <div className="grid grid-cols-2 gap-2">
-              <button onClick={() => { setSound("none"); setAudioOn(false); }} aria-pressed={sound === "none"} className={cn("rounded-xl border px-3 py-2 text-sm", sound === "none" ? "border-accent bg-accent/10" : "border-line")}>Silent</button>
+              <button onClick={() => { setSound("none"); setAudioOn(false); }} aria-pressed={sound === "none"} className={cn("rounded-xl border px-3 py-2 text-sm", sound === "none" ? "border-accent bg-accent/10" : "border-line")}>{t("Silent")}</button>
               {SOUNDS.map((s) => <button key={s.id} onClick={() => { setSound(s.id); setAudioOn(true); }} aria-pressed={sound === s.id} className={cn("rounded-xl border px-3 py-2 text-sm", sound === s.id ? "border-accent bg-accent/10" : "border-line hover:bg-card")}>{s.label}</button>)}
             </div>
             <div className="mt-4 flex items-center gap-3">
               <Button size="icon" onClick={() => setAudioOn(!audioOn)} disabled={sound === "none"} aria-label={audioOn ? "Pause sound" : "Play sound"}>{audioOn && sound !== "none" ? <Pause className="size-4" /> : <Play className="size-4" />}</Button>
               {volume === 0 ? <VolumeX className="size-4 text-muted" /> : <Volume2 className="size-4 text-muted" />}
-              <input type="range" min={0} max={1} step={0.01} value={volume} onChange={(e) => setVolume(Number(e.target.value))} aria-label="Volume" />
+              <input type="range" min={0} max={1} step={0.01} value={volume} onChange={(e) => setVolume(Number(e.target.value))} aria-label={t("Volume")} />
             </div>
             <p className="mt-2 text-xs text-faint">Sounds are synthesised in your browser. Never autoplays; your choice is remembered.</p>
           </Card>
           <Card>
-            <h2 className="mb-3 text-sm font-medium text-muted">Your focus</h2>
+            <h2 className="mb-3 text-sm font-medium text-muted">{t("Your focus")}</h2>
             <div className="grid grid-cols-3 gap-2 text-center">
               {[["Today", minutesLabel(data?.todayMinutes ?? 0)], ["This week", minutesLabel(data?.weekMinutes ?? 0)], ["Sessions", String(data?.totalSessions ?? 0)]].map(([l, v]) => <div key={l} className="rounded-xl bg-card p-3"><p className="text-lg font-semibold tabular-nums">{v}</p><p className="text-[11px] text-faint">{l}</p></div>)}
             </div>
           </Card>
         </div>
       </div>
-      <h2 className="mb-3 mt-8 text-sm font-medium text-muted">Session history</h2>
-      {!data?.sessions.length ? <EmptyState icon={<Play className="size-5" />} title="No sessions yet" text="Finish your first session and it will be recorded here." /> : (
+      <h2 className="mb-3 mt-8 text-sm font-medium text-muted">{t("Session history")}</h2>
+      {!data?.sessions.length ? <EmptyState icon={<Play className="size-5" />} title={t("No sessions yet")} text={t("Finish your first session and it will be recorded here.")} /> : (
         <Card pad={false}><ul className="divide-y divide-[var(--border)]">{data.sessions.map((s) => <li key={s.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm"><span className="min-w-0"><span className="block truncate">{s.taskTitle ?? MODES.find((m) => m.value === s.mode)?.label ?? s.mode}</span><span className="text-xs text-faint">{new Date(s.startedAt).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span></span><span className="flex items-center gap-2"><Badge tone={s.status === "completed" ? "green" : undefined}>{s.status === "completed" ? "Completed" : "Ended early"}</Badge><span className="tabular-nums text-muted">{Math.round(s.actualSeconds / 60)}m</span></span></li>)}</ul></Card>
       )}
     </>

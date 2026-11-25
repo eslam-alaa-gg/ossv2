@@ -14,7 +14,7 @@ type Cal = {
 };
 
 export function CalendarBoard({ tasksOnly }: { tasksOnly?: boolean }) {
-  const { user, lang } = useApp();
+  const { user, lang, t } = useApp();
   const today = todayIn(user?.timezone);
   const [view, setView] = useState<"month" | "week" | "day">("month");
   const [cur, setCur] = useState(today);
@@ -44,9 +44,9 @@ export function CalendarBoard({ tasksOnly }: { tasksOnly?: boolean }) {
       data?.milestones.filter((m) => m.deadline === d).forEach((m) => items.push({ key: "m" + m.id, label: `◆ ${m.title}`, tone: "bg-amber-500/20 text-amber-300" }));
       data?.challenges.filter((c) => c.date === d).forEach((c) => items.push({ key: "c" + c.id, label: `⚡ ${c.title}`, tone: c.completedAt ? "bg-emerald-500/15 text-emerald-300" : "bg-sky-500/15 text-sky-300" }));
       const hl = data?.habitLogs.filter((l) => l.date === d).length ?? 0;
-      if (hl) items.push({ key: "h" + d, label: `✓ ${hl} habit${hl > 1 ? "s" : ""}`, tone: "bg-card text-muted" });
+      if (hl) items.push({ key: "h" + d, label: `✓ ${hl} ${t(hl > 1 ? "habits" : "habit")}`, tone: "bg-card text-muted" });
       const f = data?.activity[d]?.focusMinutes;
-      if (f) items.push({ key: "f" + d, label: `◷ ${f}m focus`, tone: "bg-card text-muted" });
+      if (f) items.push({ key: "f" + d, label: `◷ ${f} ${t("min")} ${t("focus")}`, tone: "bg-card text-muted" });
     }
     return items;
   };
@@ -57,14 +57,14 @@ export function CalendarBoard({ tasksOnly }: { tasksOnly?: boolean }) {
     <div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <Button size="icon" onClick={() => step(-1)} aria-label="Previous"><ChevronLeft className="size-4 rtl:rotate-180" /></Button>
-          <Button size="icon" onClick={() => step(1)} aria-label="Next"><ChevronRight className="size-4 rtl:rotate-180" /></Button>
-          <Button size="sm" onClick={() => setCur(today)}>Today</Button>
+          <Button size="icon" onClick={() => step(-1)} aria-label={t("Previous")}><ChevronLeft className="size-4 rtl:rotate-180" /></Button>
+          <Button size="icon" onClick={() => step(1)} aria-label={t("Next")}><ChevronRight className="size-4 rtl:rotate-180" /></Button>
+          <Button size="sm" onClick={() => setCur(today)}>{t("Today")}</Button>
           <h2 className="ms-2 text-lg font-semibold">{title}</h2>
         </div>
         <div className="flex items-center gap-2">
-          <Segmented value={view} onChange={setView} label="Calendar view" options={[{ value: "month", label: "Month" }, { value: "week", label: "Week" }, { value: "day", label: "Day" }]} />
-          <Button variant="primary" size="sm" onClick={() => setModal({ date: view === "day" ? cur : today })}><Plus className="size-4" /> Task</Button>
+          <Segmented value={view} onChange={setView} label={t("Calendar view")} options={[{ value: "month", label: t("Month") }, { value: "week", label: t("Week") }, { value: "day", label: t("Day") }]} />
+          <Button variant="primary" size="sm" onClick={() => setModal({ date: view === "day" ? cur : today })}><Plus className="size-4" /> {t("Task")}</Button>
         </div>
       </div>
       {error && !data ? <ErrorState message={error} retry={reload} /> : loading && !data ? <Skeleton className="h-96" /> : (
@@ -76,7 +76,7 @@ export function CalendarBoard({ tasksOnly }: { tasksOnly?: boolean }) {
           )}
           {view === "day" ? (
             <div className="space-y-2 p-4">
-              {itemsFor(cur).length === 0 && <p className="py-10 text-center text-sm text-muted">Nothing scheduled. Add a task for this day.</p>}
+              {itemsFor(cur).length === 0 && <p className="py-10 text-center text-sm text-muted">{t("Nothing scheduled. Add a task for this day.")}</p>}
               {itemsFor(cur).map((it) => <Item key={it.key} it={it} />)}
             </div>
           ) : (
@@ -87,10 +87,10 @@ export function CalendarBoard({ tasksOnly }: { tasksOnly?: boolean }) {
                 const max = view === "week" ? 12 : 3;
                 return (
                   <div key={d} className={cn("group relative min-h-[84px] border-b border-s border-line p-1 sm:min-h-[108px] sm:p-1.5", view === "week" && "min-h-[260px]", out && "opacity-40")}>
-                    <button onClick={() => setModal({ date: d })} className={cn("mb-1 grid size-6 place-items-center rounded-full text-xs", d === today ? "bg-accent font-semibold text-[var(--on-accent)]" : "text-muted hover:bg-card")} aria-label={`Add task on ${fmtD(parseD(d))}`}>{Number(d.slice(8))}</button>
+                    <button onClick={() => setModal({ date: d })} className={cn("mb-1 grid size-6 place-items-center rounded-full text-xs", d === today ? "bg-accent font-semibold text-[var(--on-accent)]" : "text-muted hover:bg-card")} aria-label={`${t("Add task on")} ${fmtD(parseD(d))}`}>{Number(d.slice(8))}</button>
                     <div className="space-y-0.5">
                       {items.slice(0, max).map((it) => <Item key={it.key} it={it} />)}
-                      {items.length > max && <button onClick={() => { setCur(d); setView("day"); }} className="text-[10px] text-faint">+{items.length - max} more</button>}
+                      {items.length > max && <button onClick={() => { setCur(d); setView("day"); }} className="text-[10px] text-faint">+{items.length - max} {t("more")}</button>}
                     </div>
                   </div>
                 );
@@ -99,7 +99,7 @@ export function CalendarBoard({ tasksOnly }: { tasksOnly?: boolean }) {
           )}
         </Card>
       )}
-      <p className="mt-3 text-xs text-faint">Dates follow your timezone ({user?.timezone}). Weeks start Monday. {dow(today) >= 0 ? "" : ""}</p>
+      <p className="mt-3 text-xs text-faint">{t("Dates follow your timezone")} ({user?.timezone}). {t("Weeks start Monday.")}</p>
       <TaskModal open={!!modal} onClose={() => setModal(null)} task={modal?.task} defaults={modal?.date ? { dueDate: modal.date } : undefined} onSaved={reload} />
     </div>
   );

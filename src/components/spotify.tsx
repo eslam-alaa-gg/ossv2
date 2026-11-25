@@ -181,6 +181,7 @@ export function useProgress(np: NowPlaying | null) {
 
 /** Dashboard widget */
 export function NowPlayingWidget() {
+  const { t: tr } = useApp();
   const { status, np, error, errorCode, loadingStatus, refresh } = useSpotify();
   const progress = useProgress(np);
   if (loadingStatus) return <Skeleton className="h-[148px]" />;
@@ -189,17 +190,17 @@ export function NowPlayingWidget() {
       <Card className="flex items-center gap-4">
         <div className="grid size-14 place-items-center rounded-2xl bg-card text-accent"><Music2 className="size-6" /></div>
         <div className="min-w-0 flex-1">
-          <p className="font-medium">Spotify Now Playing</p>
-          <p className="text-sm text-muted">{status?.configured ? "Connect Spotify to see what you're listening to." : "Spotify isn't configured on this server yet."}</p>
+          <p className="font-medium">{tr("Spotify Now Playing")}</p>
+          <p className="text-sm text-muted">{status?.configured ? tr("Connect Spotify to see what you're listening to.") : tr("Spotify isn't configured on this server yet.")}</p>
         </div>
-        <Link href="/music" className="glass-btn btn-sm">{status?.configured ? "Connect" : "Details"}</Link>
+        <Link href="/music" className="glass-btn btn-sm">{status?.configured ? tr("Connect") : tr("Details")}</Link>
       </Card>
     );
   }
   const t = np && !np.idle ? np.track : null;
   return (
     <Card className="relative overflow-hidden">
-      {error && errorCode !== "rate_limited" && <p className="mb-2 text-xs text-amber-400" role="status">{error} <button className="underline" onClick={() => refresh().catch(() => {})}>Retry</button></p>}
+      {error && errorCode !== "rate_limited" && <p className="mb-2 text-xs text-amber-400" role="status">{error} <button className="underline" onClick={() => refresh().catch(() => {})}>{tr("Retry")}</button></p>}
       <div className="flex items-center gap-4">
         <AnimatePresence mode="wait">
           <motion.div key={t?.id ?? "none"} initial={{ opacity: 0, scale: 0.94 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="size-20 shrink-0 overflow-hidden rounded-2xl bg-card shadow-lg">
@@ -211,7 +212,7 @@ export function NowPlayingWidget() {
             <>
               <div className="flex items-center gap-2 text-xs text-muted">
                 <span className={`size-1.5 rounded-full ${np.playing ? "bg-emerald-400" : "bg-amber-400"}`} />
-                {np.playing ? "Playing" : "Paused"} {np.device ? `· ${np.device.name}` : ""}
+                {np.playing ? tr("Playing") : tr("Paused")} {np.device ? `· ${np.device.name}` : ""}
               </div>
               <p className="truncate text-base font-semibold">{t.title}</p>
               <p className="truncate text-sm text-muted">{t.artists.map((a) => a.name).join(", ")} · {t.album.name}</p>
@@ -223,12 +224,12 @@ export function NowPlayingWidget() {
             </>
           ) : (
             <>
-              <p className="font-medium">Nothing playing</p>
-              <p className="text-sm text-muted">Start playback in Spotify and it will show up here.</p>
+              <p className="font-medium">{tr("Nothing playing")}</p>
+              <p className="text-sm text-muted">{tr("Start playback in Spotify and it will show up here.")}</p>
             </>
           )}
         </div>
-        <Link href="/music" className="glass-btn btn-icon" aria-label="Open Music Hub">{np && !np.idle && np.playing ? <Pause className="size-4" /> : <Play className="size-4" />}</Link>
+        <Link href="/music" className="glass-btn btn-icon" aria-label={tr("Open Music Hub")}>{np && !np.idle && np.playing ? <Pause className="size-4" /> : <Play className="size-4" />}</Link>
       </div>
     </Card>
   );

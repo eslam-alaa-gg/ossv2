@@ -15,7 +15,7 @@ export type Theme = {
   preset: string; mode: "dark" | "light" | "system"; accent: string;
   glassOpacity: number; blur: number; borderOpacity: number; brightness: number; glow: number; cardOpacity: number;
   background: "solid" | "soft" | "ambient"; noise: boolean; mouseLight: boolean; radius: number;
-  density: "compact" | "comfortable" | "spacious"; font: "inter" | "plex" | "cairo" | "manrope" | "serif" | "system";
+  density: "compact" | "comfortable" | "spacious"; font: "inter" | "plex" | "cairo" | "manrope" | "serif" | "system" | "sniglet" | "kavoon" | "merienda" | "shantell";
   animation: number; speed: number; reducedMotion: boolean; gradientPreset: string; gradient: GradientCfg;
   targets: Record<TargetKey, boolean>;
 };
@@ -32,7 +32,7 @@ export const PRESETS = [
 ] as const;
 export const DEFAULT_THEME: Theme = {
  preset:"midnight",mode:"dark",accent:"#8b7cff",glassOpacity:7,blur:22,borderOpacity:11,brightness:100,glow:15,cardOpacity:7,
- background:"ambient",noise:true,mouseLight:true,radius:20,density:"comfortable",font:"inter",animation:70,speed:100,reducedMotion:false,
+ background:"ambient",noise:true,mouseLight:false,radius:20,density:"comfortable",font:"sniglet",animation:70,speed:100,reducedMotion:false,
  gradientPreset:"aurora",gradient:{kind:"linear",angle:135,stops:[{color:"#6d5dfc",pos:0},{color:"#2f6bff",pos:100}],intensity:35,opacity:18,blend:"soft-light",animated:false,animSpeed:30,animIntensity:25,animDirection:"alternate"},
  targets:{app:false,dashboard:false,cards:false,buttons:false,accent:false,progress:false,charts:false,nav:false,profile:false},
 };
@@ -61,10 +61,10 @@ export function themeCss(t:Theme) {
  const [ar,ag,ab]=rgb(t.accent);
  const luminance=(.2126*ar+.7152*ag+.0722*ab)/255;
  const onAccent=luminance>.68?"#171824":"#ffffff";
- const font=t.font==="plex"?"'IBM Plex Sans','IBM Plex Sans Arabic',sans-serif":t.font==="cairo"?"'Cairo',sans-serif":t.font==="manrope"?"'Manrope','Cairo',sans-serif":t.font==="serif"?"'Source Serif 4','Noto Naskh Arabic',serif":t.font==="system"?"ui-sans-serif,system-ui,sans-serif":"'Inter','Cairo',ui-sans-serif,sans-serif";
+ const font=t.font==="plex"?"'IBM Plex Sans',sans-serif":t.font==="cairo"?"'Cairo',sans-serif":t.font==="manrope"?"'Manrope',sans-serif":t.font==="serif"?"'Source Serif 4',serif":t.font==="system"?"ui-sans-serif,system-ui,sans-serif":t.font==="kavoon"?"'Kavoon',serif":t.font==="merienda"?"'Merienda',cursive":t.font==="shantell"?"'Shantell Sans',cursive":t.font==="inter"?"'Inter',sans-serif":"'Sniglet',cursive";
  const grad=t.targets.app?gradientCss(t.gradient,t.gradient.intensity):"none";
  const dur=Math.round(22000/Math.max(1,t.gradient.animSpeed));
- return `:root{--accent:${t.accent};--accent-rgb:${ar},${ag},${ab};--on-accent:${onAccent};--bg:${p.bg};--bg2:${p.bg2};--g1:${p.g1};--g2:${p.g2};--fg:${p.fg};--muted:${p.muted};--faint:${p.faint};--surface:${rgba(p.surface===""?"#ffffff":t.accent,t.glassOpacity/100)};--card:${rgba(t.mode==="light"?"#ffffff":"#ffffff",t.cardOpacity/100)};--card-hover:${rgba(t.mode==="light"?"#ffffff":"#ffffff",Math.min(1,t.cardOpacity/100+.04))};--border:${rgba(t.mode==="light"?"#20243a":"#ffffff",t.borderOpacity/100)};--border-strong:${rgba(t.mode==="light"?"#20243a":"#ffffff",Math.min(1,t.borderOpacity/100+.12))};--hl:${rgba(t.mode==="light"?"#ffffff":"#ffffff",.09)};--shadow:0 10px 40px rgba(0,0,0,${t.mode==="light"?.12:.38});--glow-o:${t.glow/100};--input:${rgba(t.mode==="light"?"#e6e8f0":"#000000",.28)};--overlay:rgba(0,0,0,.6);--pop:${t.mode==="light"?"rgba(255,255,255,.96)":"rgba(22,22,28,.92)"};--radius:${t.radius}px;--radius-sm:${Math.round(t.radius*.6)}px;--radius-lg:${Math.round(t.radius*1.35)}px;--pad:${t.density==="compact"?"14px":t.density==="spacious"?"26px":"20px"};--gap:${t.density==="compact"?"12px":t.density==="spacious"?"24px":"18px"};--blur:${t.blur}px;--dur:${Math.round(220*t.speed/100)}ms;--lift:${1.8*t.animation/100}px;--font-sans:${font};--grad:${grad};--grad-op:${t.gradient.opacity/100};--grad-blend:${t.gradient.blend};--grad-size:200% 200%;--grad-dur:${dur}ms;--grad-dir:${t.gradient.animDirection};}
+ return `:root{--accent:${t.accent};--accent-rgb:${ar},${ag},${ab};--on-accent:${onAccent};--bg:${p.bg};--bg2:${p.bg2};--g1:${p.g1};--g2:${p.g2};--fg:${p.fg};--muted:${p.muted};--faint:${p.faint};--surface:${rgba(p.surface===""?"#ffffff":t.accent,t.glassOpacity/100)};--card:${rgba(t.mode==="light"?"#ffffff":"#ffffff",t.cardOpacity/100)};--card-hover:${rgba(t.mode==="light"?"#ffffff":"#ffffff",Math.min(1,t.cardOpacity/100+.04))};--border:${rgba(t.mode==="light"?"#20243a":"#ffffff",t.borderOpacity/100)};--border-strong:${rgba(t.mode==="light"?"#20243a":"#ffffff",Math.min(1,t.borderOpacity/100+.12))};--hl:${rgba(t.mode==="light"?"#ffffff":"#ffffff",.09)};--shadow:0 10px 40px rgba(0,0,0,${t.mode==="light"?.12:.38});--glow-o:${t.glow/100};--input:${rgba(t.mode==="light"?"#e6e8f0":"#000000",.28)};--overlay:rgba(0,0,0,.6);--pop:${t.mode==="light"?"rgba(255,255,255,.96)":"rgba(22,22,28,.92)"};--radius:${t.radius}px;--radius-sm:${Math.round(t.radius*.6)}px;--radius-lg:${Math.round(t.radius*1.35)}px;--pad:${t.density==="compact"?"14px":t.density==="spacious"?"26px":"20px"};--gap:${t.density==="compact"?"12px":t.density==="spacious"?"24px":"18px"};--blur:${t.blur}px;--dur:${Math.round(220*t.speed/100)}ms;--lift:${1.8*t.animation/100}px;--font-sans:${font};--font-arabic:'Playpen Sans Arabic','Cairo',sans-serif;--grad:${grad};--grad-op:${t.gradient.opacity/100};--grad-blend:${t.gradient.blend};--grad-size:200% 200%;--grad-dur:${dur}ms;--grad-dir:${t.gradient.animDirection};}
 html[data-mode="light"]{color-scheme:light}html[data-mode="dark"]{color-scheme:dark}
 `;
 }

@@ -34,7 +34,7 @@ export const themeSchema = z.object({
   mouseLight: b,
   radius: z.number().min(6).max(32),
   density: z.enum(["compact", "comfortable", "spacious"]),
-  font: z.enum(["inter", "plex", "cairo", "manrope", "serif", "system"]),
+  font: z.enum(["inter", "plex", "cairo", "manrope", "serif", "system", "sniglet", "kavoon", "merienda", "shantell"]),
   animation: pct,
   speed: z.number().min(50).max(200),
   reducedMotion: b,
@@ -46,7 +46,7 @@ export const themeSchema = z.object({
 export type Prefs = {
   theme: Theme;
   customThemes: { id: string; name: string; theme: Theme }[];
-  dashboard: { widgets: Record<string, boolean> };
+  dashboard: { widgets: Record<string, boolean>; order: string[]; sizes: Record<string, "compact" | "standard" | "wide"> };
   notifications: { inApp: boolean; push: boolean; email: boolean; quietStart: string; quietEnd: string; challengeTime: string; habitTime: string };
   spotify: { ambience: boolean; autoRefresh: boolean };
   waterGoal: number;
@@ -59,7 +59,7 @@ export const WIDGETS = ["progress", "streak", "focus", "challenge", "habits", "r
 export const DEFAULT_PREFS: Prefs = {
   theme: DEFAULT_THEME,
   customThemes: [],
-  dashboard: { widgets: Object.fromEntries(WIDGETS.map((w) => [w, true])) },
+  dashboard: { widgets: Object.fromEntries(WIDGETS.map((w) => [w, true])), order: [...WIDGETS], sizes: Object.fromEntries(WIDGETS.map((w) => [w, "standard" as const])) },
   notifications: { inApp: true, push: false, email: false, quietStart: "22:00", quietEnd: "07:00", challengeTime: "09:00", habitTime: "18:00" },
   spotify: { ambience: true, autoRefresh: true },
   waterGoal: 2000,
@@ -70,7 +70,7 @@ export const DEFAULT_PREFS: Prefs = {
 export const prefSchemas: { [K in keyof Prefs]: z.ZodType<Prefs[K]> } = {
   theme: themeSchema,
   customThemes: z.array(z.object({ id: z.string().max(60), name: z.string().trim().min(1).max(40), theme: themeSchema })).max(20),
-  dashboard: z.object({ widgets: z.record(z.string(), z.boolean()) }),
+  dashboard: z.object({ widgets: z.record(z.string(), z.boolean()), order: z.array(z.string().max(40)).max(30).optional().default([...WIDGETS]), sizes: z.record(z.string(), z.enum(["compact", "standard", "wide"])).optional().default({}) }),
   notifications: z.object({ inApp: b, push: b, email: b, quietStart: hhmm, quietEnd: hhmm, challengeTime: hhmm, habitTime: hhmm }),
   spotify: z.object({ ambience: b, autoRefresh: b }),
   waterGoal: z.number().int().min(500).max(10000),
@@ -98,6 +98,18 @@ export function parsePrefs(raw: unknown): Prefs {
       };
     } else if (isObj(val) && isObj(DEFAULT_PREFS[k])) {
       val = { ...(DEFAULT_PREFS[k] as object), ...val };
+      if (k === "dashboard") {
+        const dashboard = val as Record<string, unknown>;
+        const widgets = isObj(dashboard.widgets) ? dashboard.widgets : {};
+        const sizes = isObj(dashboard.sizes) ? dashboard.sizes : {};
+        const suppliedOrder = Array.isArray(dashboard.order) ? dashboard.order : [];
+        const validOrder = suppliedOrder.filter((item): item is string =>
+          typeof item === "string" && (WIDGETS as readonly string[]).includes(item)
+        );
+        dashboard.widgets = { ...DEFAULT_PREFS.dashboard.widgets, ...widgets };
+        dashboard.sizes = { ...DEFAULT_PREFS.dashboard.sizes, ...sizes };
+        dashboard.order = [...new Set([...validOrder, ...WIDGETS])];
+      }
     }
     if (val === undefined) continue;
     const s = prefSchemas[k].safeParse(val);
