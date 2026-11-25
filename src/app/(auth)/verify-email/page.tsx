@@ -6,15 +6,16 @@ import { useSearchParams } from "next/navigation";
 import { AuthShell } from "@/components/auth";
 import { api } from "@/lib/client";
 import { useApp } from "@/components/providers";
+import { translateError } from "@/lib/i18n";
 
 function Inner() {
-  const { t } = useApp();
+  const { t, lang } = useApp();
   const token = useSearchParams().get("token");
   const [state, setState] = useState<"loading" | "ok" | "error" | "none">(token ? "loading" : "none");
   const [msg, setMsg] = useState("");
   useEffect(() => {
     if (!token) return;
-    api("/api/auth/verify", { body: { token } }).then(() => setState("ok")).catch((e) => { setMsg(e.message); setState("error"); });
+    api("/api/auth/verify", { body: { token } }).then(() => setState("ok")).catch((e) => { setMsg(translateError(lang, e.message)); setState("error"); });
   }, [token]);
   return (
     <AuthShell title="Email verification" footer={<Link href="/dashboard" className="font-medium text-accent">{t("Continue to LIFE OS")}</Link>}>
