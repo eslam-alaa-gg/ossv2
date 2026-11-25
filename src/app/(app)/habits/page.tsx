@@ -122,18 +122,18 @@ function ReadingTab({ tracker, reload }: { tracker: Trackers; reload: () => void
   return (
     <div className="grid gap-[var(--gap)] md:grid-cols-2">
       <Card>
-        <div className="mb-4 flex items-center gap-3"><BookOpen className="size-5 text-accent" /><div className="flex-1"><p className="font-medium">Today: {tracker.reading.todayPages} / {t.reading.target} pages</p><Progress value={(100 * t.reading.todayPages) / t.reading.target} className="mt-2" /></div></div>
+        <div className="mb-4 flex items-center gap-3"><BookOpen className="size-5 text-accent" /><div className="flex-1"><p className="font-medium">Today: {tracker.reading.todayPages} / {tracker.reading.target} pages</p><Progress value={(100 * tracker.reading.todayPages) / tracker.reading.target} className="mt-2" /></div></div>
         <form className="space-y-3" onSubmit={async (e) => { e.preventDefault(); if (await run(() => api("/api/trackers/reading", { body: { book, pages: Number(pages) } }), "Reading logged")) { setPages(""); reload(); } }}>
-          <Field label={t("Book name")}><input className="input" value={book} onChange={(e) => setBook(e.target.value)} maxLength={120} required aria-label={t("Book name")} list="books" /><datalist id="books">{[...new Set(t.reading.entries.map((e) => e.book))].map((b) => <option key={b} value={b} />)}</datalist></Field>
+          <Field label={t("Book name")}><input className="input" value={book} onChange={(e) => setBook(e.target.value)} maxLength={120} required aria-label={t("Book name")} list="books" /><datalist id="books">{[...new Set(tracker.reading.entries.map((e) => e.book))].map((b) => <option key={b} value={b} />)}</datalist></Field>
           <Field label={t("Pages read")}><input className="input" type="number" min={1} max={2000} value={pages} onChange={(e) => setPages(e.target.value)} required aria-label={t("Pages read")} /></Field>
           <Button type="submit" variant="primary" className="w-full">{t("Log reading")}</Button>
         </form>
         <h3 className="mb-2 mt-5 text-sm font-medium text-muted">{t("Last 14 days")}</h3>
-        <Bars days={t.reading.days} today={tracker.today} max={Math.max(t.reading.target, ...t.reading.days.map((d) => d.v))} unit="pages" />
+        <Bars days={tracker.reading.days} today={tracker.today} max={Math.max(tracker.reading.target, ...tracker.reading.days.map((d) => d.v))} unit="pages" />
       </Card>
       <Card>
         <h3 className="mb-3 text-sm font-medium text-muted">{t("Reading history")}</h3>
-        {t.reading.entries.length === 0 ? <EmptyState icon={<BookOpen className="size-5" />} title={t("No reading yet")} text={t("Log your first session to start a history.")} /> : <ul className="divide-y divide-[var(--border)]">{t.reading.entries.map((r) => <li key={r.id} className="flex items-center justify-between py-2.5 text-sm"><span className="min-w-0"><span className="block truncate">{r.book}</span><span className="text-xs text-faint">{fmtShort(r.date)} · {r.pages} pages</span></span><Button variant="ghost" size="icon" aria-label={t("Remove entry")} onClick={async () => { await run(() => api(`/api/trackers/reading?id=${r.id}`, { method: "DELETE" })); reload(); }}><Trash2 className="size-3.5" /></Button></li>)}</ul>}
+        {tracker.reading.entries.length === 0 ? <EmptyState icon={<BookOpen className="size-5" />} title={t("No reading yet")} text={t("Log your first session to start a history.")} /> : <ul className="divide-y divide-[var(--border)]">{tracker.reading.entries.map((r) => <li key={r.id} className="flex items-center justify-between py-2.5 text-sm"><span className="min-w-0"><span className="block truncate">{r.book}</span><span className="text-xs text-faint">{fmtShort(r.date)} · {r.pages} pages</span></span><Button variant="ghost" size="icon" aria-label={t("Remove entry")} onClick={async () => { await run(() => api(`/api/trackers/reading?id=${r.id}`, { method: "DELETE" })); reload(); }}><Trash2 className="size-3.5" /></Button></li>)}</ul>}
       </Card>
     </div>
   );
@@ -156,7 +156,7 @@ function LearningTab({ tracker, reload }: { tracker: Trackers; reload: () => voi
       </Card>
       <Card>
         <h3 className="mb-3 text-sm font-medium text-muted">{t("Learning log")}</h3>
-        {tracker.learning.entries.length === 0 ? <EmptyState icon={<Lightbulb className="size-5" />} title={t("Nothing recorded yet")} /> : <ul className="space-y-3">{t.learning.entries.map((l) => <li key={l.id} className="rounded-xl border border-line bg-card p-3 text-sm"><div className="flex items-start justify-between gap-2"><p className="font-medium">{l.title}</p><Button variant="ghost" size="icon" aria-label={t("Remove entry")} onClick={async () => { await run(() => api(`/api/trackers/learning?id=${l.id}`, { method: "DELETE" })); reload(); }}><Trash2 className="size-3.5" /></Button></div>{l.explanation && <p className="mt-1 text-muted">{l.explanation}</p>}<p className="mt-1 text-xs text-faint">{fmtShort(l.date)}</p></li>)}</ul>}
+        {tracker.learning.entries.length === 0 ? <EmptyState icon={<Lightbulb className="size-5" />} title={t("Nothing recorded yet")} /> : <ul className="space-y-3">{tracker.learning.entries.map((l) => <li key={l.id} className="rounded-xl border border-line bg-card p-3 text-sm"><div className="flex items-start justify-between gap-2"><p className="font-medium">{l.title}</p><Button variant="ghost" size="icon" aria-label={t("Remove entry")} onClick={async () => { await run(() => api(`/api/trackers/learning?id=${l.id}`, { method: "DELETE" })); reload(); }}><Trash2 className="size-3.5" /></Button></div>{l.explanation && <p className="mt-1 text-muted">{l.explanation}</p>}<p className="mt-1 text-xs text-faint">{fmtShort(l.date)}</p></li>)}</ul>}
       </Card>
     </div>
   );
