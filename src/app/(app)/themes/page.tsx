@@ -96,21 +96,21 @@ export default function ThemesPage() {
 
           {tab === "glass" && (
             <Card className="grid gap-5 sm:grid-cols-2">
-              <Slider label="Glass opacity" value={theme.glassOpacity} onChange={(v) => set({ glassOpacity: v })} hint="Panels: sidebar, header, dialogs" />
-              <Slider label="Card transparency" value={theme.cardOpacity} onChange={(v) => set({ cardOpacity: v })} />
-              <Slider label="Background blur" value={theme.blur} max={40} unit="px" onChange={(v) => set({ blur: v })} />
-              <Slider label="Border transparency" value={theme.borderOpacity} onChange={(v) => set({ borderOpacity: v })} />
-              <Slider label="Surface brightness" value={theme.brightness} min={50} max={150} unit="%" onChange={(v) => set({ brightness: v })} />
-              <Slider label="Ambient glow" value={theme.glow} onChange={(v) => set({ glow: v })} />
+              <Slider label={t("Glass opacity")} value={theme.glassOpacity} onChange={(v) => set({ glassOpacity: v })} hint={t("Panels: sidebar, header, dialogs")} />
+              <Slider label={t("Card transparency")} value={theme.cardOpacity} onChange={(v) => set({ cardOpacity: v })} />
+              <Slider label={t("Background blur")} value={theme.blur} max={40} unit="px" onChange={(v) => set({ blur: v })} />
+              <Slider label={t("Border transparency")} value={theme.borderOpacity} onChange={(v) => set({ borderOpacity: v })} />
+              <Slider label={t("Surface brightness")} value={theme.brightness} min={50} max={150} unit="%" onChange={(v) => set({ brightness: v })} />
+              <Slider label={t("Ambient glow")} value={theme.glow} onChange={(v) => set({ glow: v })} />
             </Card>
           )}
 
           {tab === "background" && (
             <Card className="space-y-4">
               <Field label={t("Background style")}><Segmented value={theme.background} onChange={(v) => set({ background: v })} label={t("Background")} options={[{ value: "solid", label: t("Solid") }, { value: "soft", label: t("Soft gradient") }, { value: "ambient", label: t("Ambient glow") }]} /></Field>
-              <Row label={t("Film grain")} hint="Very subtle texture"><Switch checked={theme.noise} onChange={(v) => set({ noise: v })} label="Film grain" /></Row>
-              <Row label="Mouse-following light" hint="Desktop pointer only"><Switch checked={theme.mouseLight} onChange={(v) => set({ mouseLight: v })} label={t("Mouse light")} /></Row>
-              <p className="text-xs text-faint">Enable “App background” under Gradients to layer a custom gradient on top.</p>
+              <Row label={t("Film grain")} hint={t("Very subtle texture")}><Switch checked={theme.noise} onChange={(v) => set({ noise: v })} label={t("Film grain")} /></Row>
+              <Row label={t("Mouse-following light")} hint={t("Desktop pointer only")}><Switch checked={theme.mouseLight} onChange={(v) => set({ mouseLight: v })} label={t("Mouse light")} /></Row>
+              <p className="text-xs text-faint">{t("Enable “App background” under Gradients to layer a custom gradient on top.")}</p>
             </Card>
           )}
 
@@ -130,8 +130,8 @@ export default function ThemesPage() {
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Field label={t("Type")}><select className="input" value={g.kind} onChange={(e) => setG({ kind: e.target.value as GradientCfg["kind"] })} aria-label={t("Gradient type")}><option value="linear">{t("Linear")}</option><option value="radial">{t("Radial")}</option><option value="conic">{t("Conic")}</option><option value="mesh">{t("Mesh (multi-point soft)")}</option></select></Field>
                   <Slider label={t(g.kind === "radial" ? "Direction (focal point)" : "Angle")} value={g.angle} max={360} unit="°" onChange={(v) => setG({ angle: v })} />
-                  <Slider label="Intensity" value={g.intensity} onChange={(v) => setG({ intensity: v })} hint="Color strength" />
-                  <Slider label="Opacity" value={g.opacity} onChange={(v) => setG({ opacity: v })} hint="Background layer" />
+                  <Slider label={t("Intensity")} value={g.intensity} onChange={(v) => setG({ intensity: v })} hint={t("Color strength")} />
+                  <Slider label={t("Opacity")} value={g.opacity} onChange={(v) => setG({ opacity: v })} hint={t("Background layer")} />
                   <Field label={t("Background blending")}><select className="input" value={g.blend} onChange={(e) => setG({ blend: e.target.value as GradientCfg["blend"] })} aria-label={t("Blend mode")}>{["normal", "overlay", "soft-light", "screen", "lighten"].map((b) => <option key={b} value={b}>{t(b)}</option>)}</select></Field>
                 </div>
                 <div>
@@ -146,8 +146,8 @@ export default function ThemesPage() {
                 <div className="grid gap-x-8 sm:grid-cols-2">{TARGET_KEYS.map((k) => <Row key={k} label={t(TARGET_LABEL[k])}><Switch checked={theme.targets[k]} onChange={(v) => set({ targets: { ...theme.targets, [k]: v } })} label={t(TARGET_LABEL[k])} /></Row>)}</div>
               </Card>
               <Card className="space-y-4">
-                <Row label={t("Animated gradient")} hint="Slow, subtle drift. Disabled automatically with reduced motion."><Switch checked={g.animated} onChange={(v) => setG({ animated: v })} label="Animated gradient" /></Row>
-                {g.animated && <div className="grid gap-4 sm:grid-cols-2"><Slider label="Animation speed" value={g.animSpeed} min={1} onChange={(v) => setG({ animSpeed: v })} /><Slider label="Animation intensity" value={g.animIntensity} min={1} onChange={(v) => setG({ animIntensity: v })} /><Field label={t("Direction")}><select className="input" value={g.animDirection} onChange={(e) => setG({ animDirection: e.target.value as GradientCfg["animDirection"] })} aria-label="Animation direction"><option value="normal">{t("Forward")}</option><option value="reverse">{t("Reverse")}</option><option value="alternate">{t("Alternate")}</option></select></Field></div>}
+                <Row label={t("Animated gradient")} hint={t("Slow, subtle drift. Disabled automatically with reduced motion.")}><Switch checked={g.animated} onChange={(v) => setG({ animated: v })} label={t("Animated gradient")} /></Row>
+                {g.animated && <div className="grid gap-4 sm:grid-cols-2"><Slider label={t("Animation speed")} value={g.animSpeed} min={1} onChange={(v) => setG({ animSpeed: v })} /><Slider label={t("Animation intensity")} value={g.animIntensity} min={1} onChange={(v) => setG({ animIntensity: v })} /><Field label={t("Direction")}><select className="input" value={g.animDirection} onChange={(e) => setG({ animDirection: e.target.value as GradientCfg["animDirection"] })} aria-label={t("Animation direction")}><option value="normal">{t("Forward")}</option><option value="reverse">{t("Reverse")}</option><option value="alternate">{t("Alternate")}</option></select></Field></div>}
                 {g.animated && !theme.targets.app && <p className="text-xs text-amber-300">{t("Animation shows on the app background — enable “App background” above.")}</p>}
               </Card>
             </div>
@@ -170,13 +170,13 @@ export default function ThemesPage() {
           {tab === "interface" && (
             <Card className="space-y-5">
               <div className="grid gap-5 sm:grid-cols-2">
-                <Slider label="Animation intensity" value={theme.animation} onChange={(v) => set({ animation: v })} hint="0 turns motion off" />
-                <Slider label="Transition speed" value={theme.speed} min={50} max={200} unit="%" onChange={(v) => set({ speed: v })} />
-                <Slider label="Rounded corners" value={theme.radius} min={6} max={32} unit="px" onChange={(v) => set({ radius: v })} />
+                <Slider label="Animation intensity" value={theme.animation} onChange={(v) => set({ animation: v })} hint={t("0 turns motion off")} />
+                <Slider label={t("Transition speed")} value={theme.speed} min={50} max={200} unit="%" onChange={(v) => set({ speed: v })} />
+                <Slider label={t("Rounded corners")} value={theme.radius} min={6} max={32} unit="px" onChange={(v) => set({ radius: v })} />
                 <Field label={t("Interface density")}><Segmented value={theme.density} onChange={(v) => set({ density: v })} label={t("Density")} options={[{ value: "compact", label: t("Compact") }, { value: "comfortable", label: t("Comfortable") }, { value: "spacious", label: t("Spacious") }]} /></Field>
                 <Field label={t("Font selection")}><p className="text-sm text-muted">{t("Manage typefaces in the dedicated Fonts section.")}</p></Field>
               </div>
-              <Row label="Reduced motion" hint="Stops animated gradients, pointer light and transitions"><Switch checked={theme.reducedMotion} onChange={(v) => set({ reducedMotion: v })} label="Reduced motion" /></Row>
+              <Row label={t("Reduced motion")} hint={t("Stops animated gradients, pointer light and transitions")}><Switch checked={theme.reducedMotion} onChange={(v) => set({ reducedMotion: v })} label="Reduced motion" /></Row>
               <p className="text-xs text-faint">{t("Your operating system's reduced-motion setting is always respected, too. Arabic uses Playpen Sans Arabic automatically. English uses the selected font.")}</p>
             </Card>
           )}
