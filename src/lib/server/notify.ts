@@ -1,5 +1,5 @@
 import "server-only";
-import webpush from "web-push";
+import * as webpush from "web-push";
 import { and, eq, inArray, lte } from "drizzle-orm";
 import { db } from "@/db";
 import { dailyChallenges, habitLogs, habits, notifications, pushSubscriptions, tasks } from "@/db/schema";
