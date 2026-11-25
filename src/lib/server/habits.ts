@@ -30,9 +30,9 @@ export async function syncSpecialHabit(a: Authed, kind: "water" | "reading" | "l
   const hs = await db.select().from(habits).where(and(eq(habits.userId, a.id), eq(habits.kind, kind), eq(habits.archived, false)));
   if (!hs.length) return;
   let progress = 0;
-  if (kind === "water") progress = Number((await db.execute(sql`select coalesce(sum(ml),0)::int v from water_logs where user_id=${a.id} and date=${date}::date`)).rows[0].v);
-  if (kind === "reading") progress = Number((await db.execute(sql`select coalesce(sum(pages),0)::int v from reading_logs where user_id=${a.id} and date=${date}::date`)).rows[0].v);
-  if (kind === "learning") progress = Number((await db.execute(sql`select count(*)::int v from learning_entries where user_id=${a.id} and date=${date}::date`)).rows[0].v);
+  if (kind === "water") progress = Number((await db.execute(sql`select coalesce(sum(ml),0)::int v from ossv2.water_logs where user_id=${a.id} and date=${date}::date`)).rows[0].v);
+  if (kind === "reading") progress = Number((await db.execute(sql`select coalesce(sum(pages),0)::int v from ossv2.reading_logs where user_id=${a.id} and date=${date}::date`)).rows[0].v);
+  if (kind === "learning") progress = Number((await db.execute(sql`select count(*)::int v from ossv2.learning_entries where user_id=${a.id} and date=${date}::date`)).rows[0].v);
   for (const h of hs) {
     const eff = kind === "water" ? { ...h, target: a.prefs.waterGoal } : h;
     await setHabitAmount(a, eff, date, progress);
