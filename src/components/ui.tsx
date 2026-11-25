@@ -172,6 +172,7 @@ export function Field({ label, error, hint, children, className }: { label: stri
 /* -------------------------------- modal -------------------------------- */
 export function Modal({ open, onClose, title, children, footer, wide }: { open: boolean; onClose: () => void; title: string; children: ReactNode; footer?: ReactNode; wide?: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
+  const lang = useContext(LocaleContext);
   useEffect(() => {
     if (!open) return;
     const prev = document.activeElement as HTMLElement | null;
