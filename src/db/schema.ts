@@ -385,3 +385,27 @@ export const spotifyConnections = ossv2.table("spotify_connections", {
   createdAt: createdAt(),
   updatedAt: ts("updated_at").notNull().defaultNow(),
 });
+
+/* -------------------------- cross-device music bridge ------------------------- */
+export const musicBridgeDevices = ossv2.table(
+  "music_bridge_devices",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: userRef(),
+    tokenHash: text("token_hash").notNull().unique(),
+    platform: text("platform").notNull(), // android | windows
+    deviceName: text("device_name").notNull().default("Device"),
+    trackTitle: text("track_title"),
+    artist: text("artist"),
+    album: text("album"),
+    artwork: text("artwork"),
+    trackUrl: text("track_url"),
+    appName: text("app_name").notNull().default("Spotify"),
+    isPlaying: boolean("is_playing").notNull().default(false),
+    positionMs: integer("position_ms").notNull().default(0),
+    durationMs: integer("duration_ms").notNull().default(0),
+    updatedAt: ts("updated_at").notNull().defaultNow(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("music_bridge_user_updated_idx").on(t.userId, t.updatedAt)],
+);
