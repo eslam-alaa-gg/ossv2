@@ -17,7 +17,7 @@ const GOALS = [
 ];
 
 export default function Onboarding() {
-  const { user, patchUser, savePrefs, prefs } = useApp();
+  const { user, patchUser, savePrefs, prefs, t } = useApp();
   const { run } = useUI();
   const [step, setStep] = useState(0);
   const [goals, setGoals] = useState<string[]>([]);
@@ -55,19 +55,19 @@ export default function Onboarding() {
       <div className="w-full max-w-xl">
         <div className="mb-6 text-center">
           <p className="text-xs font-semibold tracking-[0.3em] text-muted">LIFE OS</p>
-          <h1 className="mt-3 text-2xl font-semibold">Let's set up your space{user ? `, ${user.displayName.split(" ")[0]}` : ""}</h1>
-          <p className="mt-1 text-sm text-muted">Every step is optional — you can change all of this later.</p>
+          <h1 className="mt-3 text-2xl font-semibold">{t("Let's set up your space")}{user ? `, ${user.displayName.split(" ")[0]}` : ""}</h1>
+          <p className="mt-1 text-sm text-muted">{t("Every step is optional — you can change all of this later.")}</p>
         </div>
         <Progress value={((step + 1) / steps.length) * 100} className="mb-5" />
         <div className="glass p-6">
-          <p className="mb-4 text-xs font-medium uppercase tracking-wider text-faint">Step {step + 1} of {steps.length} · {steps[step]}</p>
+          <p className="mb-4 text-xs font-medium uppercase tracking-wider text-faint">{t("Step")} {step + 1} {t("of")} {steps.length} · {t(steps[step])}</p>
           <AnimatePresence mode="wait">
             <motion.div key={step} initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16 }} transition={{ duration: 0.2 }}>
               {step === 0 && (
                 <div className="grid gap-2.5 sm:grid-cols-2">
                   {GOALS.map((g) => (
                     <button key={g.title} onClick={() => toggle(goals, setGoals, g.title)} className={chip(goals.includes(g.title))} aria-pressed={goals.includes(g.title)}>
-                      <span><span className="block font-medium">{g.title}</span><span className="text-xs text-muted">{g.category}</span></span>
+                      <span><span className="block font-medium">{t(g.title)}</span><span className="text-xs text-muted">{t(g.category)}</span></span>
                       {goals.includes(g.title) && <Check className="size-4 text-accent" />}
                     </button>
                   ))}
@@ -77,7 +77,7 @@ export default function Onboarding() {
                 <div className="grid gap-2.5 sm:grid-cols-2">
                   {PREDEFINED_HABITS_CLIENT.map((h) => (
                     <button key={h.key} onClick={() => toggle(habits, setHabits, h.key)} className={chip(habits.includes(h.key))} aria-pressed={habits.includes(h.key)}>
-                      <span className="font-medium">{h.name}</span>
+                      <span className="font-medium">{t(h.name)}</span>
                       {habits.includes(h.key) && <Check className="size-4 text-accent" />}
                     </button>
                   ))}
@@ -85,26 +85,26 @@ export default function Onboarding() {
               )}
               {step === 2 && (
                 <div className="space-y-4">
-                  <Field label="Timezone"><select className="input" value={tz} onChange={(e) => setTz(e.target.value)} aria-label="Timezone">{tzs.map((z) => <option key={z}>{z}</option>)}</select></Field>
-                  <Field label="Daily productivity goal (points)" hint="Tasks and habits are 1 point each; challenges and focus sessions are 2. Reaching the goal lights up your heatmap fully.">
-                    <Segmented value={String(daily) as string} onChange={(v) => setDaily(Number(v))} options={["3", "5", "8", "12"].map((v) => ({ value: v, label: v }))} label="Daily goal" />
+                  <Field label={t("Timezone")}><select className="input" value={tz} onChange={(e) => setTz(e.target.value)} aria-label={t("Timezone")}>{tzs.map((z) => <option key={z}>{z}</option>)}</select></Field>
+                  <Field label={t("Daily productivity goal (points)")} hint={t("Tasks and habits are 1 point each; challenges and focus sessions are 2. Reaching the goal lights up your heatmap fully.")}>
+                    <Segmented value={String(daily) as string} onChange={(v) => setDaily(Number(v))} options={["3", "5", "8", "12"].map((v) => ({ value: v, label: v }))} label={t("Daily goal")} />
                   </Field>
                 </div>
               )}
               {step === 3 && (
                 <div className="space-y-3 text-sm">
-                  <div className="flex items-center justify-between rounded-2xl border border-line bg-card p-4"><span>In-app reminders<span className="block text-xs text-muted">Tasks, habits and daily challenge</span></span><Switch checked={notif.inApp} onChange={(v) => setNotif({ ...notif, inApp: v })} label="In-app reminders" /></div>
-                  <div className="flex items-center justify-between rounded-2xl border border-line bg-card p-4"><span>Email reminders<span className="block text-xs text-muted">Requires an email provider on the server</span></span><Switch checked={notif.email} onChange={(v) => setNotif({ ...notif, email: v })} label="Email reminders" /></div>
-                  <p className="text-xs text-faint">Browser push can be enabled later in Settings.</p>
+                  <div className="flex items-center justify-between rounded-2xl border border-line bg-card p-4"><span>{t("In-app reminders")}<span className="block text-xs text-muted">{t("Tasks, habits and daily challenge")}</span></span><Switch checked={notif.inApp} onChange={(v) => setNotif({ ...notif, inApp: v })} label={t("In-app reminders")} /></div>
+                  <div className="flex items-center justify-between rounded-2xl border border-line bg-card p-4"><span>{t("Email reminders")}<span className="block text-xs text-muted">{t("Requires an email provider on the server")}</span></span><Switch checked={notif.email} onChange={(v) => setNotif({ ...notif, email: v })} label={t("Email reminders")} /></div>
+                  <p className="text-xs text-faint">{t("Browser push can be enabled later in Settings.")}</p>
                 </div>
               )}
             </motion.div>
           </AnimatePresence>
           <div className="mt-6 flex items-center justify-between">
-            <Button variant="ghost" onClick={() => (step < steps.length - 1 ? setStep(step + 1) : finish(true))} disabled={busy}>Skip {step < steps.length - 1 ? "this step" : "setup"}</Button>
+            <Button variant="ghost" onClick={() => (step < steps.length - 1 ? setStep(step + 1) : finish(true))} disabled={busy}>{t("Skip")} {t(step < steps.length - 1 ? "this step" : "setup")}</Button>
             <div className="flex gap-2">
-              {step > 0 && <Button onClick={() => setStep(step - 1)} disabled={busy}>Back</Button>}
-              {step < steps.length - 1 ? <Button variant="primary" onClick={() => setStep(step + 1)}>Continue <ArrowRight className="size-4 rtl:rotate-180" /></Button> : <Button variant="primary" loading={busy} onClick={() => finish(false)}>Finish setup</Button>}
+              {step > 0 && <Button onClick={() => setStep(step - 1)} disabled={busy}>{t("Back")}</Button>}
+              {step < steps.length - 1 ? <Button variant="primary" onClick={() => setStep(step + 1)}>{t("Continue")} <ArrowRight className="size-4 rtl:rotate-180" /></Button> : <Button variant="primary" loading={busy} onClick={() => finish(false)}>{t("Finish setup")}</Button>}
             </div>
           </div>
         </div>
