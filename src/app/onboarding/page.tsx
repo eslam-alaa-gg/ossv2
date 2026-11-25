@@ -17,7 +17,7 @@ const GOALS = [
 ];
 
 export default function Onboarding() {
-  const { user, patchUser, savePrefs, prefs, t } = useApp();
+  const { user, patchUser, savePrefs, prefs, lang, t } = useApp();
   const { run } = useUI();
   const [step, setStep] = useState(0);
   const [goals, setGoals] = useState<string[]>([]);
@@ -28,6 +28,15 @@ export default function Onboarding() {
   const [busy, setBusy] = useState(false);
   const steps = ["Goals", "Habits", "Routine", "Notifications"];
   const tzs = typeof Intl.supportedValuesOf === "function" ? Intl.supportedValuesOf("timeZone") : ["UTC"];
+  const timezoneLabel = (zone: string) => {
+    if (lang !== "ar") return zone;
+    try {
+      const parts = new Intl.DateTimeFormat("ar-EG", { timeZone: zone, timeZoneName: "long" }).formatToParts(new Date());
+      const offset = new Intl.DateTimeFormat("ar-EG", { timeZone: zone, timeZoneName: "longOffset" }).formatToParts(new Date()).find((part) => part.type === "timeZoneName")?.value;
+      const name = parts.find((part) => part.type === "timeZoneName")?.value;
+      return [name, offset].filter(Boolean).join(" · ") || t("Timezone");
+    } catch { return t("Timezone"); }
+  };
   const toggle = (arr: string[], set: (a: string[]) => void, v: string) => set(arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
 
   async function finish(skip = false) {
@@ -85,7 +94,7 @@ export default function Onboarding() {
               )}
               {step === 2 && (
                 <div className="space-y-4">
-                  <Field label={t("Timezone")}><select className="input" value={tz} onChange={(e) => setTz(e.target.value)} aria-label={t("Timezone")}>{tzs.map((z) => <option key={z}>{z}</option>)}</select></Field>
+                  <Field label={t("Timezone")}><select className="input" value={tz} onChange={(e) => setTz(e.target.value)} aria-label={t("Timezone")}>{tzs.map((z) => <option key={z} value={z}>{timezoneLabel(z)}</option>)}</select></Field>
                   <Field label={t("Daily productivity goal (points)")} hint={t("Tasks and habits are 1 point each; challenges and focus sessions are 2. Reaching the goal lights up your heatmap fully.")}>
                     <Segmented value={String(daily) as string} onChange={(v) => setDaily(Number(v))} options={["3", "5", "8", "12"].map((v) => ({ value: v, label: v }))} label={t("Daily goal")} />
                   </Field>
