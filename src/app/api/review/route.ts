@@ -27,8 +27,8 @@ export const GET = handle(async (req) => {
   const we = addDays(ws, 6);
   const cur = await stats(a, ws);
   const prev = await stats(a, addDays(ws, -7));
-  const incomplete = (await db.execute(sql`select count(*)::int c from tasks where user_id=${a.id} and due_date between ${ws}::date and ${we}::date and status in ('todo','in_progress')`)).rows[0] as { c: number };
-  const habitRows = (await db.execute(sql`select h.name, count(*)::int c from habit_logs l join habits h on h.id=l.habit_id where l.user_id=${a.id} and l.completed and l.date between ${ws}::date and ${we}::date group by h.name order by c desc limit 1`)).rows as { name: string; c: number }[];
+  const incomplete = (await db.execute(sql`select count(*)::int c from ossv2.tasks where user_id=${a.id} and due_date between ${ws}::date and ${we}::date and status in ('todo','in_progress')`)).rows[0] as { c: number };
+  const habitRows = (await db.execute(sql`select h.name, count(*)::int c from ossv2.habit_logs l join ossv2.habits h on h.id=l.habit_id where l.user_id=${a.id} and l.completed and l.date between ${ws}::date and ${we}::date group by h.name order by c desc limit 1`)).rows as { name: string; c: number }[];
   const inWeek = (d: Date | null) => {
     if (!d) return false;
     const s = todayIn(a.tz, d);

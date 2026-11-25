@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Copy, Monitor, Music2, Smartphone, Trash2 } from "lucide-react";
 import { useApp } from "@/components/providers";
 import { Badge, Button, Card, PageHeader } from "@/components/ui";
@@ -26,6 +27,8 @@ export function MusicBridgePanel() {
   const [pairing, setPairing] = useState<PairResult | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const searchParams = useSearchParams();
+  const autoPairTriggered = useRef(false);
 
   const load = useCallback(async () => {
     try {
@@ -61,6 +64,13 @@ export function MusicBridgePanel() {
       setBusy(false);
     }
   }
+
+  useEffect(() => {
+    if (searchParams.get("pair") !== "android" || autoPairTriggered.current) return;
+    autoPairTriggered.current = true;
+    window.history.replaceState({}, "", "/music-bridge");
+    void pair("android");
+  }, [searchParams]);
 
   async function revoke(deviceId: string) {
     setBusy(true);

@@ -112,7 +112,7 @@ export default function ProfilePage() {
   const first = trimmed || user.displayName;
   return (
     <>
-      <PageHeader title={t("Profile")} subtitle={t("How you appear across LIFE OS.")} />
+      <PageHeader title={t("Profile")} subtitle={t("How you appear across Ukiyo.")} />
       <div className="grid gap-[var(--gap)] lg:grid-cols-[360px_1fr]">
         <Card className="flex flex-col items-center py-8 text-center">
           <button onClick={() => setPic(true)} className="group relative rounded-full" aria-label={t("Change profile picture")}>

@@ -44,7 +44,7 @@ function Inner() {
     if (!r) return;
     setData((d) => d && { tasks: d.tasks.map((x) => (x.id === task.id ? r.task : x)) });
     if (r.xp) toast("success", `${t("Task completed")} · +${r.xp} XP`);
-    r.unlocked?.forEach((u) => toast("success", `🏆 ${t("Achievement unlocked")}: ${t(u)}`));
+    r.unlocked?.forEach((u) => toast("success", `${t("Achievement unlocked")}: ${t(u)}`));
     if (body.status === "completed") reload();
   }
   async function del(task: Task) {
@@ -77,7 +77,7 @@ function Inner() {
   const cols: { key: Task["status"]; label: string }[] = [{ key: "todo", label: t("To Do") }, { key: "in_progress", label: t("In Progress") }, { key: "completed", label: t("Completed") }];
   return (
     <>
-      <PageHeader title={t("Tasks")} subtitle={`${tasks.filter((t) => t.status === "todo" || t.status === "in_progress").length} {t("open")} · ${tasks.filter((t) => t.status === "completed").length} {t("completed")}`} actions={<Button variant="primary" onClick={() => setModal({})}><Plus className="size-4" /> {t("New task")}</Button>} />
+      <PageHeader title={t("Tasks")} subtitle={`${tasks.filter((t) => t.status === "todo" || t.status === "in_progress").length} ${t("open")} · ${tasks.filter((t) => t.status === "completed").length} ${t("completed")}`} actions={<Button variant="primary" onClick={() => setModal({})}><Plus className="size-4" /> {t("New task")}</Button>} />
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <Segmented value={view} onChange={setView} label={t("View")} options={[{ value: "list", label: t("List") }, { value: "board", label: t("Board") }, { value: "calendar", label: t("Calendar") }]} />
         {view !== "calendar" && (

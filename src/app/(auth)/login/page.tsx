@@ -28,7 +28,7 @@ export default function LoginPage() {
   }
 
   return (
-    <AuthShell title="Welcome back" subtitle="Sign in to your private workspace" footer={<>{t("New to LIFE OS?")} <Link href="/signup" className="font-medium text-accent">{t("Create an account")}</Link></>}>
+    <AuthShell title="Welcome back" subtitle="Sign in to your private workspace" footer={<>{t("New to Ukiyo?")} <Link href="/signup" className="font-medium text-accent">{t("Create an account")}</Link></>}>
       <GoogleSignInButton next="/dashboard" />
       <div className="my-5 flex items-center gap-3 text-xs text-faint"><span className="h-px flex-1 bg-[var(--border)]" /> {t("or use email")} <span className="h-px flex-1 bg-[var(--border)]" /></div>
       <form onSubmit={submit} className="space-y-4" noValidate>

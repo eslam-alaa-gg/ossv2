@@ -1,5 +1,5 @@
 "use client";
-import { Maximize2, Minimize2, Pause, Play, RotateCcw, Square, Volume2, VolumeX } from "lucide-react";
+import { ImagePlus, Maximize2, Minimize2, Pause, Play, RotateCcw, Square, Trash2, Volume2, VolumeX } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useApp } from "@/components/providers";
 import { PriorityBadge, type Task } from "@/components/task-form";
@@ -29,10 +29,14 @@ export default function FocusPage() {
   const [sound, setSound] = useState(prefs.focus.sound);
   const [volume, setVolume] = useState(prefs.focus.volume);
   const [audioOn, setAudioOn] = useState(false);
+  const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
+  const [imageMessage, setImageMessage] = useState("");
   const endAt = useRef(0);
   const amb = useRef<AmbientHandle | null>(null);
   const finishing = useRef(false);
   const restored = useRef(false);
+
+  useEffect(() => { let cancelled = false; try { const saved = localStorage.getItem("ukiyo.focus.background"); if (saved) void Promise.resolve().then(() => { if (!cancelled) setBackgroundImage(saved); }); } catch { /* storage may be unavailable */ } return () => { cancelled = true; }; }, []);
 
   // restore a session that is still running on the server (e.g. after reload)
   useEffect(() => {
@@ -47,7 +51,7 @@ export default function FocusPage() {
     if (finishing.current) return;
     finishing.current = true;
     const r = await run(() => api<{ xp: number; unlocked: string[] }>(`/api/focus/${id}`, { body: { action: "complete" } }));
-    if (r) { toast("success", r.xp ? ` ${t("Focus session complete")} · +${r.xp} XP` : t("Session complete")); r.unlocked.forEach((u) => toast("success", `🏆 ${t(u)}`)); }
+    if (r) { toast("success", r.xp ? ` ${t("Focus session complete")} · +${r.xp} XP` : t("Session complete")); r.unlocked.forEach((u) => toast("success", t(u))); }
     setPhase("idle"); setSid(null); setRemaining(minutes * 60); finishing.current = false; reload();
   }, [run, toast, minutes, reload]);
 
@@ -80,6 +84,52 @@ export default function FocusPage() {
 
   const setDuration = (m: number) => { if (phase !== "idle") return; const v = Math.min(240, Math.max(1, Math.round(m) || 1)); setMinutes(v); setRemaining(v * 60); setPlanned(v * 60); };
   const pickMode = (m: Mode) => { if (phase !== "idle") return; setMode(m); setDuration(MODES.find((x) => x.value === m)!.min); };
+
+  async function uploadFocusBackground(file: File) {
+    if (!file.type.startsWith("image/")) { setImageMessage(t("Choose an image file.")); return; }
+    const objectUrl = URL.createObjectURL(file);
+    try {
+      const img = new Image();
+      img.src = objectUrl;
+      await img.decode();
+      const scale = Math.min(1, 1920 / img.naturalWidth, 1920 / img.naturalHeight);
+      let width = Math.round(img.naturalWidth * scale);
+      let height = Math.round(img.naturalHeight * scale);
+      let quality = 0.84;
+      let result: Blob | null = null;
+      const canvas = document.createElement("canvas");
+      for (let attempt = 0; attempt < 14; attempt++) {
+        canvas.width = Math.max(1, Math.round(width));
+        canvas.height = Math.max(1, Math.round(height));
+        const context = canvas.getContext("2d");
+        if (!context) throw new Error("Image processing is not available in this browser.");
+        context.drawImage(img, 0, 0, canvas.width, canvas.height);
+        result = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/webp", quality));
+        if (result && result.size <= 400 * 1024) break;
+        if (quality > 0.5) quality -= 0.08;
+        else { width *= 0.82; height *= 0.82; quality = 0.82; }
+      }
+      if (!result || result.size > 400 * 1024) throw new Error("The image could not be reduced below 400 KB. Try a smaller image.");
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => typeof reader.result === "string" ? resolve(reader.result) : reject(new Error("Could not read the optimised image."));
+        reader.onerror = () => reject(new Error("Could not read the optimised image."));
+        reader.readAsDataURL(result!);
+      });
+      localStorage.setItem("ukiyo.focus.background", dataUrl);
+      setBackgroundImage(dataUrl);
+      setImageMessage(t("Background image saved. It appears in full-screen focus."));
+    } catch (e) {
+      setImageMessage(e instanceof Error ? e.message : t("Image upload failed."));
+    } finally {
+      URL.revokeObjectURL(objectUrl);
+    }
+  }
+  function removeFocusBackground() {
+    try { localStorage.removeItem("ukiyo.focus.background"); } catch { /* storage may be unavailable */ }
+    setBackgroundImage(null);
+    setImageMessage(t("Background image removed."));
+  }
 
   async function start() {
     const r = await run(() => api<{ session: Session }>("/api/focus", { body: { mode, minutes, taskId: taskId || null } }));
@@ -126,8 +176,30 @@ export default function FocusPage() {
   );
 
   if (zen) return (
-    <div className="fixed inset-0 z-[90] grid place-items-center overflow-y-auto" style={{ background: "linear-gradient(160deg,var(--bg),var(--bg2))" }}>
-      <div className="app-glow" /><div className="relative">{timer}</div>
+    <div className="fixed inset-0 z-[90] flex flex-col items-center justify-center overflow-y-auto p-3 sm:p-6">
+      {backgroundImage && <div className="absolute inset-0 scale-105 bg-cover bg-center" style={{ backgroundImage: `url(${backgroundImage})`, filter: "blur(14px)" }} />}
+      <div className="absolute inset-0 bg-black/45 backdrop-blur-[2px]" />
+      {!backgroundImage && <div className="app-glow" />}
+      <div className="relative z-10 flex w-full max-w-5xl flex-col items-center gap-5">
+        <div className="flex w-full flex-wrap items-center justify-center gap-3 rounded-2xl border border-white/10 bg-black/25 p-3 backdrop-blur-xl">
+          <select className="input w-auto" value={taskId} onChange={(e) => setTaskId(e.target.value)} disabled={phase !== "idle"} aria-label={t("Focus on a task (optional)")}><option value="">{t("No task — general focus")}</option>{data?.tasks.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}</select>
+          <Segmented value={mode} onChange={pickMode} label={t("Focus mode")} options={MODES.map((m) => ({ value: m.value, label: t(m.label) }))} />
+          {(mode === "focus" || mode === "custom") && <>
+            {PRESETS.map((p) => <button key={p} type="button" disabled={phase !== "idle"} onClick={() => setDuration(p)} aria-pressed={minutes === p} className={cn("chip px-3 py-1 text-sm", minutes === p && "!border-accent !text-fg", "disabled:opacity-40")}>{p} {t("min")}</button>)}
+            <label className="chip px-3 py-1 text-sm">{t("Custom")} <input type="number" min={1} max={240} disabled={phase !== "idle"} value={minutes} onChange={(e) => setDuration(Number(e.target.value))} className="w-14 bg-transparent text-center outline-none" aria-label={t("Custom minutes")} /> {t("min")}</label>
+          </>}
+        </div>
+        {timer}
+        <div className="flex flex-wrap items-center justify-center gap-3 rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-sm backdrop-blur-xl">
+          <span className="text-white/80">{t("Ambient sound")}</span>
+          <select className="input w-auto" value={sound} onChange={(e) => { setSound(e.target.value); setAudioOn(e.target.value !== "none"); }} aria-label={t("Ambient sound")}>
+            <option value="none">{t("Silent")}</option>
+            {SOUNDS.map((item) => <option key={item.id} value={item.id}>{t(item.label)}</option>)}
+          </select>
+          <Volume2 className="size-4 text-white/80" />
+          <input type="range" min={0} max={1} step={0.01} value={volume} onChange={(e) => setVolume(Number(e.target.value))} aria-label={t("Volume")} />
+        </div>
+      </div>
     </div>
   );
 
@@ -170,6 +242,17 @@ export default function FocusPage() {
               <input type="range" min={0} max={1} step={0.01} value={volume} onChange={(e) => setVolume(Number(e.target.value))} aria-label={t("Volume")} />
             </div>
             <p className="mt-2 text-xs text-faint">{t("Sounds are synthesised in your browser. Never autoplays; your choice is remembered.")}</p>
+          </Card>
+          <Card>
+            <div className="mb-3 flex items-center justify-between"><h2 className="text-sm font-medium text-muted">{t("Focus background")}</h2>{backgroundImage && <Badge tone="green">{t("Ready")}</Badge>}</div>
+            <label className="glass-btn btn-secondary flex h-10 cursor-pointer items-center justify-center gap-2 text-sm">
+              <ImagePlus className="size-4" /> {t("Upload background image")}
+              <input type="file" accept="image/*" className="sr-only" onChange={(e) => { const file = e.target.files?.[0]; if (file) void uploadFocusBackground(file); e.currentTarget.value = ""; }} />
+            </label>
+            <p className="mt-2 text-xs text-faint">{t("Images are automatically compressed to a maximum of 400 KB and blurred in full-screen focus.")}</p>
+            <p className="mt-2 text-xs text-muted">{t("Tap")} <a className="text-accent underline" href="https://share.google/XH6X3uwEOF0VNJKzi" target="_blank" rel="noreferrer">{t("here")}</a> {t("to reduce image quality before uploading.")}</p>
+            {imageMessage && <p role="status" className="mt-2 text-xs text-muted">{imageMessage}</p>}
+            {backgroundImage && <button type="button" onClick={removeFocusBackground} className="mt-2 flex items-center gap-1.5 text-xs text-muted hover:text-fg"><Trash2 className="size-3.5" /> {t("Remove background")}</button>}
           </Card>
           <Card>
             <h2 className="mb-3 text-sm font-medium text-muted">{t("Your focus")}</h2>

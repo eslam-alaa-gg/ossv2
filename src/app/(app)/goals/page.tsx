@@ -62,7 +62,7 @@ function Inner() {
   async function toggleMs(m: Milestone) {
     const r = await run(() => api<{ xp: number; unlocked: string[] }>(`/api/milestones/${m.id}`, { method: "PATCH", body: { completed: !m.completedAt } }));
     if (r?.xp) toast("success", `Milestone reached · +${r.xp} XP`);
-    r?.unlocked.forEach((u) => toast("success", `🏆 ${t(u)}`));
+    r?.unlocked.forEach((u) => toast("success", t(u)));
     reload();
   }
 
@@ -96,7 +96,7 @@ function Inner() {
       <Modal open={!!cur} onClose={() => setDetail(null)} title={cur ? t(cur.title) : t("Goal")} wide footer={cur && <>
         <Button variant="danger" className="me-auto" onClick={async () => { if (await confirm(t("Delete goal and its milestones?").replace("{title}", cur.title), t("Delete")) && (await run(() => api(`/api/goals/${cur.id}`, { method: "DELETE" }), t("Goal deleted")))) { setDetail(null); reload(); } }}>{t("Delete")}</Button>
         <Button onClick={() => { setEdit(cur); setDetail(null); }}><Pencil className="size-4" /> {t("Edit")}</Button>
-        {cur.status === "completed" ? <Button onClick={async () => { await run(() => api(`/api/goals/${cur.id}`, { method: "PATCH", body: { status: "active" } })); reload(); }}>{t("Reopen")}</Button> : <Button variant="primary" onClick={async () => { const r = await run(() => api<{ xp: number }>(`/api/goals/${cur.id}`, { method: "PATCH", body: { status: "completed" } })); if (r) { toast("success", r.xp ? `${t("Goal completed")} · +${r.xp} XP 🎉` : t("Goal completed")); reload(); } }}>{t("Mark goal completed")}</Button>}</>}>
+        {cur.status === "completed" ? <Button onClick={async () => { await run(() => api(`/api/goals/${cur.id}`, { method: "PATCH", body: { status: "active" } })); reload(); }}>{t("Reopen")}</Button> : <Button variant="primary" onClick={async () => { const r = await run(() => api<{ xp: number }>(`/api/goals/${cur.id}`, { method: "PATCH", body: { status: "completed" } })); if (r) { toast("success", r.xp ? `${t("Goal completed")} · +${r.xp} XP` : t("Goal completed")); reload(); } }}>{t("Mark goal completed")}</Button>}</>}>
         {cur && (
           <div className="space-y-5">
             <div className="flex flex-wrap gap-1.5"><Badge tone="accent">{t(cur.category)}</Badge><Badge>{t(TYPES[cur.type as keyof typeof TYPES])}</Badge><Badge>{t(cur.priority)} {t("priority")}</Badge>{cur.targetDate && <Badge>{t("Target")} {fmtShort(cur.targetDate, lang)}</Badge>}</div>
