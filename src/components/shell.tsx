@@ -238,7 +238,7 @@ function CommandMenu({ open, onClose }: { open: boolean; onClose: () => void }) 
 
 
 type QuickHabit = { id: string; name: string; kind: "standard" | "water" | "reading" | "learning"; target: number; todayAmount: number; todayDone: boolean; unit: string };
-type QuickTrackers = { today: string; water: { goal: number; total: number }; reading: { target: number; todayPages: number }; learning: { entries: { id: string; date: string; title: string }[] } };
+type QuickTrackers = { today: string; water: { goal: number; total: number }; reading: { target: number; todayPages: number }; learning: { target: number; todayCount: number; entries: { id: string; date: string; title: string }[] } };
 
 function HabitQuickPanel() {
   const { t } = useApp();
@@ -333,9 +333,9 @@ function HabitQuickPanel() {
                   {tracker.reading.todayPages < reading.target && <p className="mt-1 text-[11px] text-faint">{t("Goal not reached yet.")}</p>}
                 </div>}
                 {learning && tracker && <div className="rounded-xl border border-line bg-card p-3">
-                  <div className="mb-2 flex items-center gap-2"><Lightbulb className="size-4 text-accent" /><p className="flex-1 text-sm font-medium">{t("Learn Something New")}</p><span className="text-xs tabular-nums text-muted">{tracker.learning.entries.filter((x) => x.date === tracker.today).length}/{learning.target}</span></div>
+                  <div className="mb-2 flex items-center gap-2"><Lightbulb className="size-4 text-accent" /><p className="flex-1 text-sm font-medium">{t("Learn Something New")}</p><span className="text-xs tabular-nums text-muted">{tracker.learning.todayCount}/{learning.target}</span></div>
                   <form onSubmit={addLearning} className="flex gap-1.5"><input className="input min-w-0 flex-1 text-xs" value={learnTitle} onChange={(e) => setLearnTitle(e.target.value)} placeholder={t("What did you learn?")} maxLength={120} required /><button type="submit" disabled={busy} className="glass-btn btn-primary h-9 w-9 shrink-0 justify-center" aria-label={t("Save entry")}><Plus className="size-4" /></button></form>
-                  {tracker.learning.entries.filter((x) => x.date === tracker.today).length < learning.target && <p className="mt-1 text-[11px] text-faint">{t("Goal not reached yet.")}</p>}
+                  {tracker.learning.todayCount < learning.target && <p className="mt-1 text-[11px] text-faint">{t("Goal not reached yet.")}</p>}
                 </div>}
                 {standard.map((h) => <div key={h.id} className="rounded-xl border border-line bg-card p-3">
                   <div className="flex items-center gap-2"><p className="min-w-0 flex-1 truncate text-sm font-medium">{t(h.name)}</p><span className="text-xs tabular-nums text-muted">{h.todayAmount}/{h.target} {t(h.unit)}</span></div>
