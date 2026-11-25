@@ -42,7 +42,7 @@ function Brand({ collapsed }: { collapsed?: boolean }) {
   const { t } = useApp();
   return (
     <Link href="/dashboard" className="flex items-center gap-2.5 px-2" aria-label={t("Ukiyo home")}>
-      <span className="accent-fill grid size-9 place-items-center rounded-xl text-sm font-bold text-[var(--on-accent)] shadow-lg">L</span>
+      <span className="accent-fill grid size-9 place-items-center rounded-xl text-sm font-bold text-[var(--on-accent)] shadow-lg">U</span>
       {!collapsed && <span className="text-[15px] font-semibold tracking-[0.14em]">Ukiyo</span>}
     </Link>
   );
