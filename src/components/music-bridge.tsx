@@ -95,7 +95,7 @@ export function MusicBridgePanel() {
             <h2 className="font-semibold">{ar ? "الأغنية الحالية" : "Currently playing"}</h2>
             <p className="text-xs text-muted">{ar ? "تحديث تلقائي كل 3 ثوانٍ" : "Automatically refreshes every 3 seconds"}</p>
           </div>
-          <Badge tone={track && !track.idle ? "green" : "default"}>{track && !track.idle ? (track.playing ? (ar ? "يعمل الآن" : "Playing") : (ar ? "متوقف مؤقتًا" : "Paused")) : (ar ? "لا توجد أغنية" : "Nothing playing")}</Badge>
+          <Badge tone={track && !track.idle ? "green" : undefined}>{track && !track.idle ? (track.playing ? (ar ? "يعمل الآن" : "Playing") : (ar ? "متوقف مؤقتًا" : "Paused")) : (ar ? "لا توجد أغنية" : "Nothing playing")}</Badge>
         </div>
         {track && !track.idle && track.track ? (
           <div className="flex items-center gap-4">
@@ -123,7 +123,7 @@ export function MusicBridgePanel() {
         {pairing && <div className="space-y-2 rounded-xl border border-line bg-card p-3">
           <p className="text-sm font-medium">{ar ? "رمز الجهاز — انسخه واحفظه الآن" : "Device token — copy and save it now"}</p>
           <code className="block break-all text-xs">{pairing.token}</code>
-          <Button size="sm" variant="secondary" onClick={copyToken}><Copy className="size-4" /> {ar ? "نسخ الرمز" : "Copy token"}</Button>
+          <Button size="sm" variant="glass" onClick={copyToken}><Copy className="size-4" /> {ar ? "نسخ الرمز" : "Copy token"}</Button>
           <p className="text-xs text-muted">{ar ? "لن يظهر الرمز مرة أخرى بعد مغادرة الصفحة. لا تشاركه مع أي شخص." : "This token is shown only once. Do not share it."}</p>
         </div>}
         <div className="space-y-2">
