@@ -1035,8 +1035,22 @@ const ar: Record<string, string> = {
   "Reduced motion": "تقليل الحركة",
   "Stops animated gradients, pointer light and transitions": "يوقف التدرجات المتحركة وإضاءة المؤشر والانتقالات",
   "Enable “App background” under Gradients to layer a custom gradient on top.": "فعّل «خلفية التطبيق» من قسم التدرجات لإضافة تدرج مخصص فوق الخلفية.",
+  "Task overdue": "مهمة متأخرة",
+  "Task due today": "موعد المهمة اليوم",
+  "Daily challenge": "تحدي اليوم",
+  "Remember your habit:": "تذكّر عادتك:",
+  "Delete “{title}” and all its history?": "هل تريد حذف «{title}» وكل سجلها؟",
+  "Smartphone": "هاتف",
+  "Computer": "كمبيوتر",
+  "Speaker": "مكبر صوت",
+  "Tablet": "جهاز لوحي",
 };
 
 export function translate(lang: Lang, s: string): string {
   return lang === "ar" ? ar[s] ?? s : s;
+}
+
+export function translateError(lang: Lang, s: string): string {
+  if (lang !== "ar") return s;
+  return ar[s] ?? "حدث خطأ غير متوقع. حاول مرة أخرى.";
 }
