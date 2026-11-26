@@ -56,7 +56,7 @@ function Sidebar({ collapsed, setCollapsed }: { collapsed: boolean; setCollapsed
       <div className="mb-4 mt-1 flex items-center justify-between">
         <Brand collapsed={collapsed} />
       </div>
-      <nav className="flex-1 space-y-0.5 overflow-y-auto">
+      <nav className="flex-1 space-y-1 overflow-y-auto">
         {NAV.map((n) => {
           const active = path === n.href || path.startsWith(n.href + "/");
           return (
@@ -80,7 +80,7 @@ function SidebarUser({ collapsed }: { collapsed: boolean }) {
   if (!user) return null;
   return (
     <Link href="/profile" className="mt-2 flex items-center gap-3 rounded-[calc(var(--radius)*.6)] p-2 transition-colors hover:bg-card" aria-label={t("Open profile")}>
-      <Avatar size={34} ring />
+      <Avatar size={40} ring />
       {!collapsed && (
         <span className="min-w-0">
           <span className="block truncate text-sm font-medium">{user.displayName}</span>
@@ -109,7 +109,7 @@ function ProfileMenu() {
   return (
     <div ref={ref} className="relative">
       <button onClick={() => setOpen(!open)} aria-haspopup="menu" aria-expanded={open} aria-label={t("Account menu")} className="header-icon-btn rounded-full transition-transform active:scale-95">
-        <Avatar size={36} ring />
+        <Avatar size={40} ring />
       </button>
       <AnimatePresence>
         {open && (
@@ -442,7 +442,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <HabitQuickPanel />
           <div className="ms-auto flex min-w-0 items-center gap-1.5 sm:gap-2">
             <button type="button" onClick={() => patchUser({ language: lang === "ar" ? "en" : "ar" })} className="header-icon-btn glass-btn btn-ghost btn-icon h-9 w-9" aria-label={lang === "ar" ? t("Switch to English") : t("Switch to Arabic")} title={lang === "ar" ? t("English") : t("Arabic")}><Languages className="size-[19px]" /></button>
-            <Link href="/tasks?new=1" className="glass-btn btn-primary btn-sm hidden h-10 sm:inline-flex"><Plus className="size-4" /> {t("Create Task")}</Link>
+            <Link href="/tasks?new=1" className="glass-btn btn-primary btn-sm hidden h-9 px-3 text-xs sm:inline-flex"><Plus className="size-4" /> {t("Create Task")}</Link>
             <Bell_ />
             <ProfileMenu />
           </div>
