@@ -84,8 +84,8 @@ export function HabitQuickPanel() {
 
   useEffect(() => {
     if (!open) return;
-    const frame = requestAnimationFrame(reposition); // again once a language switch has flipped the page
-    void load();
+    // Next frame: fetch fresh data, and re-anchor once a language switch has flipped the page.
+    const frame = requestAnimationFrame(() => { reposition(); void load(); });
     const outside = (e: PointerEvent) => {
       const target = e.target as Node;
       if (!panel.current?.contains(target) && !button.current?.contains(target)) close();
@@ -140,7 +140,7 @@ export function HabitQuickPanel() {
   };
 
   const action = (row: (typeof rows)[number]) => {
-    if (!row.habit) return t("Add habit");
+    if (!row.habit) return t("Add");
     if (row.done) return t("Done");
     const step = quickStep(row.kind, row.amount, row.target);
     if (row.kind === "water") return `+${Number((step / 250).toFixed(1))} ${t(step === 250 ? "cup" : "cups")}`;
@@ -222,7 +222,7 @@ export function HabitQuickPanel() {
                           <span className="line-clamp-2 min-h-[2.4em] text-[11px] font-medium leading-tight">{t(row.name)}</span>
                           <span className="text-sm font-semibold tabular-nums" dir="ltr">{percent}%</span>
                           <span className="text-[10px] tabular-nums text-muted">{row.habit ? `${shown.amount}/${shown.target} ${t(row.kind === "water" ? "cups" : row.habit.unit)}` : t("Not added yet")}</span>
-                          <span className={cn("chip", row.done && "!text-emerald-400")} aria-hidden>{action(row)}</span>
+                          <span className={cn("chip whitespace-nowrap", row.done && "!text-emerald-400")} aria-hidden>{action(row)}</span>
                           <Link href={`/habits?tab=${row.kind}`} onClick={close} className="text-[10px] text-muted underline underline-offset-2 hover:text-fg">{t("Details")}</Link>
                         </li>
                       );
