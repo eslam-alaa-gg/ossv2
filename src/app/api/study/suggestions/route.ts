@@ -1,7 +1,7 @@
 import { and, asc, eq, gte, inArray, lte } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { dailyStudySuggestionDecisions, flashcards, focusSessions, tasks } from "@/db/schema";
+import { dailyStudySuggestionDecisions, flashcards, focusSessions, studySubjects, tasks } from "@/db/schema";
 import { body, handle } from "@/lib/server/api";
 import { requireUser } from "@/lib/server/auth";
 import { todayIn, weekStart } from "@/lib/dates";
@@ -14,8 +14,9 @@ export const GET = handle(async () => {
   const weekStartAt = new Date(weekStart(today) + "T00:00:00.000Z");
   const [taskRows, dueCards, decisions, focusRows] = await Promise.all([
     db.select().from(tasks).where(eq(tasks.userId, auth.id)),
-    db.select({ id: flashcards.id, subjectId: flashcards.subjectId })
+    db.select({ id: flashcards.id, subjectId: flashcards.subjectId, subjectName: studySubjects.name })
       .from(flashcards)
+      .leftJoin(studySubjects, and(eq(flashcards.subjectId, studySubjects.id), eq(studySubjects.userId, auth.id)))
       .where(and(eq(flashcards.userId, auth.id), lte(flashcards.dueAt, new Date())))
       .orderBy(asc(flashcards.dueAt))
       .limit(500),
