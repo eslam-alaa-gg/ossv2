@@ -3,6 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { Disc3, Link2Off, Monitor, Music2, Pause, Play, SkipBack, SkipForward, Smartphone, Speaker } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { Suspense, useEffect, useState } from "react";
 import { useApp } from "@/components/providers";
 import { MusicBridgePanel } from "@/components/music-bridge";
@@ -21,7 +22,7 @@ type Device = { id: string; name: string; type: string; active: boolean; restric
 type Recent = { playedAt: string; track: NPTrack }[];
 
 function MusicBridgeLink({ label }: { label: string }) {
-  return <a href="/music?tab=detection&pair=android" className="glass-btn btn-secondary inline-flex h-10 items-center gap-2 px-4 text-sm"><Smartphone className="size-4" />{label}</a>;
+  return <Link href="/music?tab=detection&pair=android" className="glass-btn btn-secondary inline-flex h-10 items-center gap-2 px-4 text-sm"><Smartphone className="size-4" />{label}</Link>;
 }
 
 function DeviceIcon({ type }: { type: string }) {
@@ -104,7 +105,7 @@ function Inner() {
           <span className="mx-auto mb-4 grid size-16 place-items-center rounded-3xl bg-card text-accent"><Music2 className="size-8" /></span>
           <h2 className="text-xl font-semibold">{t("Connect Spotify")}</h2>
           <p className="mx-auto mt-2 max-w-md text-sm text-muted">{t("See what's playing, browse recently played tracks, control playback (Premium) and let album artwork tint your workspace.")}</p>
-          <a href="/api/spotify/connect" className="glass-btn btn-primary mt-6 h-11 px-6"><Music2 className="size-4" /> {t("Connect Spotify")}</a>
+          <Link href="/api/spotify/connect" prefetch={false} className="glass-btn btn-primary mt-6 h-11 px-6"><Music2 className="size-4" /> {t("Connect Spotify")}</Link>
           <div className="mx-auto mt-6 max-w-sm rounded-xl bg-card p-4 text-start text-xs text-muted"><p className="mb-1.5 font-medium text-fg">{t("Permissions requested (minimum needed)")}</p><ul className="space-y-1"><li>{t("• Read your current playback & devices")}</li><li>{t("• Read recently played tracks")}</li><li>{t("• Control playback (Premium only)")}</li><li>{t("• Read your plan type to know if controls work")}</li></ul></div>
         </Card>
       </>

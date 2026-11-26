@@ -35,12 +35,13 @@ export const NAV = [
 
 export function useSignOut() {
   const { user } = useApp();
+  const userId = user?.id;
   return useCallback(async () => {
-    if (user?.id && navigator.onLine) await syncOfflineQueue(user.id);
+    if (userId && navigator.onLine) await syncOfflineQueue(userId);
     await clearOfflineData();
     await api("/api/auth/logout", { method: "POST" }).catch(() => {});
     window.location.href = "/login";
-  }, [user?.id]);
+  }, [userId]);
 }
 
 function Brand({ collapsed }: { collapsed?: boolean }) {

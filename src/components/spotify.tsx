@@ -191,15 +191,16 @@ type BridgeNowPlaying = {
 };
 
 /** Responsive dashboard widget. Spotify takes priority; paired-device detection is the fallback. */
-export function NowPlayingWidget() {
+export function NowPlayingWidget({ source = "spotify" }: { source?: "spotify" | "detection" | "youtube" }) {
   const { t: tr } = useApp();
   const { status, np, error, errorCode, loadingStatus, refresh } = useSpotify();
   const progress = useProgress(np);
-  const spotifyTrack = np && !np.idle ? np.track : null;
+  const spotifyTrack = source === "spotify" && np && !np.idle ? np.track : null;
   const [bridge, setBridge] = useState<BridgeNowPlaying | null>(null);
+  const [youtubeQuery, setYoutubeQuery] = useState("");
 
   useEffect(() => {
-    if (spotifyTrack) return;
+    if (source !== "detection" || spotifyTrack) return;
     let stopped = false;
     let inFlight = false;
     let timer: number | null = null;
@@ -225,9 +226,20 @@ export function NowPlayingWidget() {
       if (timer) window.clearInterval(timer);
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [spotifyTrack?.id]);
+  }, [source, spotifyTrack?.id]);
 
-  if (loadingStatus && !bridge) return <Skeleton className="h-[148px]" />;
+  if (source === "youtube") {
+    return (
+      <Card className="space-y-3">
+        <div className="flex items-center gap-3"><span className="grid size-11 place-items-center rounded-xl bg-card text-accent"><Music2 className="size-5" /></span><div className="min-w-0"><p className="font-medium">{tr("YouTube Music")}</p><p className="text-xs text-muted">{tr("Search and continue playback in the official YouTube Music app or website.")}</p></div></div>
+        <form className="flex flex-col gap-2 sm:flex-row" onSubmit={(event) => event.preventDefault()}>
+          <input className="input min-w-0 flex-1" value={youtubeQuery} onChange={(event) => setYoutubeQuery(event.target.value)} placeholder={tr("Search YouTube Music")} maxLength={120} aria-label={tr("Search YouTube Music")} />
+          <a className="glass-btn btn-primary justify-center" href={youtubeQuery.trim() ? `https://music.youtube.com/search?q=${encodeURIComponent(youtubeQuery.trim())}` : "https://music.youtube.com"} target="_blank" rel="noreferrer noopener">{tr("Open YouTube Music")}</a>
+        </form>
+      </Card>
+    );
+  }
+  if (source === "spotify" && loadingStatus && !bridge) return <Skeleton className="h-[148px]" />;
   const bridgeTrack = bridge && !bridge.idle ? bridge.track ?? null : null;
   const title = spotifyTrack?.title ?? bridgeTrack?.title ?? null;
   const artists = spotifyTrack ? spotifyTrack.artists.map((artist) => artist.name).join(", ") : bridgeTrack?.artist ?? "";
@@ -237,17 +249,17 @@ export function NowPlayingWidget() {
   const device = spotifyTrack ? (np && !np.idle ? np.device?.name : "") : bridge?.device?.name ?? bridgeTrack?.appName ?? "";
   const duration = spotifyTrack?.durationMs ?? bridge?.durationMs ?? 0;
   const position = spotifyTrack ? progress : bridge?.progressMs ?? 0;
-  const href = spotifyTrack ? "/music?tab=spotify" : "/music?tab=detection";
+  const href = source === "detection" ? "/music?tab=detection" : "/music?tab=spotify";
 
-  if (!title && (!status?.configured || !status.connected)) {
+  if (source === "spotify" && !title && (!status?.configured || !status.connected)) {
     return (
       <Card className="now-playing-widget flex items-center gap-4">
         <div className="grid size-14 shrink-0 place-items-center rounded-2xl bg-card text-accent"><Music2 className="size-6" /></div>
         <div className="min-w-0 flex-1">
           <p className="font-medium">{tr("Music")}</p>
-          <p className="text-sm text-muted">{tr("Connect Spotify or pair a device to see what's playing.")}</p>
+          <p className="text-sm text-muted">{tr("Connect Spotify to see what's playing.")}</p>
         </div>
-        <Link href="/music" className="glass-btn btn-sm">{tr("Open Music")}</Link>
+        <Link href="/music" className="glass-btn btn-sm">{tr("Connect Spotify")}</Link>
       </Card>
     );
   }
@@ -273,7 +285,7 @@ export function NowPlayingWidget() {
             {duration > 0 && <div className="mt-2 flex items-center gap-2 text-[11px] tabular-nums text-faint"><span>{fmtMs(position)}</span><Progress value={(position / duration) * 100} className="h-1 flex-1" /><span>-{fmtMs(duration - position)}</span></div>}
           </> : <>
             <p className="font-medium">{tr("Nothing playing")}</p>
-            <p className="text-sm text-muted">{tr("Start playback or pair a device to show it here.")}</p>
+            <p className="text-sm text-muted">{source === "detection" ? tr("Start music on a paired device to show it here.") : tr("Start playback in Spotify to show it here.")}</p>
           </>}
         </div>
         <Link href={href} className="glass-btn btn-icon shrink-0" aria-label={tr("Open Music Hub")}><Music2 className="size-4" /></Link>
