@@ -143,7 +143,7 @@ export default function FocusPage() {
       });
       localStorage.setItem("ukiyo.focus.background", dataUrl);
       setBackgroundImage(dataUrl);
-      setImageMessage(t("Background image saved. It appears in full-screen focus."));
+      setImageMessage(t("Background image saved. It appears in the Focus Room and immersive focus mode."));
     } catch (e) {
       setImageMessage(e instanceof Error ? e.message : t("Image upload failed."));
     } finally {
@@ -215,7 +215,6 @@ export default function FocusPage() {
         <div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: `url(${backgroundImage})`, backgroundSize: "cover", backgroundPosition: "center center" }} aria-hidden />
       ) : <div className="absolute inset-0 app-glow" />}
       <div className="absolute inset-0 bg-black/35" aria-hidden />
-      {!backgroundImage && <div className="app-glow" />}
       <div className="relative z-10 flex w-full max-w-5xl flex-col items-center gap-5">
         <div className="flex w-full flex-wrap items-center justify-center gap-3 rounded-2xl border border-white/10 bg-black/25 p-3 backdrop-blur-xl">
           <select className="input w-auto" value={taskId} onChange={(e) => setTaskId(e.target.value)} disabled={phase !== "idle"} aria-label={t("Focus on a task (optional)")}><option value="">{t("No task — general focus")}</option>{data?.tasks.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}</select>
@@ -243,6 +242,11 @@ export default function FocusPage() {
   return (
     <>
       <PageHeader title={t("Focus Room")} subtitle={t("Deep work, one session at a time.")} />
+      {backgroundImage && <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden>
+        <div className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-45" style={{ backgroundImage: `url(${backgroundImage})` }} />
+        <div className="absolute inset-0 bg-gradient-to-b from-[color-mix(in_srgb,var(--bg)_48%,transparent)] via-[color-mix(in_srgb,var(--bg)_72%,transparent)] to-[var(--bg)]" />
+      </div>}
+      <div className="relative z-10">
       <div className="mb-4 flex justify-center"><FocusNowPlaying /></div>
       <div className="grid gap-[var(--gap)] lg:grid-cols-[1fr_340px]">
         <Card className="flex flex-col items-center py-8">
@@ -287,7 +291,7 @@ export default function FocusPage() {
               <ImagePlus className="size-4" /> {t("Upload background image")}
               <input type="file" accept="image/*" className="sr-only" onChange={(e) => { const file = e.target.files?.[0]; if (file) void uploadFocusBackground(file); e.currentTarget.value = ""; }} />
             </label>
-            <p className="mt-2 text-xs text-faint">{t("Images are automatically compressed to a maximum of 400 KB and blurred in full-screen focus.")}</p>
+            <p className="mt-2 text-xs text-faint">{t("Images are compressed to 400 KB or less and appear in both the Focus Room and immersive focus mode.")}</p>
             <p className="mt-2 text-xs text-muted">{t("Tap")} <a className="text-accent underline" href="https://share.google/XH6X3uwEOF0VNJKzi" target="_blank" rel="noreferrer">{t("here")}</a> {t("to reduce image quality before uploading.")}</p>
             {imageMessage && <p role="status" className="mt-2 text-xs text-muted">{imageMessage}</p>}
             {backgroundImage && <button type="button" onClick={removeFocusBackground} className="mt-2 flex items-center gap-1.5 text-xs text-muted hover:text-fg"><Trash2 className="size-3.5" /> {t("Remove background")}</button>}
@@ -304,6 +308,7 @@ export default function FocusPage() {
       {!data?.sessions.length ? <EmptyState icon={<Play className="size-5" />} title={t("No sessions yet")} text={t("Finish your first session and it will be recorded here.")} /> : (
         <Card pad={false}><ul className="divide-y divide-[var(--border)]">{data.sessions.map((s) => <li key={s.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm"><span className="min-w-0"><span className="block truncate">{s.taskTitle ?? t(MODES.find((m) => m.value === s.mode)?.label ?? s.mode)}</span><span className="text-xs text-faint">{new Date(s.startedAt).toLocaleString(lang === "ar" ? "ar-EG" : "en", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span></span><span className="flex items-center gap-2"><Badge tone={s.status === "completed" ? "green" : undefined}>{t(t(s.status === "completed" ? "Completed" : "Ended early"))}</Badge><span className="tabular-nums text-muted">{Math.round(s.actualSeconds / 60)}m</span></span></li>)}</ul></Card>
       )}
+      </div>
     </>
   );
 }
