@@ -184,9 +184,11 @@ export default function FocusPage() {
   const keyboardActions = useRef({
     phase, sound, zen, start: () => {}, pause: () => {}, resume: () => {}, toggleZen: () => {},
   });
-  keyboardActions.current = {
-    phase, sound, zen, start: () => { void start(); }, pause, resume, toggleZen: () => { void toggleZen(); },
-  };
+  useEffect(() => {
+    keyboardActions.current = {
+      phase, sound, zen, start: () => { void start(); }, pause, resume, toggleZen: () => { void toggleZen(); },
+    };
+  });
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       const target = event.target;
