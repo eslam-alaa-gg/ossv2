@@ -14,7 +14,7 @@ export function FocusBackground({ image, blur }: { image: string; blur: number }
         draggable={false}
         data-testid="focus-bg-image"
         className="pointer-events-none absolute max-w-none object-cover object-center"
-        style={{ top: -bleed, left: -bleed, width: `calc(100% + ${bleed * 2}px)`, height: `calc(100% + ${bleed * 2}px)`, filter: blur ? `blur(${blur}px)` : "none", transform: "translateZ(0)" }}
+        style={{ top: -bleed, left: -bleed, width: `calc(100% + ${bleed * 2}px)`, height: `calc(100% + ${bleed * 2}px)`, filter: blur ? `blur(${blur}px)` : "none", WebkitFilter: blur ? `blur(${blur}px)` : "none", transform: "translate3d(0,0,0)", willChange: blur ? "filter" : "auto" }}
       />
     </div>
   );
