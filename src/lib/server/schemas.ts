@@ -18,7 +18,7 @@ export const taskSchema = z.object({
   priority: z.enum(["low", "medium", "high", "urgent"]).default("medium"),
   status: z.enum(["todo", "in_progress", "completed", "archived"]).default("todo"),
   dueDate: dateString,
-  dueTime: z.string().regex(/^([01]\\d|2[0-3]):[0-5]\\d$/).nullable().default(null),
+  dueTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/).nullable().default(null),
   reminderMinutes: z.number().int().min(0).max(10080).nullable().default(null),
   tags: z.array(z.string().trim().min(1).max(30)).max(20).default([]),
   recurrence: z.enum(["none", "daily", "weekly", "monthly"]).default("none"),
@@ -33,6 +33,6 @@ export const habitSchema = z.object({
   days: z.array(z.number().int().min(0).max(6)).length(7).or(z.array(z.number().int().min(0).max(6)).max(7)).default([0,1,2,3,4,5,6]),
   target: z.number().int().min(1).max(100000).default(1),
   unit: z.string().max(20).default(""),
-  reminderTime: z.string().regex(/^([01]\\d|2[0-3]):[0-5]\\d$/).nullable().default(null),
+  reminderTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/).nullable().default(null),
   archived: z.boolean().default(false),
 });
