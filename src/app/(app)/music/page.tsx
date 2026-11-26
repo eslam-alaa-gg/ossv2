@@ -98,7 +98,7 @@ function Inner() {
   if (!connected) {
     return (
       <>
-        <PageHeader title={t("Music Hub")} subtitle={t("Your Spotify, inside Ukiyo.")} actions={<MusicBridgeLink label={lang === "ar" ? "الحصول على رمز الجهاز من Ukiyo" : "Get device token from OSSv2"} />} />
+        <PageHeader title={t("Music Hub")} subtitle={t("Your Spotify, inside Ukiyo.")} actions={<div className="flex flex-wrap items-center justify-end gap-2">{tabControl}<MusicBridgeLink label={lang === "ar" ? "الحصول على رمز الجهاز من Ukiyo" : "Get device token from Ukiyo"} /></div>} />
         {(urlError || errorCode === "expired") && <p role="alert" className="mb-4 rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">{errorCode === "expired" ? t("Your Spotify authorization expired. Please reconnect.") : t(ERRORS[urlError!] ?? "Spotify returned an error: {error}").replace("{error}", urlError ?? "")}</p>}
         <Card className="mx-auto max-w-xl py-10 text-center">
           <span className="mx-auto mb-4 grid size-16 place-items-center rounded-3xl bg-card text-accent"><Music2 className="size-8" /></span>
