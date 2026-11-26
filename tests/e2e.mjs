@@ -297,6 +297,53 @@ await test("water, reading and learning trackers persist per user and update lin
   assert.equal((await B.req("DELETE", `/api/trackers/reading?id=${tracker.reading.entries[0].id}`)).status, 404);
 });
 
+
+await test("focus pause and resume preserve active time and enforce session ownership", async () => {
+  const session = (await A.req("POST", "/api/focus", { mode: "focus", minutes: 5 })).json.session;
+  assert.ok(session?.id);
+  const paused = await A.req("POST", `/api/focus/${session.id}`, { action: "pause" });
+  assert.equal(paused.status, 200, paused.text);
+  assert.equal(paused.json.session.status, "paused");
+  assert.equal((await A.req("POST", `/api/focus/${session.id}`, { action: "complete" })).status, 400);
+  assert.equal((await B.req("POST", `/api/focus/${session.id}`, { action: "resume" })).status, 404);
+  const resumed = await A.req("POST", `/api/focus/${session.id}`, { action: "resume" });
+  assert.equal(resumed.status, 200, resumed.text);
+  assert.equal(resumed.json.session.status, "running");
+  const ended = await A.req("POST", `/api/focus/${session.id}`, { action: "end" });
+  assert.equal(ended.status, 200);
+  assert.equal(ended.json.xp, 0);
+  assert.ok(ended.json.session.actualSeconds <= 5);
+});
+
+await test("Focus background and custom font uploads are validated and private per account", async () => {
+  const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
+  const imageForm = new FormData();
+  imageForm.append("file", new Blob([png], { type: "image/png" }), "focus.png");
+  const uploadedImage = await A.req("POST", "/api/me/focus-background", imageForm);
+  assert.equal(uploadedImage.status, 200, uploadedImage.text);
+  const image = await A.req("GET", "/api/me/focus-background", undefined, true);
+  assert.equal(image.status, 200);
+  assert.equal(image.headers.get("content-type"), "image/png");
+  assert.equal((await B.req("GET", "/api/me/focus-background")).status, 404);
+  const invalidImage = new FormData();
+  invalidImage.append("file", new Blob(["not an image"], { type: "image/png" }), "bad.png");
+  assert.equal((await A.req("POST", "/api/me/focus-background", invalidImage)).status, 400);
+  assert.equal((await A.req("DELETE", "/api/me/focus-background", {})).status, 200);
+
+  const fontForm = new FormData();
+  fontForm.append("file", new Blob([Buffer.from("wOF2test-font-signature")], { type: "font/woff2" }), "custom.woff2");
+  const uploadedFont = await A.req("POST", "/api/me/font", fontForm);
+  assert.equal(uploadedFont.status, 200, uploadedFont.text);
+  const meta = await A.req("GET", "/api/me/font?meta=1");
+  assert.equal(meta.status, 200);
+  assert.equal(meta.json.mime, "font/woff2");
+  const font = await A.req("GET", "/api/me/font", undefined, true);
+  assert.equal(font.status, 200);
+  assert.equal(font.headers.get("content-type"), "font/woff2");
+  assert.equal((await B.req("GET", "/api/me/font?meta=1")).status, 404);
+  assert.equal((await A.req("DELETE", "/api/me/font", {})).status, 200);
+});
+
 /* ---------------- demo ---------------- */
 await test("demo login creates authenticated, seeded, isolated session", async () => {
   const r = await D.req("POST", "/api/auth/demo", { timezone: "UTC" });
