@@ -45,7 +45,11 @@ async function session(browser, options = {}) {
 const habitsByKind = async (api) => Object.fromEntries((await api("GET", "/api/habits")).habits.map((h) => [h.kind, h]));
 const panel = (page) => page.locator("#habit-quick-panel");
 async function openPanel(page) {
-  if (!(await panel(page).isVisible())) await page.getByRole("button", { name: /Habit quick tracker|متابعة العادات السريعة/ }).click();
+  const trigger = page.getByRole("button", { name: /Habit quick tracker|متابعة العادات السريعة/ });
+  if ((await trigger.getAttribute("aria-expanded")) !== "true") {
+    await panel(page).waitFor({ state: "detached" }); // let a closing panel finish
+    await trigger.click();
+  }
   await panel(page).locator("[data-habit]").first().waitFor();
   await pause(300);
 }
@@ -95,7 +99,11 @@ async function checkGrid(page, label) {
   }
   return list;
 }
-const saved = (page) => page.waitForResponse((r) => r.url().includes("/api/me/prefs") && r.request().method() === "PATCH" && r.ok());
+function saved(page) {
+  const response = page.waitForResponse((r) => r.url().includes("/api/me/prefs") && r.request().method() === "PATCH" && r.ok());
+  response.catch(() => {}); // reported by the step that awaits it
+  return response;
+}
 async function center(locator) { const b = await locator.boundingBox(); return { x: b.x + b.width / 2, y: b.y + b.height / 2 }; }
 async function mouseDrag(page, from, to, during) {
   await page.mouse.move(from.x, from.y);
@@ -156,7 +164,15 @@ async function focusChecks(page, label) {
     assert.ok(original.startsWith("data:image/"));
   });
   const full = async () => { await page.getByRole("button", { name: "Fullscreen focus mode" }).click(); await page.getByRole("button", { name: "Exit fullscreen focus" }).waitFor(); await pause(700); };
-  const exit = async () => { await page.getByRole("button", { name: "Exit fullscreen focus" }).click(); await pause(400); };
+  const exit = async () => {
+    await page.getByRole("button", { name: "Exit fullscreen focus" }).click();
+    await pause(400);
+    const state = await Promise.race([
+      page.evaluate(() => new Promise((r) => requestAnimationFrame(() => r(JSON.stringify({ fullscreen: !!document.fullscreenElement, w: innerWidth, h: innerHeight, scrollY }))))),
+      pause(4000).then(() => "no animation frame within 4s"),
+    ]);
+    console.log(`     after leaving full screen: ${state}`);
+  };
   const clip = { x: 4, y: 4, width: 70, height: 70 };
   await step(`${label}: full-screen focus blurs the image only, not the controls`, async () => {
     await full();
@@ -183,6 +199,7 @@ async function focusChecks(page, label) {
   });
   await step(`${label}: blur setting and strength survive a refresh`, async () => {
     const stored = page.waitForResponse((r) => r.url().includes("/api/me/prefs") && r.ok() && r.request().postData()?.includes('"blurAmount":30'));
+    stored.catch(() => {});
     await page.getByRole("switch", { name: "Blur background" }).click();
     await page.getByRole("slider", { name: "Blur strength" }).fill("30");
     await stored;
@@ -232,7 +249,7 @@ const desk = await session(browser);
     assert.match(await panel(page).evaluate((e) => getComputedStyle(e).backdropFilter), /blur/);
     assert.equal(await overall(page), 0);
     await shot(page, "desktop-panel-empty");
-    await page.keyboard.press("Escape");
+    await page.keyboard.press("Escape"); await panel(page).waitFor({ state: "detached" });
     await panel(page).waitFor({ state: "hidden" });
     await openPanel(page);
     await page.mouse.click(1300, 900);
@@ -283,12 +300,12 @@ const desk = await session(browser);
     await ring(page, "water").click();
     await expectPercent(page, "water", 25);
     await page.getByText("2/8 cups today", { exact: false }).waitFor();
-    await page.keyboard.press("Escape");
+    await page.keyboard.press("Escape"); await panel(page).waitFor({ state: "detached" });
     await page.getByRole("tab", { name: "Water" }).click();
     await page.getByRole("button", { name: "+1 cup", exact: true }).click();
     await openPanel(page);
     await expectPercent(page, "water", 37);
-    await page.keyboard.press("Escape");
+    await page.keyboard.press("Escape"); await panel(page).waitFor({ state: "detached" });
   });
 
   await step("progress stops at the target, including parallel taps", async () => {
@@ -397,7 +414,7 @@ const desk = await session(browser);
     await mouseDrag(page, from, { x: from.x + 8, y: from.y + 6 });
     await settle(page);
     await page.mouse.move(from.x, from.y); await page.mouse.down(); await page.mouse.move(from.x + 500, from.y + 400, { steps: 10 });
-    await page.keyboard.press("Escape"); await page.mouse.up();
+    await page.keyboard.press("Escape"); await panel(page).waitFor({ state: "detached" }); await page.mouse.up();
     await settle(page);
     page.off("request", count);
     assert.equal(writes, 0);
@@ -465,7 +482,7 @@ const desk = await session(browser);
     await settle(page);
     const reset = byId(await checkGrid(page, "reset"));
     assert.ok(Object.values(reset).every((w) => w.span === 6 && w.fixed === "auto"));
-    await page.keyboard.press("Escape");
+    await page.keyboard.press("Escape"); await panel(page).waitFor({ state: "detached" });
   });
 
   await step("dashboard: controls inside widgets still work", async () => {
@@ -495,7 +512,7 @@ const desk = await session(browser);
     assert.equal(await page.locator("html").getAttribute("dir"), "rtl");
     const list = byId(await checkGrid(page, "rtl"));
     assert.ok(list.progress.x > list.streak.x, "first column is on the right");
-    await openPanel(page); await insideViewport(page, panel(page)); await shot(page, "desktop-arabic-panel"); await page.keyboard.press("Escape");
+    await openPanel(page); await insideViewport(page, panel(page)); await shot(page, "desktop-arabic-panel"); await page.keyboard.press("Escape"); await panel(page).waitFor({ state: "detached" });
     const response = saved(page);
     const from = await center(page.locator('[data-widget="progress"] .dash-handle'));
     await mouseDrag(page, from, { x: from.x - list.progress.width - 12, y: from.y });
@@ -525,6 +542,8 @@ await step("tablet: two-column layout without overlap", async () => {
 /* ============================= mobile (touch) ============================ */
 {
   const { page, context, api } = await session(browser, { ...devices["Pixel 7"] });
+  // Optionally behave like phones without element full screen (the app then uses its in-page immersive mode).
+  if (process.env.MOBILE_NO_FULLSCREEN) await context.addInitScript(() => { delete Element.prototype.requestFullscreen; });
   const cdp = await context.newCDPSession(page);
   await page.goto("/dashboard"); await settle(page);
 
@@ -533,7 +552,7 @@ await step("tablet: two-column layout without overlap", async () => {
       await page.setViewportSize({ width, height: 740 });
       await openPanel(page); await insideViewport(page, panel(page)); await noSidewaysScroll(page);
       if (width === 320) await shot(page, "mobile-320-panel");
-      await page.keyboard.press("Escape"); await panel(page).waitFor({ state: "hidden" });
+      await page.keyboard.press("Escape"); await panel(page).waitFor({ state: "detached" }); await panel(page).waitFor({ state: "hidden" });
     }
     await page.setViewportSize({ width: 390, height: 844 });
     await openPanel(page);
