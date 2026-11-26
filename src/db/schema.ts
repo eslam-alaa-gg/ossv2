@@ -256,6 +256,8 @@ export const focusSessions = ossv2.table(
     mode: text("mode").notNull().default("focus"), // focus | short_break | long_break | custom
     plannedSeconds: integer("planned_seconds").notNull(),
     startedAt: ts("started_at").notNull().defaultNow(),
+    lastResumedAt: ts("last_resumed_at"),
+    pausedAt: ts("paused_at"),
     endedAt: ts("ended_at"),
     actualSeconds: integer("actual_seconds").notNull().default(0),
     status: text("status").notNull().default("running"), // running | completed | ended
