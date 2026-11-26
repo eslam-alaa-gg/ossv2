@@ -182,10 +182,10 @@ export default function FocusPage() {
   }
 
   const keyboardActions = useRef({
-    phase, sound, start: () => {}, pause: () => {}, resume: () => {}, toggleZen: () => {},
+    phase, sound, zen, start: () => {}, pause: () => {}, resume: () => {}, toggleZen: () => {},
   });
   keyboardActions.current = {
-    phase, sound, start: () => { void start(); }, pause, resume, toggleZen: () => { void toggleZen(); },
+    phase, sound, zen, start: () => { void start(); }, pause, resume, toggleZen: () => { void toggleZen(); },
   };
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -200,7 +200,7 @@ export default function FocusPage() {
         else actions.resume();
       } else if (event.key.toLowerCase() === "m" && actions.sound !== "none") {
         setAudioOn((value) => !value);
-      } else if (event.key.toLowerCase() === "f" || (event.key === "Escape" && zen)) {
+      } else if (event.key.toLowerCase() === "f" || (event.key === "Escape" && actions.zen)) {
         actions.toggleZen();
       }
     };
