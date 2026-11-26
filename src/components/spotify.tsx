@@ -115,7 +115,7 @@ export function SpotifyProvider({ children }: { children: ReactNode }) {
           setBridgeNp(null);
           return;
         }
-        const artistNames = (d.track.artist || "").split(/\\s*,\\s*/).filter(Boolean);
+        const artistNames = (d.track.artist || "").split(/\s*,\s*/).filter(Boolean);
         const mapped: NowPlaying = {
           idle: false,
           playing: !!d.playing,
