@@ -61,14 +61,15 @@ function FocusNowPlaying({ immersive = false }: { immersive?: boolean }) {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [bridge, setBridge] = useState<BridgeNowPlaying | null>(null);
-  const track = np && !np.idle ? np.track : null;
+  const spotifyNowPlaying = np && !np.idle ? np : null;
+  const track = spotifyNowPlaying?.track ?? null;
   const bridgeTrack = bridge && !bridge.idle ? bridge.track ?? null : null;
   const premium = status?.profile?.product === "premium";
   const displayTitle = track?.title ?? bridgeTrack?.title ?? null;
   const displayArtist = track ? track.artists.map((artist) => artist.name).join(", ") : bridgeTrack?.artist ?? "";
   const displayArtwork = track?.album.image ?? bridgeTrack?.artwork ?? null;
-  const displayDevice = track ? np && !np.idle ? np.device?.name : null : bridge?.device?.name ?? bridgeTrack?.appName ?? null;
-  const isPlaying = track ? !!(np && !np.idle && np.playing) : !!bridgeTrack && !!bridge?.playing;
+  const displayDevice = track ? spotifyNowPlaying?.device?.name : bridge?.device?.name ?? bridgeTrack?.appName ?? null;
+  const isPlaying = track ? !!spotifyNowPlaying?.playing : !!bridgeTrack && !!bridge?.playing;
   const displayProgress = track ? progress : bridge?.progressMs ?? 0;
   const displayDuration = track?.durationMs ?? bridge?.durationMs ?? 0;
 
@@ -134,9 +135,9 @@ function FocusNowPlaying({ immersive = false }: { immersive?: boolean }) {
           {displayDuration > 0 && <div className="mt-3 h-1 overflow-hidden rounded-full bg-white/15"><div className="h-full rounded-full bg-white/75" style={{ width: `${Math.min(100, displayProgress / displayDuration * 100)}%` }} /></div>}
           <div className="mt-3 flex items-center justify-center gap-4">
             {track && premium ? <>
-              <button type="button" disabled={busy || np?.disallows?.previous} onClick={() => void control("previous")} className="rounded-full p-2 hover:bg-white/10 disabled:opacity-40" aria-label={t("Previous track")}><SkipBack className="size-4" /></button>
-              <button type="button" disabled={busy || (isPlaying ? np?.disallows?.pausing : np?.disallows?.resuming)} onClick={() => void control(isPlaying ? "pause" : "play")} className="grid size-10 place-items-center rounded-full bg-white text-black disabled:opacity-50" aria-label={isPlaying ? t("Pause") : t("Play")}>{isPlaying ? <Pause className="size-4" /> : <Play className="size-4" />}</button>
-              <button type="button" disabled={busy || np?.disallows?.skipping_next} onClick={() => void control("next")} className="rounded-full p-2 hover:bg-white/10 disabled:opacity-40" aria-label={t("Next track")}><SkipForward className="size-4" /></button>
+              <button type="button" disabled={busy || spotifyNowPlaying?.disallows?.previous} onClick={() => void control("previous")} className="rounded-full p-2 hover:bg-white/10 disabled:opacity-40" aria-label={t("Previous track")}><SkipBack className="size-4" /></button>
+              <button type="button" disabled={busy || (isPlaying ? spotifyNowPlaying?.disallows?.pausing : spotifyNowPlaying?.disallows?.resuming)} onClick={() => void control(isPlaying ? "pause" : "play")} className="grid size-10 place-items-center rounded-full bg-white text-black disabled:opacity-50" aria-label={isPlaying ? t("Pause") : t("Play")}>{isPlaying ? <Pause className="size-4" /> : <Play className="size-4" />}</button>
+              <button type="button" disabled={busy || spotifyNowPlaying?.disallows?.skipping_next} onClick={() => void control("next")} className="rounded-full p-2 hover:bg-white/10 disabled:opacity-40" aria-label={t("Next track")}><SkipForward className="size-4" /></button>
             </> : <a href={track ? "/music" : "/music-bridge"} className="rounded-full bg-white/10 px-4 py-2 text-xs font-medium hover:bg-white/15">{t(track ? "Open Music Hub" : "Open Music Detection")}</a>}
           </div>
         </> : <div className="py-2 text-center"><Music2 className="mx-auto mb-2 size-6 text-white/55" /><p className="text-sm font-medium">{status?.connected ? t("Nothing playing") : t("Connect Spotify")}</p><p className="mt-1 text-xs text-white/55">{status?.connected ? t("Start playback in Spotify and it will show up here.") : t("Connect Spotify to see what you're listening to.")}</p><a href="/music" className="mt-3 inline-flex rounded-full bg-white/10 px-4 py-2 text-xs font-medium hover:bg-white/15">{t("Open Music Hub")}</a></div>}
