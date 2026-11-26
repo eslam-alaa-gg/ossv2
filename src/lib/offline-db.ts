@@ -18,6 +18,8 @@ class UkiyoOfflineDatabase extends Dexie {
 }
 
 let instance: UkiyoOfflineDatabase | null = null;
+const activeSyncs = new Map<string, Promise<boolean>>();
+
 function database() {
   if (typeof window === "undefined" || typeof indexedDB === "undefined") return null;
   return instance ??= new UkiyoOfflineDatabase();
@@ -57,20 +59,41 @@ export async function cancelQueuedAction(userId: string, path: string, bodyMatch
   } catch { /* Best-effort cancellation of a local-only item. */ }
 }
 
-export async function syncOfflineQueue(userId: string): Promise<boolean> {
-  const db = database();
-  if (!db || !userId || !navigator.onLine) return false;
-  const actions = await db.pending.where("userId").equals(userId).sortBy("createdAt");
-  for (const action of actions) {
-    if (action.id === undefined) continue;
-    try {
-      await api(action.path, { method: action.method, ...(action.body ? { body: action.body } : {}) });
-      await db.pending.delete(action.id);
-    } catch {
-      return false;
+async function runOfflineSync(db: UkiyoOfflineDatabase, userId: string): Promise<boolean> {
+  if (!navigator.onLine) return false;
+
+  // Re-read after each batch so actions queued during a sync are not stranded.
+  while (navigator.onLine) {
+    const actions = await db.pending.where("userId").equals(userId).sortBy("createdAt");
+    if (!actions.length) return true;
+
+    for (const action of actions) {
+      if (!navigator.onLine || action.id === undefined) return false;
+      try {
+        await api(action.path, { method: action.method, ...(action.body ? { body: action.body } : {}) });
+        await db.pending.delete(action.id);
+      } catch {
+        return false;
+      }
     }
   }
-  return true;
+  return false;
+}
+
+export function syncOfflineQueue(userId: string): Promise<boolean> {
+  const db = database();
+  if (!db || !userId || !navigator.onLine) return Promise.resolve(false);
+
+  // The shell can request a sync on mount and on the browser's online event.
+  // Share one in-flight run per account to prevent duplicate POSTs.
+  const active = activeSyncs.get(userId);
+  if (active) return active;
+
+  const sync = runOfflineSync(db, userId).finally(() => {
+    if (activeSyncs.get(userId) === sync) activeSyncs.delete(userId);
+  });
+  activeSyncs.set(userId, sync);
+  return sync;
 }
 
 export async function isolateOfflineUser(userId: string | null) {
