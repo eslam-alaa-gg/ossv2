@@ -241,6 +241,34 @@ function CommandMenu({ open, onClose }: { open: boolean; onClose: () => void }) 
 type QuickHabit = { id: string; name: string; icon: string; kind: "standard" | "water" | "reading" | "learning"; target: number; todayAmount: number; todayDone: boolean; unit: string };
 type QuickTrackers = { today: string; water: { goal: number; total: number }; reading: { target: number; todayPages: number }; learning: { target: number; todayCount: number } };
 
+/** Circular progress ring (accent arc on a faint track) used by the water-drop widget. Scales to the size of its container. */
+function ProgressRing({ pct, size = 40, stroke = 3.2, glow = false, children }: { pct: number; size?: number; stroke?: number; glow?: boolean; children?: ReactNode }) {
+  const clamped = Math.max(0, Math.min(100, pct));
+  const radius = (size - stroke) / 2;
+  const c = 2 * Math.PI * radius;
+  return (
+    <span className="relative inline-grid shrink-0 place-items-center" style={{ width: size, height: size }}>
+      <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size} className="absolute inset-0 -rotate-90" aria-hidden="true">
+        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="rgba(var(--accent-rgb),.25)" strokeWidth={stroke} />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke="var(--accent)"
+          strokeWidth={stroke}
+          strokeLinecap="round"
+          strokeDasharray={c}
+          strokeDashoffset={c * (1 - clamped / 100)}
+          className="transition-[stroke-dashoffset] duration-500"
+          style={glow ? { filter: "drop-shadow(0 0 5px rgba(var(--accent-rgb),.55))" } : undefined}
+        />
+      </svg>
+      {children}
+    </span>
+  );
+}
+
 function HabitQuickPanel() {
   const { t } = useApp();
   const { run, toast } = useUI();
@@ -286,6 +314,18 @@ function HabitQuickPanel() {
   const cup = 250;
   const waterAmount = tracker?.water.total ?? 0;
   const waterGoal = tracker?.water.goal ?? 0;
+
+  // Overall completion of today's targets (the same numbers the tiles below show), 0–100 or null when nothing is tracked.
+  const pcts: number[] = [];
+  if (water && tracker) {
+    const cups = Math.floor(waterAmount / cup);
+    const cupTarget = Math.max(1, Math.ceil(waterGoal / cup));
+    pcts.push((Math.min(cups, cupTarget) / cupTarget) * 100);
+  }
+  if (reading && tracker) pcts.push((Math.min(tracker.reading.todayPages, reading.target) / Math.max(1, reading.target)) * 100);
+  if (learning && tracker) pcts.push((Math.min(tracker.learning.todayCount, learning.target) / Math.max(1, learning.target)) * 100);
+  for (const h of standard) pcts.push(h.todayDone ? 100 : (Math.min(h.todayAmount, h.target) / Math.max(1, h.target)) * 100);
+  const overall = pcts.length ? Math.round(pcts.reduce((s, p) => s + p, 0) / pcts.length) : null;
 
   const logStandard = async (h: QuickHabit) => {
     if (busyId) return;
@@ -354,13 +394,19 @@ function HabitQuickPanel() {
         type="button"
         onClick={() => setOpen((v) => !v)}
         className="header-icon-btn grid size-10 shrink-0 place-items-center rounded-xl border-0 bg-transparent text-current transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
-        aria-label={t("Habit quick tracker")}
-        title={t("Habit quick tracker")}
+        aria-label={overall === null ? t("Habit quick tracker") : `${t("Habit quick tracker")} · ${overall}%`}
+        title={overall === null ? t("Habit quick tracker") : `${t("Habit quick tracker")} · ${overall}%`}
         aria-haspopup="dialog"
         aria-expanded={open}
         aria-controls="habit-quick-panel"
       >
-        <Droplets className="size-[22px] stroke-[2.1]" aria-hidden="true" />
+        {overall === null ? (
+          <Droplets className="size-[22px] stroke-[2.1]" aria-hidden="true" />
+        ) : (
+          <ProgressRing pct={overall} size={34} stroke={3}>
+            <Droplets className={cn("size-[18px] stroke-[2.1] transition-colors", overall >= 100 ? "text-accent" : "text-current")} aria-hidden="true" />
+          </ProgressRing>
+        )}
       </button>
       <AnimatePresence>
         {open && (
@@ -375,10 +421,17 @@ function HabitQuickPanel() {
             className="absolute start-0 top-[calc(100%+0.65rem)] z-[80] w-[min(calc(100vw-2rem),320px)] overflow-hidden rounded-2xl border border-white/15 p-3 shadow-2xl"
             style={{ background: "rgba(12, 12, 20, .66)", backdropFilter: "blur(24px) saturate(160%)", WebkitBackdropFilter: "blur(24px) saturate(160%)" }}
           >
-            <div className="mb-2 flex items-center justify-between px-1">
-              <div>
-                <p className="text-sm font-semibold text-white">{t("Quick habit tracker")}</p>
-                <p className="text-[11px] text-white/55">{t("Your daily targets")}</p>
+            <div className="mb-2 flex items-center justify-between gap-2 px-1">
+              <div className="flex min-w-0 items-center gap-3">
+                {overall !== null && (
+                  <ProgressRing pct={overall} size={46} stroke={4.5} glow>
+                    <span className="text-[11px] font-semibold tabular-nums text-white" aria-hidden="true">{overall}%</span>
+                  </ProgressRing>
+                )}
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-white">{t("Quick habit tracker")}</p>
+                  <p className="text-[11px] text-white/55">{t("Your daily targets")}</p>
+                </div>
               </div>
               <button type="button" onClick={() => setOpen(false)} aria-label={t("Close")} className="rounded-lg p-1.5 text-white/70 hover:bg-white/10"><X className="size-4" /></button>
             </div>
@@ -494,4 +547,3 @@ export function AppShell({ children }: { children: ReactNode }) {
     </SpotifyProvider>
   );
 }
-void useUI;
