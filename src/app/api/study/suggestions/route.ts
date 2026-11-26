@@ -1,4 +1,4 @@
-import { and, asc, eq, gte, lte } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, lte } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import { dailyStudySuggestionDecisions, flashcards, focusSessions, tasks } from "@/db/schema";
@@ -22,7 +22,7 @@ export const GET = handle(async () => {
     db.select().from(dailyStudySuggestionDecisions)
       .where(and(eq(dailyStudySuggestionDecisions.userId, auth.id), eq(dailyStudySuggestionDecisions.date, today))),
     db.select({ actualSeconds: focusSessions.actualSeconds }).from(focusSessions)
-      .where(and(eq(focusSessions.userId, auth.id), eq(focusSessions.status, "completed"), gte(focusSessions.startedAt, weekStartAt))),
+      .where(and(eq(focusSessions.userId, auth.id), eq(focusSessions.status, "completed"), inArray(focusSessions.mode, ["focus", "custom"]), gte(focusSessions.startedAt, weekStartAt))),
   ]);
   const focusMinutesThisWeek = Math.round(focusRows.reduce((sum, session) => sum + session.actualSeconds, 0) / 60);
 
