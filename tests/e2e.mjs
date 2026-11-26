@@ -199,6 +199,75 @@ await test("Spotify routes: auth required, status reflects config", async () => 
   assert.match(cb.headers.get("location") ?? "", /error=invalid_state/);
 });
 
+
+/* ---------------- study & daily suggestions ---------------- */
+await test("study subjects and flashcards are account-scoped", async () => {
+  const subject = (await A.req("POST", "/api/study/subjects", { name: "Study isolation subject", color: "#8b7cff" })).json.subject;
+  assert.ok(subject?.id);
+  const first = (await A.req("POST", "/api/study/flashcards", { front: "What is spaced repetition?", back: "Reviewing at increasing intervals.", subjectId: subject.id })).json.card;
+  const second = (await A.req("POST", "/api/study/flashcards", { front: "Second due card", back: "A due review." })).json.card;
+  assert.ok(first?.id && second?.id);
+  assert.equal((await B.req("GET", "/api/study/subjects")).json.subjects.length, 0);
+  assert.equal((await B.req("GET", "/api/study/flashcards")).json.cards.length, 0);
+  assert.equal((await B.req("POST", "/api/study/review", { cardId: first.id, rating: "good" })).status, 404);
+  assert.equal((await B.req("POST", "/api/study/flashcards", { front: "Cross-user", back: "Must reject", subjectId: subject.id })).status, 404);
+});
+
+await test("spaced repetition review updates schedule and history atomically", async () => {
+  const cards = (await A.req("GET", "/api/study/flashcards?due=1")).json.cards;
+  const card = cards.find((item) => item.front === "What is spaced repetition?");
+  assert.ok(card?.id);
+  const reviewed = await A.req("POST", "/api/study/review", { cardId: card.id, rating: "good" });
+  assert.equal(reviewed.status, 200, reviewed.text);
+  assert.equal(reviewed.json.intervalDays, 1);
+  assert.equal(reviewed.json.card.repetitions, 1);
+  assert.ok(new Date(reviewed.json.dueAt).getTime() > Date.now());
+  const dueAgain = (await A.req("GET", "/api/study/flashcards?due=1")).json.cards;
+  assert.equal(dueAgain.some((item) => item.id === card.id), false);
+  assert.equal((await B.req("POST", "/api/study/review", { cardId: card.id, rating: "easy" })).status, 404);
+});
+
+await test("daily study suggestions rank study work and persist accept/dismiss decisions", async () => {
+  const initial = await A.req("GET", "/api/study/suggestions");
+  assert.equal(initial.status, 200);
+  assert.ok(initial.json.date);
+  const task = (await A.req("POST", "/api/tasks", {
+    title: "Daily suggestion study task",
+    category: "Study",
+    priority: "urgent",
+    dueDate: initial.json.date,
+    tags: ["study"],
+  })).json.task;
+  assert.ok(task?.id);
+  const plan = (await A.req("GET", "/api/study/suggestions")).json;
+  const taskSuggestion = plan.suggestions.find((item) => item.taskId === task.id);
+  const reviewSuggestion = plan.suggestions.find((item) => item.kind === "review");
+  assert.ok(taskSuggestion, "open study task should be suggested");
+  assert.ok(reviewSuggestion, "due flashcards should produce a review suggestion");
+  assert.ok(taskSuggestion.minutes >= 1 && taskSuggestion.minutes <= 240);
+  const accepted = await A.req("POST", "/api/study/suggestions", {
+    date: plan.date, suggestionKey: taskSuggestion.key, status: "accepted",
+  });
+  assert.equal(accepted.status, 200, accepted.text);
+  assert.equal(accepted.json.ok, true);
+  const dismissed = await A.req("POST", "/api/study/suggestions", {
+    date: plan.date, suggestionKey: reviewSuggestion.key, status: "dismissed",
+  });
+  assert.equal(dismissed.json.ok, true);
+  const refreshed = (await A.req("GET", "/api/study/suggestions")).json;
+  assert.equal(refreshed.suggestions.find((item) => item.key === taskSuggestion.key).status, "accepted");
+  assert.equal(refreshed.suggestions.find((item) => item.key === reviewSuggestion.key).status, "dismissed");
+  assert.equal((await B.req("GET", "/api/study/suggestions")).json.suggestions.length, 0);
+  const expired = await A.req("POST", "/api/study/suggestions", {
+    date: "2000-01-01", suggestionKey: taskSuggestion.key, status: "accepted",
+  });
+  assert.equal(expired.status, 200);
+  assert.equal(expired.json.ok, false);
+  assert.equal((await A.req("POST", "/api/study/suggestions", {
+    date: plan.date, suggestionKey: taskSuggestion.key, status: "invalid",
+  })).status, 400);
+});
+
 /* ---------------- demo ---------------- */
 await test("demo login creates authenticated, seeded, isolated session", async () => {
   const r = await D.req("POST", "/api/auth/demo", { timezone: "UTC" });
