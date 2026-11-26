@@ -43,6 +43,7 @@ const ar: Record<string, string> = {
   "Could not save the timer style. Please try again.": "تعذر حفظ شكل المؤقت. حاول مرة تانية.",
   "Open music controls": "فتح عناصر التحكم في الموسيقى",
   "Music controls": "التحكم في الموسيقى",
+  "Open Music Detection": "فتح التعرّف على الموسيقى",
   "Music": "الموسيقى",
   "Connect Spotify": "ربط Spotify",
   "Could not control Spotify.": "تعذر التحكم في Spotify.",
