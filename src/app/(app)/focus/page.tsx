@@ -1,11 +1,12 @@
 "use client";
-import { ImagePlus, Maximize2, Minimize2, Pause, Play, RotateCcw, Square, Trash2, Volume2, VolumeX } from "lucide-react";
+import { ImagePlus, Maximize2, Minimize2, Music2, Pause, Play, RotateCcw, Square, Trash2, Volume2, VolumeX } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useApp } from "@/components/providers";
 import { PriorityBadge, type Task } from "@/components/task-form";
 import { Badge, Button, Card, EmptyState, Field, PageHeader, Segmented, cn, useUI } from "@/components/ui";
 import { api, minutesLabel, useFetch } from "@/lib/client";
 import { SOUNDS, startAmbient, type AmbientHandle } from "@/lib/ambient";
+import { useSpotify } from "@/components/spotify";
 
 type Session = { id: string; mode: string; plannedSeconds: number; actualSeconds: number; status: string; startedAt: string; taskTitle?: string | null };
 type FocusData = { todayMinutes: number; weekMinutes: number; totalSessions: number; sessions: Session[]; running: (Session & { serverNow: number }) | null; tasks: { id: string; title: string; priority: Task["priority"] }[]; prefs: { sound: string; volume: number; preset: number } };
@@ -14,6 +15,30 @@ const MODES: { value: Mode; label: string; min: number }[] = [{ value: "focus", 
 const PRESETS = [15, 25, 45, 60];
 const mmss = (s: number) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 
+function FocusNowPlaying({ immersive = false }: { immersive?: boolean }) {
+  const { np } = useSpotify();
+  const track = np && !np.idle ? np.track : null;
+  if (!track || !np || np.idle) return null;
+  const artist = track.artists.map((a) => a.name).join(", ");
+  return (
+    <div className={immersive ? "pointer-events-auto absolute bottom-4 left-1/2 z-20 w-[min(92vw,420px)] -translate-x-1/2 sm:bottom-6" : "pointer-events-auto w-full max-w-[420px]"}>
+      <div className="flex items-center gap-3 rounded-2xl border border-white/15 bg-black/45 p-2.5 text-white shadow-2xl backdrop-blur-2xl">
+        <div className="size-11 shrink-0 overflow-hidden rounded-xl bg-white/10">
+          {track.album.image ? <img src={track.album.image} alt="" className="size-full object-cover" /> : <div className="grid size-full place-items-center"><Music2 className="size-5 text-white/65" /></div>}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="mb-0.5 flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-[0.16em] text-white/60">
+            <span className={"size-1.5 rounded-full " + (np.playing ? "bg-emerald-400" : "bg-amber-300")} />
+            {np.playing ? "Now Playing" : "Paused"}
+          </div>
+          <p className="truncate text-sm font-semibold">{track.title}</p>
+          <p className="truncate text-xs text-white/65">{artist}</p>
+        </div>
+        <Music2 className="mr-1 size-4 shrink-0 text-white/55" />
+      </div>
+    </div>
+  );
+}
 export default function FocusPage() {
   const { savePrefs, prefs, t, lang } = useApp();
   const { run, toast } = useUI();
@@ -143,8 +168,17 @@ export default function FocusPage() {
     setPhase("idle"); setSid(null); setRemaining(minutes * 60); setPlanned(minutes * 60); reload();
   }
   async function toggleZen() {
-    if (!zen) { setZen(true); try { await document.documentElement.requestFullscreen?.(); } catch { /* fullscreen optional */ } }
-    else { setZen(false); if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {}); }
+    if (!zen) {
+      try {
+        if (!document.fullscreenElement && document.documentElement.requestFullscreen) await document.documentElement.requestFullscreen();
+      } catch { /* Keep immersive in-page mode if fullscreen is unavailable. */ }
+      setZen(true);
+    } else {
+      setZen(false);
+      if (document.fullscreenElement) {
+        try { await document.exitFullscreen(); } catch { /* browser may already have exited */ }
+      }
+    }
   }
 
   const pct = planned ? ((planned - remaining) / planned) * 100 : 0;
@@ -176,9 +210,11 @@ export default function FocusPage() {
   );
 
   if (zen) return (
-    <div className="fixed inset-0 z-[90] flex flex-col items-center justify-center overflow-y-auto p-3 sm:p-6">
-      {backgroundImage && <div className="absolute inset-0 scale-105 bg-cover bg-center" style={{ backgroundImage: `url(${backgroundImage})`, filter: "blur(14px)" }} />}
-      <div className="absolute inset-0 bg-black/45 backdrop-blur-[2px]" />
+    <div className="fixed inset-0 z-[90] flex min-h-[100dvh] w-screen flex-col items-center justify-center overflow-hidden p-3 sm:p-6">
+      {backgroundImage ? (
+        <div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: `url(${backgroundImage})`, backgroundSize: "cover", backgroundPosition: "center center" }} aria-hidden />
+      ) : <div className="absolute inset-0 app-glow" />}
+      <div className="absolute inset-0 bg-black/35" aria-hidden />
       {!backgroundImage && <div className="app-glow" />}
       <div className="relative z-10 flex w-full max-w-5xl flex-col items-center gap-5">
         <div className="flex w-full flex-wrap items-center justify-center gap-3 rounded-2xl border border-white/10 bg-black/25 p-3 backdrop-blur-xl">
@@ -200,12 +236,14 @@ export default function FocusPage() {
           <input type="range" min={0} max={1} step={0.01} value={volume} onChange={(e) => setVolume(Number(e.target.value))} aria-label={t("Volume")} />
         </div>
       </div>
+      <FocusNowPlaying immersive />
     </div>
   );
 
   return (
     <>
       <PageHeader title={t("Focus Room")} subtitle={t("Deep work, one session at a time.")} />
+      <div className="mb-4 flex justify-center"><FocusNowPlaying /></div>
       <div className="grid gap-[var(--gap)] lg:grid-cols-[1fr_340px]">
         <Card className="flex flex-col items-center py-8">
           <div className="mb-6 flex w-full flex-col items-center gap-3">
