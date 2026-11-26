@@ -432,7 +432,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     const userId = user?.id ?? null;
     void isolateOfflineUser(userId);
     if (!userId) return;
-    const sync = () => { void syncOfflineQueue(userId).then(() => window.dispatchEvent(new Event("ukiyo:offline-sync"))); };
+    const sync = () => { void syncOfflineQueue(userId).then((complete) => { if (complete) window.dispatchEvent(new Event("ukiyo:offline-sync")); }); };
     if (navigator.onLine) sync();
     window.addEventListener("online", sync);
     return () => window.removeEventListener("online", sync);
