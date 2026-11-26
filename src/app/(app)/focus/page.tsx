@@ -481,7 +481,7 @@ export default function FocusPage() {
           </Card>
           <Card>
             <div className="mb-3 flex items-center justify-between"><h2 className="text-sm font-medium text-muted">{t("Focus background")}</h2>{(backgroundImage || backgroundScene !== "none") && <Badge tone="green">{t("Ready")}</Badge>}</div>
-            <p className="mb-3 text-xs text-faint">{t("Choose one of five animated live wallpapers. Your selection is saved to your account.")}</p>
+            <p className="mb-3 text-xs text-faint">{t("Choose one of five looping video wallpapers. Your selection is saved to your account.")}</p>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
               {WALLPAPERS.map((wallpaper) => <button key={wallpaper.id} type="button" onClick={() => void selectWallpaper(wallpaper.id)} aria-pressed={backgroundScene === wallpaper.id} className={cn("group overflow-hidden rounded-xl border text-start transition", backgroundScene === wallpaper.id ? "border-accent ring-1 ring-accent/40" : "border-line hover:border-[var(--border-strong)]")}>
                 <div className={`focus-wallpaper-preview focus-wallpaper-${wallpaper.id}`} />
