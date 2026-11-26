@@ -197,9 +197,18 @@ async function focusChecks(page, label) {
     if (label === "mobile") {
       // In Android-style mobile emulation, Playwright mouse-click scrolling can stall after leaving the fixed immersive layer.
       // Scroll the real page to the control and use a touch tap, matching the interaction on a phone.
-      await control.evaluate((e) => e.scrollIntoView({ block: "center", behavior: "instant" }));
+      // Playwright's locator.tap() can hang while trying to scroll this switch into
+      // view in Chromium's mobile emulation after exiting the fixed immersive layer.
+      // The switch is already visible; click its actual button handler without
+      // triggering Playwright's extra scroll-into-view gesture.
+      await control.evaluate((e) => {
+        const r = e.getBoundingClientRect();
+        if (r.width <= 0 || r.height <= 0 || r.top < 0 || r.bottom > innerHeight) {
+          throw new Error(`mobile blur switch is not in the viewport: ${JSON.stringify({ top: r.top, bottom: r.bottom, height: innerHeight })}`);
+        }
+        e.click();
+      });
       await pause(250);
-      await control.tap();
     } else await control.click();
   };
   await step(`${label}: switching blur off shows the sharp original, which is unchanged`, async () => {
