@@ -1,18 +1,18 @@
-import { and, asc, eq, gte, inArray, lte } from "drizzle-orm";
+import { and, asc, eq, lte } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { dailyStudySuggestionDecisions, flashcards, focusSessions, studySubjects, tasks } from "@/db/schema";
+import { dailyStudySuggestionDecisions, flashcards, studySubjects, tasks } from "@/db/schema";
 import { body, handle } from "@/lib/server/api";
 import { requireUser } from "@/lib/server/auth";
 import { todayIn, weekStart } from "@/lib/dates";
+import { activityByDay } from "@/lib/server/stats";
 
 export const dynamic = "force-dynamic";
 
 export const GET = handle(async () => {
   const auth = await requireUser();
   const today = todayIn(auth.tz);
-  const weekStartAt = new Date(weekStart(today) + "T00:00:00.000Z");
-  const [taskRows, dueCards, decisions, focusRows] = await Promise.all([
+  const [taskRows, dueCards, decisions, activity] = await Promise.all([
     db.select().from(tasks).where(eq(tasks.userId, auth.id)),
     db.select({ id: flashcards.id, subjectId: flashcards.subjectId, subjectName: studySubjects.name })
       .from(flashcards)
@@ -22,10 +22,9 @@ export const GET = handle(async () => {
       .limit(500),
     db.select().from(dailyStudySuggestionDecisions)
       .where(and(eq(dailyStudySuggestionDecisions.userId, auth.id), eq(dailyStudySuggestionDecisions.date, today))),
-    db.select({ actualSeconds: focusSessions.actualSeconds }).from(focusSessions)
-      .where(and(eq(focusSessions.userId, auth.id), eq(focusSessions.status, "completed"), inArray(focusSessions.mode, ["focus", "custom"]), gte(focusSessions.startedAt, weekStartAt))),
+    activityByDay(auth.id, auth.tz, weekStart(today), today, auth.user.dailyGoal),
   ]);
-  const focusMinutesThisWeek = Math.round(focusRows.reduce((sum, session) => sum + session.actualSeconds, 0) / 60);
+  const focusMinutesThisWeek = Object.values(activity).reduce((sum, day) => sum + day.focusMinutes, 0);
 
   const decisionMap = new Map(decisions.map((item) => [item.suggestionKey, item.status]));
   const openTasks = taskRows
