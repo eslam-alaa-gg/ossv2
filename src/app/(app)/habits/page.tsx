@@ -6,7 +6,7 @@ import { HabitIcon } from "@/components/habit-icon";
 import { useApp } from "@/components/providers";
 import { Badge, Button, Card, Checkbox, EmptyState, ErrorState, Field, ListSkeleton, Modal, PageHeader, Progress, Ring, Segmented, cn, useUI } from "@/components/ui";
 import { api, useFetch } from "@/lib/client";
-import { queueOfflineAction, readOfflineSnapshot, saveOfflineSnapshot } from "@/lib/offline-db";
+import { cancelQueuedAction, queueOfflineAction, readOfflineSnapshot, saveOfflineSnapshot } from "@/lib/offline-db";
 import { addDays, fmtShort } from "@/lib/dates";
 import { HABIT_ICONS, PREDEFINED_HABITS_CLIENT } from "@/lib/habit-templates";
 
@@ -71,7 +71,8 @@ function Inner() {
 
   async function addWater(ml: number) {
     if (!navigator.onLine && user?.id) {
-      const queued = await queueOfflineAction(user.id, "/api/trackers/water", "POST", { ml });
+      const actionId = crypto.randomUUID();
+      const queued = await queueOfflineAction(user.id, "/api/trackers/water", "POST", { ml, clientActionId: actionId });
       if (!queued) { toast("error", t("Could not save offline action.")); return; }
       const now = new Date().toISOString();
       trackers.setData((current) => current ? {
@@ -79,7 +80,7 @@ function Inner() {
         water: {
           ...current.water,
           total: current.water.total + ml,
-          entries: [{ id: `offline-${Date.now()}`, ml, createdAt: now }, ...current.water.entries],
+          entries: [{ id: `offline-${actionId}`, ml, createdAt: now }, ...current.water.entries],
           days: current.water.days.map((day) => day.d === current.today ? { ...day, v: day.v + ml } : day).concat(current.water.days.some((day) => day.d === current.today) ? [] : [{ d: current.today, v: ml }]),
         },
       } : current);
@@ -93,8 +94,12 @@ function Inner() {
     const entry = trackers.data?.water.entries.find((item) => item.id === id);
     if (!entry) return;
     if (!navigator.onLine && user?.id) {
-      const queued = await queueOfflineAction(user.id, `/api/trackers/water?id=${id}`, "DELETE");
-      if (!queued) { toast("error", t("Could not save offline action.")); return; }
+      if (id.startsWith("offline-")) {
+        await cancelQueuedAction(user.id, "/api/trackers/water", { ml: entry.ml, clientActionId: id.slice("offline-".length) });
+      } else {
+        const queued = await queueOfflineAction(user.id, `/api/trackers/water?id=${id}`, "DELETE");
+        if (!queued) { toast("error", t("Could not save offline action.")); return; }
+      }
       trackers.setData((current) => current ? {
         ...current,
         water: {
