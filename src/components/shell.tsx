@@ -344,9 +344,13 @@ function HabitQuickPanel() {
   const waterCups = tracker ? Number((tracker.water.total / cup).toFixed(1)) : 0;
   const waterGoal = tracker ? Math.ceil(tracker.water.goal / cup) : 0;
   const waterHabit = special.find((habit) => habit.kind === "water");
-  const reading = special.find((habit) => habit.kind === "reading" && !hiddenIds.includes(habit.id));
-  const learning = special.find((habit) => habit.kind === "learning" && !hiddenIds.includes(habit.id));
+  const readingHabit = special.find((habit) => habit.kind === "reading");
+  const learningHabit = special.find((habit) => habit.kind === "learning");
+  const reading = readingHabit && !hiddenIds.includes(readingHabit.id) ? readingHabit : null;
+  const learning = learningHabit && !hiddenIds.includes(learningHabit.id) ? learningHabit : null;
   const waterVisible = !waterHabit || !hiddenIds.includes(waterHabit.id);
+  const readingVisible = !readingHabit || !!reading;
+  const learningVisible = !learningHabit || !!learning;
 
   const toggleVisible = (id: string) => {
     const next = hiddenIds.includes(id) ? hiddenIds.filter((item) => item !== id) : [...hiddenIds, id];
@@ -397,16 +401,16 @@ function HabitQuickPanel() {
               <>
                 <div className="grid max-h-[min(55vh,320px)] grid-cols-3 gap-1 overflow-y-auto">
                   {tracker && waterVisible && <HabitProgressButton label={t("Drink Water")} icon="water" amount={waterCups} target={Math.max(1, waterGoal)} disabled={busy || waterCups >= waterGoal} onClick={() => void addWater()} />}
-                  {reading && tracker && <HabitProgressButton label={t("Read Books")} icon="reading" amount={tracker.reading.todayPages} target={reading.target} onClick={() => setActiveEntry((value) => value === "reading" ? null : "reading")} />}
-                  {learning && tracker && <HabitProgressButton label={t("Learn Something New")} icon="learning" amount={tracker.learning.todayCount} target={learning.target} onClick={() => setActiveEntry((value) => value === "learning" ? null : "learning")} />}
+                  {readingVisible && tracker && <HabitProgressButton label={t("Read Books")} icon="reading" amount={tracker.reading.todayPages} target={reading?.target ?? tracker.reading.target} onClick={() => setActiveEntry((value) => value === "reading" ? null : "reading")} />}
+                  {learningVisible && tracker && <HabitProgressButton label={t("Learn Something New")} icon="learning" amount={tracker.learning.todayCount} target={learning?.target ?? tracker.learning.target} onClick={() => setActiveEntry((value) => value === "learning" ? null : "learning")} />}
                   {standard.filter((habit) => !hiddenIds.includes(habit.id)).map((habit) => <HabitProgressButton key={habit.id} label={t(habit.name)} icon={habit.icon} amount={habit.todayAmount} target={habit.target} done={habit.todayDone} disabled={busy || (habit.target > 1 && habit.todayAmount >= habit.target)} onClick={() => void logStandard(habit)} />)}
                   {!habits.length && <p className="col-span-3 py-5 text-center text-xs text-muted">{t("Add a habit with a daily target to see it here.")}</p>}
                 </div>
-                {activeEntry === "reading" && reading && <div id="quick-reading-form" className="mt-3 rounded-xl border border-line bg-card p-3">
+                {activeEntry === "reading" && readingVisible && tracker && <div id="quick-reading-form" className="mt-3 rounded-xl border border-line bg-card p-3">
                   <div className="mb-2 flex items-center justify-between"><p className="text-sm font-medium">{t("Read Books")}</p><button type="button" onClick={() => setActiveEntry(null)} aria-label={t("Close")} className="rounded-md p-1 hover:bg-card-hover"><X className="size-3.5" /></button></div>
                   <form onSubmit={addReading} className="flex gap-1.5"><input className="input min-w-0 flex-1 text-xs" value={book} onChange={(event) => setBook(event.target.value)} placeholder={t("Book name")} maxLength={120} required /><input className="input w-14 text-xs" type="number" min={1} max={2000} value={pages} onChange={(event) => setPages(event.target.value)} aria-label={t("Pages read")} required /><button type="submit" disabled={busy} className="glass-btn btn-primary h-9 w-9 shrink-0 justify-center" aria-label={t("Log reading")}><Plus className="size-4" /></button></form>
                 </div>}
-                {activeEntry === "learning" && learning && <div id="quick-learning-form" className="mt-3 rounded-xl border border-line bg-card p-3">
+                {activeEntry === "learning" && learningVisible && tracker && <div id="quick-learning-form" className="mt-3 rounded-xl border border-line bg-card p-3">
                   <div className="mb-2 flex items-center justify-between"><p className="text-sm font-medium">{t("Learn Something New")}</p><button type="button" onClick={() => setActiveEntry(null)} aria-label={t("Close")} className="rounded-md p-1 hover:bg-card-hover"><X className="size-3.5" /></button></div>
                   <form onSubmit={addLearning} className="flex gap-1.5"><input className="input min-w-0 flex-1 text-xs" value={learnTitle} onChange={(event) => setLearnTitle(event.target.value)} placeholder={t("What did you learn?")} maxLength={120} required /><button type="submit" disabled={busy} className="glass-btn btn-primary h-9 w-9 shrink-0 justify-center" aria-label={t("Save entry")}><Plus className="size-4" /></button></form>
                 </div>}
