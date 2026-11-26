@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useApp } from "@/components/providers";
 import { Badge, Button, Card, EmptyState, Field, PageHeader, Segmented, useUI } from "@/components/ui";
 import { api, useFetch } from "@/lib/client";
-import { queueOfflineAction, readOfflineSnapshot, saveOfflineSnapshot } from "@/lib/offline-db";
+import { cancelQueuedAction, queueOfflineAction, readOfflineSnapshot, saveOfflineSnapshot } from "@/lib/offline-db";
 
 type Subject = { id: string; name: string; color: string };
 type Flashcard = { id: string; subjectId: string | null; subjectName: string | null; front: string; back: string; dueAt: string; intervalDays: number; repetitions: number; lapses: number };
@@ -19,7 +19,7 @@ function localDate() {
 
 export default function StudyPage() {
   const { t, lang, user } = useApp();
-  const { run, toast, confirm } = useUI();
+  const { toast, confirm } = useUI();
   const [tab, setTab] = useState("plan");
   const subjects = useFetch<{ subjects: Subject[] }>("/api/study/subjects");
   const cards = useFetch<{ cards: Flashcard[] }>("/api/study/flashcards");
@@ -62,6 +62,24 @@ export default function StudyPage() {
   useEffect(() => { if (user?.id && cards.data) void saveOfflineSnapshot(user.id, "study-flashcards", cards.data); }, [user?.id, cards.data]);
   useEffect(() => { if (user?.id && due.data) void saveOfflineSnapshot(user.id, "study-due", due.data); }, [user?.id, due.data]);
   useEffect(() => { if (user?.id && tasks.data) void saveOfflineSnapshot(user.id, "study-tasks", tasks.data); }, [user?.id, tasks.data]);
+  useEffect(() => {
+    if (!user?.id || (!subjects.error && !cards.error && !due.error && !tasks.error)) return;
+    let cancelled = false;
+    void (async () => {
+      const [cachedSubjects, cachedCards, cachedDue, cachedTasks] = await Promise.all([
+        subjects.error && !subjects.data ? readOfflineSnapshot<{ subjects: Subject[] }>(user.id, "study-subjects") : null,
+        cards.error && !cards.data ? readOfflineSnapshot<{ cards: Flashcard[] }>(user.id, "study-flashcards") : null,
+        due.error && !due.data ? readOfflineSnapshot<{ cards: Flashcard[] }>(user.id, "study-due") : null,
+        tasks.error && !tasks.data ? readOfflineSnapshot<{ tasks: StudyTask[] }>(user.id, "study-tasks") : null,
+      ]);
+      if (cancelled) return;
+      if (cachedSubjects) subjects.setData(cachedSubjects);
+      if (cachedCards) cards.setData(cachedCards);
+      if (cachedDue) due.setData(cachedDue);
+      if (cachedTasks) tasks.setData(cachedTasks);
+    })();
+    return () => { cancelled = true; };
+  }, [user?.id, subjects.error, cards.error, due.error, tasks.error]);
 
   async function saveAction(path: string, body: Record<string, unknown> | undefined, success: string, method: "POST" | "DELETE" = "POST"): Promise<"queued" | "sent" | null> {
     if (!user?.id) return null;
@@ -115,13 +133,17 @@ export default function StudyPage() {
     if (action === "queued") {
       const localCard: Flashcard = { id: `local-${crypto.randomUUID()}`, subjectId: safeSubjectId, subjectName: selectedSubject?.name ?? null, front: cardFront, back: cardBack, dueAt: new Date().toISOString(), intervalDays: 0, repetitions: 0, lapses: 0 };
       cards.setData({ cards: [localCard, ...(cards.data?.cards ?? [])] });
-      due.setData({ cards: [localCard, ...(due.data?.cards ?? [])] });
     }
     if (action) { setFront(""); setBack(""); }
   }
 
   async function deleteCard(card: Flashcard) {
     if (!(await confirm(t("Delete this flashcard?"), t("Delete")))) return;
+    if (card.id.startsWith("local-")) {
+      await cancelQueuedAction(user?.id ?? "", "/api/study/flashcards", { front: card.front, back: card.back, subjectId: card.subjectId });
+      cards.setData({ cards: (cards.data?.cards ?? []).filter((item) => item.id !== card.id) });
+      return;
+    }
     const action = await saveAction(`/api/study/flashcards/${card.id}`, undefined, t("Flashcard deleted"), "DELETE");
     if (action === "sent") await Promise.all([cards.reload(), due.reload()]);
     if (action === "queued") {
@@ -192,14 +214,14 @@ export default function StudyPage() {
               <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-accent/10 text-accent"><BookOpen className="size-4" /></span>
               <div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{task.title}</p><p className="text-xs text-muted">{task.dueDate} · {t(task.status)}</p></div>
               <Badge tone={task.priority === "urgent" ? "red" : undefined}>{t(task.priority)}</Badge>
-              <Link href={`/focus?task=${task.id}`} className="glass-btn btn-sm">{t("Focus")}</Link>
+              <Link href={task.id.startsWith("local-") ? "/focus" : `/focus?task=${task.id}`} className="glass-btn btn-sm">{t("Focus")}</Link>
             </li>)}</ul> : <EmptyState icon={<CalendarDays className="size-5" />} title={t("No study tasks yet")} description={t("Add a study task to build your plan.")} />}
           </Card>
           <Card className="space-y-4">
             <h2 className="font-semibold">{t("Plan a study task")}</h2>
             <form onSubmit={addStudyTask} className="space-y-3">
               <Field label={t("Task title")}><input className="input" value={taskTitle} onChange={(event) => setTaskTitle(event.target.value)} maxLength={200} placeholder={t("e.g. Review chemistry chapter 3")} required /></Field>
-              <Field label={t("Subject")}><select className="input" value={taskSubject} onChange={(event) => setTaskSubject(event.target.value)}><option value="">{t("General study")}</option>{(subjects.data?.subjects ?? []).map((subject) => <option key={subject.id} value={subject.id}>{subject.name}</option>)}</select></Field>
+              <Field label={t("Subject")}><select className="input" value={taskSubject} onChange={(event) => setTaskSubject(event.target.value)}><option value="">{t("General study")}</option>{(subjects.data?.subjects ?? []).filter((subject) => !subject.id.startsWith("local-")).map((subject) => <option key={subject.id} value={subject.id}>{subject.name}</option>)}</select></Field>
               <Field label={t("Due date")}><input className="input" type="date" min={localDate()} value={taskDate} onChange={(event) => setTaskDate(event.target.value)} required /></Field>
               <Button type="submit" variant="primary" disabled={!taskTitle.trim()}><Plus className="size-4" /> {t("Add to study plan")}</Button>
             </form>
