@@ -61,7 +61,45 @@ export default function FocusPage() {
   const finishing = useRef(false);
   const restored = useRef(false);
 
-  useEffect(() => { let cancelled = false; try { const saved = localStorage.getItem("ukiyo.focus.background"); if (saved) void Promise.resolve().then(() => { if (!cancelled) setBackgroundImage(saved); }); } catch { /* storage may be unavailable */ } return () => { cancelled = true; }; }, []);
+  useEffect(() => {
+    let cancelled = false;
+    let loadedUrl: string | null = null;
+    const applyBlob = (blob: Blob) => {
+      if (cancelled) return;
+      loadedUrl = URL.createObjectURL(blob);
+      setBackgroundImage(loadedUrl);
+    };
+    void (async () => {
+      try {
+        const response = await fetch("/api/me/focus-background", { cache: "no-store" });
+        if (response.ok) {
+          applyBlob(await response.blob());
+          return;
+        }
+        if (response.status !== 404) return;
+        // Migrate the old browser-only background into the signed-in user's account once.
+        const legacy = localStorage.getItem("ukiyo.focus.background");
+        if (!legacy) return;
+        const legacyBlob = await (await fetch(legacy)).blob();
+        const form = new FormData();
+        form.append("file", new File([legacyBlob], "focus-background.webp", { type: legacyBlob.type || "image/webp" }));
+        const saved = await fetch("/api/me/focus-background", { method: "POST", body: form });
+        if (saved.ok) {
+          applyBlob(legacyBlob);
+          localStorage.removeItem("ukiyo.focus.background");
+        }
+      } catch {
+        // A missing or temporarily unavailable background must never block the Focus Room.
+      }
+    })();
+    return () => {
+      cancelled = true;
+      if (loadedUrl) URL.revokeObjectURL(loadedUrl);
+    };
+  }, []);
+  useEffect(() => () => {
+    if (backgroundImage?.startsWith("blob:")) URL.revokeObjectURL(backgroundImage);
+  }, [backgroundImage]);
 
   // restore a session that is still running on the server (e.g. after reload)
   useEffect(() => {
@@ -135,25 +173,30 @@ export default function FocusPage() {
         else { width *= 0.82; height *= 0.82; quality = 0.82; }
       }
       if (!result || result.size > 400 * 1024) throw new Error("The image could not be reduced below 400 KB. Try a smaller image.");
-      const dataUrl = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => typeof reader.result === "string" ? resolve(reader.result) : reject(new Error("Could not read the optimised image."));
-        reader.onerror = () => reject(new Error("Could not read the optimised image."));
-        reader.readAsDataURL(result!);
-      });
-      localStorage.setItem("ukiyo.focus.background", dataUrl);
-      setBackgroundImage(dataUrl);
-      setImageMessage(t("Background image saved. It appears in the Focus Room and immersive focus mode."));
+      const form = new FormData();
+      form.append("file", new File([result], "focus-background.webp", { type: "image/webp" }));
+      const response = await fetch("/api/me/focus-background", { method: "POST", body: form });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null);
+        throw new Error(payload?.error || t("Image upload failed."));
+      }
+      setBackgroundImage(URL.createObjectURL(result));
+      setImageMessage(t("Background image saved to your account. It appears in the Focus Room and immersive focus mode."));
     } catch (e) {
       setImageMessage(e instanceof Error ? e.message : t("Image upload failed."));
     } finally {
       URL.revokeObjectURL(objectUrl);
     }
   }
-  function removeFocusBackground() {
-    try { localStorage.removeItem("ukiyo.focus.background"); } catch { /* storage may be unavailable */ }
-    setBackgroundImage(null);
-    setImageMessage(t("Background image removed."));
+  async function removeFocusBackground() {
+    try {
+      const response = await fetch("/api/me/focus-background", { method: "DELETE" });
+      if (!response.ok) throw new Error(t("Could not remove the background."));
+      setBackgroundImage(null);
+      setImageMessage(t("Background image removed from your account."));
+    } catch (error) {
+      setImageMessage(error instanceof Error ? error.message : t("Could not remove the background."));
+    }
   }
 
   async function start() {
@@ -320,7 +363,7 @@ export default function FocusPage() {
               <ImagePlus className="size-4" /> {t("Upload background image")}
               <input type="file" accept="image/*" className="sr-only" onChange={(e) => { const file = e.target.files?.[0]; if (file) void uploadFocusBackground(file); e.currentTarget.value = ""; }} />
             </label>
-            <p className="mt-2 text-xs text-faint">{t("Images are compressed to 400 KB or less and appear in both the Focus Room and immersive focus mode.")}</p>
+            <p className="mt-2 text-xs text-faint">{t("Images are compressed to 450 KB or less and saved privately to your account.")}</p>
             <p className="mt-2 text-xs text-muted">{t("Tap")} <a className="text-accent underline" href="https://share.google/XH6X3uwEOF0VNJKzi" target="_blank" rel="noreferrer">{t("here")}</a> {t("to reduce image quality before uploading.")}</p>
             {imageMessage && <p role="status" className="mt-2 text-xs text-muted">{imageMessage}</p>}
             {backgroundImage && <button type="button" onClick={removeFocusBackground} className="mt-2 flex items-center gap-1.5 text-xs text-muted hover:text-fg"><Trash2 className="size-3.5" /> {t("Remove background")}</button>}
