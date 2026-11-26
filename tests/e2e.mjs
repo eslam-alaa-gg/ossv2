@@ -261,8 +261,7 @@ await test("daily study suggestions rank study work and persist accept/dismiss d
   const expired = await A.req("POST", "/api/study/suggestions", {
     date: "2000-01-01", suggestionKey: taskSuggestion.key, status: "accepted",
   });
-  assert.equal(expired.status, 200);
-  assert.equal(expired.json.ok, false);
+  assert.equal(expired.status, 409);
   assert.equal((await A.req("POST", "/api/study/suggestions", {
     date: plan.date, suggestionKey: taskSuggestion.key, status: "invalid",
   })).status, 400);
