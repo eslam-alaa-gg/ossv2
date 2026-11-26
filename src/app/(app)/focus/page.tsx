@@ -14,6 +14,7 @@ type Mode = "focus" | "short_break" | "long_break" | "custom";
 const MODES: { value: Mode; label: string; min: number }[] = [{ value: "focus", label: "Standard Focus", min: 25 }, { value: "short_break", label: "Short Break", min: 5 }, { value: "long_break", label: "Long Break", min: 15 }, { value: "custom", label: "Custom Session", min: 30 }];
 const PRESETS = [15, 25, 45, 60];
 type FocusWallpaper = "none" | "forest" | "ocean" | "rain" | "sunset" | "cosmos";
+type TimerStyle = "ring" | "digital" | "minimal" | "bar";
 const WALLPAPERS: { id: Exclude<FocusWallpaper, "none">; label: string; hint: string }[] = [
   { id: "forest", label: "Misty Forest", hint: "Soft green light and drifting fog" },
   { id: "ocean", label: "Ocean Drift", hint: "Deep blue waves and moving light" },
@@ -64,6 +65,7 @@ export default function FocusPage() {
   const [audioOn, setAudioOn] = useState(false);
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
   const [backgroundScene, setBackgroundScene] = useState<FocusWallpaper>(prefs.focus.background);
+  const [timerStyle, setTimerStyle] = useState<TimerStyle>(prefs.focus.timerStyle);
   const [imageMessage, setImageMessage] = useState("");
   const endAt = useRef(0);
   const amb = useRef<AmbientHandle | null>(null);
@@ -208,6 +210,15 @@ export default function FocusPage() {
     }
   }
 
+  async function selectTimerStyle(style: TimerStyle) {
+    setTimerStyle(style);
+    try {
+      await savePrefs({ focus: { ...prefs.focus, timerStyle: style } });
+    } catch {
+      setImageMessage(t("Could not save the timer style. Please try again."));
+    }
+  }
+
   async function selectWallpaper(id: FocusWallpaper) {
     setBackgroundScene(id);
     try {
@@ -275,17 +286,42 @@ export default function FocusPage() {
   const task = data?.tasks.find((t) => t.id === taskId);
   const timer = (
     <div className="flex flex-col items-center">
-      <div className="relative grid place-items-center" style={{ width: "min(78vw, 360px)", aspectRatio: "1" }}>
-        <svg viewBox="0 0 340 340" className="absolute inset-0 -rotate-90" aria-hidden>
-          <circle cx="170" cy="170" r={R} fill="none" stroke="var(--input)" strokeWidth="8" />
-          <circle cx="170" cy="170" r={R} fill="none" stroke="var(--accent)" strokeWidth="8" strokeLinecap="round" strokeDasharray={C} strokeDashoffset={C * (1 - pct / 100)} style={{ transition: "stroke-dashoffset .5s linear", filter: "drop-shadow(0 0 10px rgba(var(--accent-rgb),.5))" }} />
-        </svg>
-        <div className="text-center">
-          <p className="text-xs uppercase tracking-[0.25em] text-faint">{MODES.find((m) => m.value === mode)?.label && t(MODES.find((m) => m.value === mode)!.label)}</p>
-          <p role="timer" aria-live="off" className="my-1 text-[clamp(3.2rem,14vw,5.5rem)] font-light tabular-nums leading-none tracking-tight">{mmss(remaining)}</p>
-          <p className="mx-auto max-w-[14rem] truncate text-sm text-muted">{task ? task.title : phase === "idle" ? t("Ready when you are") : t("Stay with it")}</p>
+      {timerStyle === "ring" ? (
+        <div className="relative grid place-items-center" style={{ width: "min(78vw, 360px)", aspectRatio: "1" }}>
+          <svg viewBox="0 0 340 340" className="absolute inset-0 -rotate-90" aria-hidden>
+            <circle cx="170" cy="170" r={R} fill="none" stroke="var(--input)" strokeWidth="8" />
+            <circle cx="170" cy="170" r={R} fill="none" stroke="var(--accent)" strokeWidth="8" strokeLinecap="round" strokeDasharray={C} strokeDashoffset={C * (1 - pct / 100)} style={{ transition: "stroke-dashoffset .5s linear", filter: "drop-shadow(0 0 10px rgba(var(--accent-rgb),.5))" }} />
+          </svg>
+          <div className="text-center">
+            <p className="text-xs uppercase tracking-[0.25em] text-faint">{t(MODES.find((m) => m.value === mode)?.label ?? "Focus")}</p>
+            <p role="timer" aria-live="off" className="my-1 text-[clamp(3.2rem,14vw,5.5rem)] font-light tabular-nums leading-none tracking-tight">{mmss(remaining)}</p>
+            <p className="mx-auto max-w-[14rem] truncate text-sm text-muted">{task ? task.title : phase === "idle" ? t("Ready when you are") : t("Stay with it")}</p>
+          </div>
         </div>
-      </div>
+      ) : timerStyle === "digital" ? (
+        <div className="flex min-h-[220px] w-full max-w-[520px] flex-col items-center justify-center rounded-[32px] border border-white/10 bg-black/25 px-5 py-9 shadow-2xl backdrop-blur-xl">
+          <p className="text-xs uppercase tracking-[0.28em] text-white/55">{t(MODES.find((m) => m.value === mode)?.label ?? "Focus")}</p>
+          <p role="timer" aria-live="off" className="my-5 font-mono text-[clamp(4rem,17vw,7.5rem)] font-light leading-none tracking-[-0.08em] text-white tabular-nums">{mmss(remaining)}</p>
+          <div className="h-1.5 w-full max-w-[340px] overflow-hidden rounded-full bg-white/15"><div className="h-full rounded-full bg-white/80 transition-[width] duration-500" style={{ width: `${pct}%` }} /></div>
+          <p className="mt-4 max-w-[80%] truncate text-sm text-white/65">{task?.title ?? t("Ready when you are")}</p>
+        </div>
+      ) : timerStyle === "minimal" ? (
+        <div className="flex min-h-[220px] w-full flex-col items-center justify-center py-8">
+          <p className="mb-4 text-xs uppercase tracking-[0.32em] text-faint">{t(MODES.find((m) => m.value === mode)?.label ?? "Focus")}</p>
+          <p role="timer" aria-live="off" className="text-[clamp(5rem,22vw,10rem)] font-extralight leading-none tracking-[-0.09em] tabular-nums">{mmss(remaining)}</p>
+          <div className="mt-7 h-px w-28 bg-gradient-to-r from-transparent via-[var(--accent)] to-transparent" />
+          <p className="mt-4 max-w-[80%] truncate text-sm text-muted">{task?.title ?? t("Stay with it")}</p>
+        </div>
+      ) : (
+        <div className="flex min-h-[220px] w-full max-w-[520px] flex-col justify-center rounded-3xl border border-line bg-card/70 p-6 sm:p-9">
+          <div className="mb-3 flex items-end justify-between gap-3">
+            <div><p className="text-xs uppercase tracking-[0.2em] text-faint">{t(MODES.find((m) => m.value === mode)?.label ?? "Focus")}</p><p className="mt-2 text-sm text-muted">{task?.title ?? t("Ready when you are")}</p></div>
+            <p role="timer" aria-live="off" className="text-[clamp(3.5rem,13vw,6rem)] font-light leading-none tracking-tight tabular-nums">{mmss(remaining)}</p>
+          </div>
+          <div className="h-3 w-full overflow-hidden rounded-full bg-[var(--input)]"><div className="h-full rounded-full bg-accent transition-[width] duration-500" style={{ width: `${pct}%` }} /></div>
+          <p className="mt-3 text-end text-xs tabular-nums text-faint">{Math.round(pct)}%</p>
+        </div>
+      )}
       <div className="mt-6 flex items-center gap-3">
         {phase === "idle" && <Button variant="primary" className="h-12 px-8 text-base" onClick={start}><Play className="size-5" /> {t("Start")}</Button>}
         {phase === "running" && <Button className="h-12 px-6" onClick={pause}><Pause className="size-5" /> {t("Pause")}</Button>}
@@ -311,6 +347,7 @@ export default function FocusPage() {
         <div className="flex w-full flex-wrap items-center justify-center gap-3 rounded-2xl border border-white/10 bg-black/25 p-3 backdrop-blur-xl">
           <select className="input w-auto" value={taskId} onChange={(e) => setTaskId(e.target.value)} disabled={phase !== "idle"} aria-label={t("Focus on a task (optional)")}><option value="">{t("No task — general focus")}</option>{data?.tasks.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}</select>
           <Segmented value={mode} onChange={pickMode} label={t("Focus mode")} options={MODES.map((m) => ({ value: m.value, label: t(m.label) }))} />
+          <Segmented value={timerStyle} onChange={(value) => void selectTimerStyle(value as TimerStyle)} label={t("Timer style")} options={[{ value: "ring", label: t("Ring") }, { value: "digital", label: t("Digital") }, { value: "minimal", label: t("Minimal") }, { value: "bar", label: t("Progress bar") }]} />
           {(mode === "focus" || mode === "custom") && <>
             {PRESETS.map((p) => <button key={p} type="button" disabled={phase !== "idle"} onClick={() => setDuration(p)} aria-pressed={minutes === p} className={cn("chip px-3 py-1 text-sm", minutes === p && "!border-accent !text-fg", "disabled:opacity-40")}>{p} {t("min")}</button>)}
             <label className="chip px-3 py-1 text-sm">{t("Custom")} <input type="number" min={1} max={240} disabled={phase !== "idle"} value={minutes} onChange={(e) => setDuration(Number(e.target.value))} className="w-14 bg-transparent text-center outline-none" aria-label={t("Custom minutes")} /> {t("min")}</label>
@@ -344,6 +381,7 @@ export default function FocusPage() {
         <Card className="flex flex-col items-center py-8">
           <div className="mb-6 flex w-full flex-col items-center gap-3">
             <Segmented value={mode} onChange={pickMode} label={t("Focus mode")} options={MODES.map((m) => ({ value: m.value, label: t(m.label) }))} />
+            <Segmented value={timerStyle} onChange={(value) => void selectTimerStyle(value as TimerStyle)} label={t("Timer style")} options={[{ value: "ring", label: t("Ring") }, { value: "digital", label: t("Digital") }, { value: "minimal", label: t("Minimal") }, { value: "bar", label: t("Progress bar") }]} />
             {(mode === "focus" || mode === "custom") && (
               <div className="flex flex-wrap items-center justify-center gap-2">
                 {PRESETS.map((p) => <button key={p} disabled={phase !== "idle"} onClick={() => setDuration(p)} aria-pressed={minutes === p} className={cn("chip px-3 py-1 text-sm disabled:opacity-50", minutes === p && "!border-accent !text-fg")}>{p} {t("min")}</button>)}
