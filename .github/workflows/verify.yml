@@ -5,7 +5,7 @@ on:
 
 jobs:
   verify:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     services:
       postgres:
@@ -84,9 +84,9 @@ jobs:
           npx playwright --version
           npx playwright install --with-deps chromium webkit > /tmp/pw.log 2>&1 || { tail -40 /tmp/pw.log; exit 1; }
           sleep 2
-          npx next start -p 3000 > /tmp/server.log 2>&1 &
-          timeout 60 bash -c 'until curl -sf -o /dev/null http://127.0.0.1:3000/login; do sleep 1; done'
-          BASE_URL=http://127.0.0.1:3000 node tests/browser.mjs
+          npx next start -p 3100 > /tmp/server.log 2>&1 &
+          timeout 60 bash -c 'until curl -sf -o /dev/null http://127.0.0.1:3100/login; do sleep 1; done'
+          BASE_URL=http://127.0.0.1:3100 node tests/browser.mjs
       - name: Server errors
         if: always()
         run: grep -n -i -A6 "error" /tmp/server.log | head -80 || echo "no server errors logged"
