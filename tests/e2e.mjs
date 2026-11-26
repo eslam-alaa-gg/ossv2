@@ -293,7 +293,8 @@ await test("water, reading and learning trackers persist per user and update lin
   assert.equal(other.water.total, 0);
   assert.equal(other.reading.entries.length, 0);
   assert.equal(other.learning.entries.length, 0);
-  assert.equal((await B.req("DELETE", `/api/trackers/reading?id=${reading.json.entry?.id ?? "00000000-0000-4000-8000-000000000000"}`)).status, 404);
+  assert.ok(tracker.reading.entries[0]?.id);
+  assert.equal((await B.req("DELETE", `/api/trackers/reading?id=${tracker.reading.entries[0].id}`)).status, 404);
 });
 
 /* ---------------- demo ---------------- */
