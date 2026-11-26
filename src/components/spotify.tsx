@@ -202,7 +202,7 @@ export function NowPlayingWidget() {
     if (spotifyTrack) return;
     let stopped = false;
     let inFlight = false;
-    let timer: ReturnType<typeof window.setInterval> | null = null;
+    let timer: number | null = null;
     const load = async () => {
       if (stopped || inFlight || document.visibilityState !== "visible") return;
       inFlight = true;
