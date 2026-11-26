@@ -46,7 +46,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link rel="stylesheet" href={FONTS} />
-        {customFont && <style>{`@font-face{font-family:"UkiyoCustom";src:url("/api/me/font");font-style:normal;font-weight:100 900;font-display:swap;}`}</style>}
+        {customFont && <style>{`@font-face{font-family:"UkiyoCustom";src:url("/api/me/font");font-style:normal;font-weight:400;font-display:swap;}`}</style>}
         <script dangerouslySetInnerHTML={{ __html: `try{var d=document.documentElement;if(d.dataset.modeSetting==='system'){d.dataset.mode=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}}catch(e){}` }} />
       </head>
       <body>
