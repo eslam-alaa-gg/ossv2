@@ -1,5 +1,4 @@
 import { and, asc, eq, gte } from "drizzle-orm";
-import { z } from "zod";
 import { db } from "@/db";
 import { habitLogs, habits } from "@/db/schema";
 import { addDays, todayIn } from "@/lib/dates";
