@@ -16,6 +16,13 @@ const MODES: { value: Mode; label: string; min: number }[] = [{ value: "focus", 
 const PRESETS = [15, 25, 45, 60];
 type FocusWallpaper = "none" | "forest" | "ocean" | "rain" | "sunset" | "cosmos";
 type TimerStyle = "ring" | "digital" | "minimal" | "bar";
+const WALLPAPER_VIDEO_URLS: Record<Exclude<FocusWallpaper, "none">, string> = {
+  forest: "https://assets.mixkit.co/videos/preview/mixkit-waterfall-in-forest-2213-large.mp4",
+  ocean: "https://assets.mixkit.co/videos/preview/mixkit-waves-coming-to-the-beach-5016-large.mp4",
+  rain: "https://assets.mixkit.co/videos/preview/mixkit-window-on-a-rainy-day-2846-large.mp4",
+  sunset: "https://assets.mixkit.co/videos/preview/mixkit-sunset-behind-the-skyline-on-the-beach-over-the-sea-51445-large.mp4",
+  cosmos: "https://assets.mixkit.co/videos/preview/mixkit-stars-in-space-background-1610-large.mp4",
+};
 const WALLPAPERS: { id: Exclude<FocusWallpaper, "none">; label: string; hint: string }[] = [
   { id: "forest", label: "Misty Forest", hint: "Soft green light and drifting fog" },
   { id: "ocean", label: "Ocean Drift", hint: "Deep blue waves and moving light" },
@@ -24,6 +31,17 @@ const WALLPAPERS: { id: Exclude<FocusWallpaper, "none">; label: string; hint: st
   { id: "cosmos", label: "Deep Space", hint: "Slow stars and violet nebula" },
 ];
 const mmss = (s: number) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+
+function FocusWallpaperLayer({ scene, failed, onError }: { scene: Exclude<FocusWallpaper, "none">; failed: boolean; onError: () => void }) {
+  return (
+    <div className={`focus-wallpaper focus-wallpaper-${scene}`} aria-hidden>
+      {!failed && <video key={scene} autoPlay muted loop playsInline preload="metadata" tabIndex={-1} onError={onError} className="absolute inset-0 size-full object-cover">
+        <source src={WALLPAPER_VIDEO_URLS[scene]} type="video/mp4" />
+      </video>}
+      <div className="absolute inset-0 bg-black/25" />
+    </div>
+  );
+}
 
 function FocusNowPlaying({ immersive = false }: { immersive?: boolean }) {
   const { np, status, refresh } = useSpotify();
@@ -94,6 +112,7 @@ export default function FocusPage() {
   const [audioOn, setAudioOn] = useState(false);
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
   const [backgroundScene, setBackgroundScene] = useState<FocusWallpaper>(prefs.focus.background);
+  const [wallpaperVideoFailed, setWallpaperVideoFailed] = useState(false);
   const [timerStyle, setTimerStyle] = useState<TimerStyle>(prefs.focus.timerStyle);
   useEffect(() => { setBackgroundScene(prefs.focus.background); setTimerStyle(prefs.focus.timerStyle); }, [prefs.focus.background, prefs.focus.timerStyle]);
   const [imageMessage, setImageMessage] = useState("");
@@ -254,6 +273,7 @@ export default function FocusPage() {
 
   async function selectWallpaper(id: FocusWallpaper) {
     setBackgroundScene(id);
+    setWallpaperVideoFailed(false);
     try {
       await savePrefs({ focus: { ...prefs.focus, background: id } });
     } catch {
@@ -384,7 +404,7 @@ export default function FocusPage() {
       {backgroundImage ? (
         <div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: `url(${backgroundImage})`, backgroundSize: "cover", backgroundPosition: "center center" }} aria-hidden />
       ) : backgroundScene !== "none" ? (
-        <div className={`focus-wallpaper focus-wallpaper-${backgroundScene}`} aria-hidden />
+        <FocusWallpaperLayer scene={backgroundScene} failed={wallpaperVideoFailed || !!prefs.theme.reducedMotion} onError={() => setWallpaperVideoFailed(true)} />
       ) : <div className="absolute inset-0 app-glow" />}
       <div className="absolute inset-0 bg-black/35" aria-hidden />
       <div className="relative z-10 flex w-full max-w-5xl flex-col items-center gap-5 py-4 sm:py-0">
@@ -416,7 +436,7 @@ export default function FocusPage() {
     <>
       <PageHeader title={t("Focus Room")} subtitle={t("Deep work, one session at a time.")} />
       {(backgroundImage || backgroundScene !== "none") && <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden>
-        {backgroundImage ? <div className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-45" style={{ backgroundImage: `url(${backgroundImage})` }} /> : <div className={`focus-wallpaper focus-wallpaper-${backgroundScene} opacity-60`} />}
+        {backgroundImage ? <div className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-45" style={{ backgroundImage: `url(${backgroundImage})` }} /> : <FocusWallpaperLayer scene={backgroundScene as Exclude<FocusWallpaper, "none">} failed={wallpaperVideoFailed || !!prefs.theme.reducedMotion} onError={() => setWallpaperVideoFailed(true)} />}
         <div className="absolute inset-0 bg-gradient-to-b from-[color-mix(in_srgb,var(--bg)_48%,transparent)] via-[color-mix(in_srgb,var(--bg)_72%,transparent)] to-[var(--bg)]" />
       </div>}
       <div className="relative z-10">
