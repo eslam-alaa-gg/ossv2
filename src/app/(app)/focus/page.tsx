@@ -6,6 +6,8 @@ import { PriorityBadge, type Task } from "@/components/task-form";
 import { Badge, Button, Card, EmptyState, Field, PageHeader, Segmented, cn, useUI } from "@/components/ui";
 import { api, minutesLabel, useFetch } from "@/lib/client";
 import { SOUNDS, startAmbient, type AmbientHandle } from "@/lib/ambient";
+import { Music2 } from "lucide-react";
+import { useSpotify } from "@/components/spotify";
 
 type Session = { id: string; mode: string; plannedSeconds: number; actualSeconds: number; status: string; startedAt: string; taskTitle?: string | null };
 type FocusData = { todayMinutes: number; weekMinutes: number; totalSessions: number; sessions: Session[]; running: (Session & { serverNow: number }) | null; tasks: { id: string; title: string; priority: Task["priority"] }[]; prefs: { sound: string; volume: number; preset: number } };
@@ -13,6 +15,31 @@ type Mode = "focus" | "short_break" | "long_break" | "custom";
 const MODES: { value: Mode; label: string; min: number }[] = [{ value: "focus", label: "Standard Focus", min: 25 }, { value: "short_break", label: "Short Break", min: 5 }, { value: "long_break", label: "Long Break", min: 15 }, { value: "custom", label: "Custom Session", min: 30 }];
 const PRESETS = [15, 25, 45, 60];
 const mmss = (s: number) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+
+function FocusNowPlaying({ immersive = false }: { immersive?: boolean }) {
+  const { np } = useSpotify();
+  const track = np && !np.idle ? np.track : null;
+  if (!track || !np || np.idle) return null;
+  const artist = track.artists.map((a) => a.name).join(", ");
+  return (
+    <div className={immersive ? "pointer-events-auto absolute bottom-4 left-1/2 z-20 w-[min(92vw,420px)] -translate-x-1/2 sm:bottom-6" : "pointer-events-auto w-full max-w-[420px]"}>
+      <div className="flex items-center gap-3 rounded-2xl border border-white/15 bg-black/45 p-2.5 text-white shadow-2xl backdrop-blur-2xl">
+        <div className="size-11 shrink-0 overflow-hidden rounded-xl bg-white/10">
+          {track.album.image ? <img src={track.album.image} alt="" className="size-full object-cover" /> : <div className="grid size-full place-items-center"><Music2 className="size-5 text-white/65" /></div>}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="mb-0.5 flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-[0.16em] text-white/60">
+            <span className={"size-1.5 rounded-full " + (np.playing ? "bg-emerald-400" : "bg-amber-300")} />
+            {np.playing ? "Now Playing" : "Paused"}
+          </div>
+          <p className="truncate text-sm font-semibold">{track.title}</p>
+          <p className="truncate text-xs text-white/65">{artist}</p>
+        </div>
+        <Music2 className="mr-1 size-4 shrink-0 text-white/55" />
+      </div>
+    </div>
+  );
+}
 
 export default function FocusPage() {
   const { savePrefs, prefs, t, lang } = useApp();
@@ -203,12 +230,14 @@ export default function FocusPage() {
       <div className="relative z-10 flex w-full max-w-5xl flex-col items-center justify-center">
         {timer}
       </div>
+      <FocusNowPlaying immersive />
     </div>
   );
 
   return (
     <>
       <PageHeader title={t("Focus Room")} subtitle={t("Deep work, one session at a time.")} />
+      <div className="mb-4 flex justify-center"><FocusNowPlaying /></div>
       <div className="grid gap-[var(--gap)] lg:grid-cols-[1fr_340px]">
         <Card className="flex flex-col items-center py-8">
           <div className="mb-6 flex w-full flex-col items-center gap-3">
