@@ -28,13 +28,14 @@ export default function DashboardPage() {
   const { data, error, loading, reload } = useFetch<Dash>("/api/dashboard");
   const [custom, setCustom] = useState(false);
   const [dragging, setDragging] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState<string | null>(null);
   const w = prefs.dashboard.widgets;
   const order = prefs.dashboard.order;
   const sizes = prefs.dashboard.sizes;
   const saveDashboard = (nextOrder = order, nextSizes = sizes, nextWidgets = w) => run(() => savePrefs({ dashboard: { widgets: nextWidgets, order: nextOrder, sizes: nextSizes } }), t("Dashboard layout saved."));
   const moveWidget = (key: string, delta: number) => { const next = [...order]; const from = next.indexOf(key); const to = Math.max(0, Math.min(next.length - 1, from + delta)); if (from < 0 || from === to) return; next.splice(from, 1); next.splice(to, 0, key); void saveDashboard(next); };
-  const dropWidget = (target: string) => { if (!dragging || dragging === target) return; const next = [...order]; const from = next.indexOf(dragging); const to = next.indexOf(target); if (from < 0 || to < 0) return; next.splice(from, 1); next.splice(to, 0, dragging); setDragging(null); void saveDashboard(next); };
-  const widgetProps = (key: string) => ({ className: "dashboard-widget dashboard-widget-" + key + " dashboard-size-" + (sizes[key] ?? "standard") + (key === "challenge" ? " flex flex-col" : ""), draggable: true, onDragStart: (event: DragEvent<HTMLDivElement>) => { setDragging(key); event.dataTransfer.effectAllowed = "move"; event.dataTransfer.setData("text/plain", key); }, onDragOver: (event: DragEvent<HTMLDivElement>) => event.preventDefault(), onDrop: (event: DragEvent<HTMLDivElement>) => { event.preventDefault(); dropWidget(key); }, onDragEnd: () => setDragging(null) });
+  const dropWidget = (target: string) => { if (!dragging || dragging === target) { setDragging(null); setDragOver(null); return; } const next = [...order]; const from = next.indexOf(dragging); const to = next.indexOf(target); if (from < 0 || to < 0) { setDragging(null); setDragOver(null); return; } next.splice(from, 1); next.splice(to, 0, dragging); setDragging(null); setDragOver(null); void saveDashboard(next); };
+  const widgetProps = (key: string) => ({ className: "dashboard-widget dashboard-widget-" + key + " dashboard-size-" + (sizes[key] ?? "standard") + (key === "challenge" ? " flex flex-col" : "") + (dragging === key ? " dashboard-widget-dragging" : "") + (dragOver === key && dragging !== key ? " dashboard-widget-drop-target" : ""), draggable: true, onDragStart: (event: DragEvent<HTMLDivElement>) => { setDragging(key); setDragOver(null); event.dataTransfer.effectAllowed = "move"; event.dataTransfer.setData("text/plain", key); }, onDragOver: (event: DragEvent<HTMLDivElement>) => { event.preventDefault(); if (dragging && dragging !== key) setDragOver(key); }, onDragLeave: () => setDragOver((current) => current === key ? null : current), onDrop: (event: DragEvent<HTMLDivElement>) => { event.preventDefault(); dropWidget(key); }, onDragEnd: () => { setDragging(null); setDragOver(null); } });
   const show = (k: string) => w[k] !== false;
   const hour = hourIn(user?.timezone);
   const greet = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
@@ -70,7 +71,7 @@ export default function DashboardPage() {
 
       {data && (
         <>
-          <style>{" .dashboard-layout{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;align-items:start}.dashboard-widget{min-width:0;width:100%}.dashboard-size-compact,.dashboard-size-standard,.dashboard-size-wide{grid-column:span 1}@media(min-width:768px){.dashboard-layout{grid-template-columns:repeat(2,minmax(0,1fr))}.dashboard-size-standard,.dashboard-size-wide{grid-column:span 2}}@media(min-width:1200px){.dashboard-layout{grid-template-columns:repeat(4,minmax(0,1fr))}.dashboard-size-compact{grid-column:span 1}.dashboard-size-standard{grid-column:span 2}.dashboard-size-wide{grid-column:span 4}}" + order.map((key,index) => ".dashboard-widget-" + key + "{order:" + index + "}").join("")}</style>
+          <style>{" .dashboard-layout{display:grid;grid-template-columns:minmax(0,1fr);grid-auto-flow:row dense;gap:10px;align-items:start}.dashboard-widget{min-width:0;width:100%;min-height:0;transition:opacity .16s ease,transform .16s ease,box-shadow .16s ease;cursor:grab;touch-action:pan-y}.dashboard-widget:active{cursor:grabbing}.dashboard-widget-dragging{opacity:.42;transform:scale(.985)}.dashboard-widget-drop-target{outline:2px dashed var(--accent);outline-offset:3px;border-radius:var(--radius-lg)}.dashboard-size-compact,.dashboard-size-standard,.dashboard-size-wide{grid-column:span 1}@media(min-width:768px){.dashboard-layout{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.dashboard-size-standard,.dashboard-size-wide{grid-column:span 2}}@media(min-width:1200px){.dashboard-layout{grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.dashboard-size-compact{grid-column:span 1}.dashboard-size-standard{grid-column:span 2}.dashboard-size-wide{grid-column:span 4}}"+order.map((key,index) => ".dashboard-widget-" + key + "{order:" + index + "}").join("")}</style>
           <div className="dashboard-layout">
           <div className="contents">
             {show("progress") && (
@@ -195,7 +196,7 @@ export default function DashboardPage() {
       )}
 
       <Modal open={custom} onClose={() => setCustom(false)} title={t("Customize dashboard")}>
-        <p className="mb-3 text-sm text-muted">{t("Choose which widgets appear. Saved to your account.")}</p>
+        <p className="mb-3 text-sm text-muted">{t("Choose which widgets appear. Drag widgets to rearrange them and choose a size to control their width.")}</p>
         <ul className="space-y-1">
           {WIDGETS.map((k) => (
             <li key={k} className="flex items-center justify-between rounded-lg px-1 py-2 text-sm">
