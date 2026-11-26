@@ -61,7 +61,7 @@ export function SpotifyProvider({ children }: { children: ReactNode }) {
       setError(ae.message);
       setErrorCode(ae.code ?? null);
       if (ae.code === "expired" || ae.code === "not_connected") {
-        setNp(null);
+        setSpotifyNp(null);
         reloadStatus();
       }
       throw e;
@@ -141,7 +141,6 @@ export function SpotifyProvider({ children }: { children: ReactNode }) {
           device: d.device ? { id: d.device.id, name: d.device.name, type: d.device.platform } : null,
           disallows: {},
           fetchedAt: d.fetchedAt ?? Date.now(),
-          source: "device-bridge",
         } as NowPlaying;
         setBridgeNp(mapped);
       } catch {
