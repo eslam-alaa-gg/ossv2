@@ -81,7 +81,7 @@ const ar: Record<string, string> = {
   "Background image saved. It appears in full-screen focus.": "تم حفظ صورة الخلفية. ستظهر في وضع التركيز الكامل.",
   "Background image removed.": "تمت إزالة صورة الخلفية.",
   "Image upload failed.": "فشل رفع الصورة.",
-  "The image could not be reduced below 400 KB. Try a smaller image.": "تعذر ضغط الصورة إلى أقل من 400 كيلوبايت. جرّب صورة أصغر.",
+  "The image could not be reduced below 450 KB. Try a smaller image.": "تعذر ضغط الصورة إلى أقل من 450 كيلوبايت. جرّب صورة أصغر.",
   "Remove background": "إزالة الخلفية",
   "Ready": "جاهز",
   "Habit quick tracker": "متابعة العادات السريعة",
