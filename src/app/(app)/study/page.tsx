@@ -112,7 +112,7 @@ export default function StudyPage() {
               <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-accent/10 text-accent"><BookOpen className="size-4" /></span>
               <div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{task.title}</p><p className="text-xs text-muted">{task.dueDate} · {t(task.status)}</p></div>
               <Badge tone={task.priority === "urgent" ? "red" : undefined}>{t(task.priority)}</Badge>
-              <Link href="/focus" className="glass-btn btn-sm">{t("Focus")}</Link>
+              <Link href={`/focus?task=${task.id}`} className="glass-btn btn-sm">{t("Focus")}</Link>
             </li>)}</ul> : <EmptyState icon={<CalendarDays className="size-5" />} title={t("No study tasks yet")} description={t("Add a study task to build your plan.")} />}
           </Card>
           <Card className="space-y-4">
