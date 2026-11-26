@@ -28,7 +28,7 @@ export const NAV = [
   { href: "/review", label: "Weekly Review", icon: CalendarCheck },
   { href: "/calendar", label: "Calendar", icon: CalendarDays },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
-  { href: "/music", label: "Music Hub", icon: Music2 },
+  { href: "/music", label: "Music", icon: Music2 },
   { href: "/themes", label: "Theme Studio", icon: Palette },
   { href: "/settings", label: "Settings", icon: Settings },
 ];

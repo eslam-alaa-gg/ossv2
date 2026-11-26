@@ -56,7 +56,7 @@ function Inner() {
 
   if (tab === "detection") return <><div className="mb-4">{tabControl}</div><MusicBridgePanel /></>;
   if (tab === "youtube") return <>
-    <PageHeader title={t("Music Hub")} subtitle={t("Search and open music from the official YouTube Music service.")} actions={tabControl} />
+    <PageHeader title={t("Music")} subtitle={t("Search and open music from the official YouTube Music service.")} actions={tabControl} />
     <Card className="mx-auto max-w-2xl py-8">
       <div className="mx-auto grid size-14 place-items-center rounded-2xl bg-card text-muted"><Music2 className="size-7" /></div>
       <h2 className="mt-4 text-center text-lg font-semibold">{t("YouTube Music")}</h2>
@@ -81,12 +81,12 @@ function Inner() {
     if (await run(() => api("/api/spotify/disconnect", { method: "POST", body: {} }), t("Spotify disconnected"))) reloadStatus();
   }
 
-  if (loadingStatus) return <><PageHeader title={t("Music Hub")} /><Skeleton className="h-96" /></>;
+  if (loadingStatus) return <><PageHeader title={t("Music")} /><Skeleton className="h-96" /></>;
 
   if (!status?.configured) {
     return (
       <>
-        <PageHeader title={t("Music Hub")} subtitle={t("Your Spotify, inside Ukiyo.")} actions={<div className="flex flex-wrap items-center justify-end gap-2">{tabControl}<MusicBridgeLink label={lang === "ar" ? "الحصول على رمز الجهاز من Ukiyo" : "Get device token from Ukiyo"} /></div>} />
+        <PageHeader title={t("Music")} subtitle={t("Your Spotify, inside Ukiyo.")} actions={<div className="flex flex-wrap items-center justify-end gap-2">{tabControl}<MusicBridgeLink label={lang === "ar" ? "الحصول على رمز الجهاز من Ukiyo" : "Get device token from Ukiyo"} /></div>} />
         <Card className="mx-auto max-w-xl py-10 text-center">
           <span className="mx-auto mb-4 grid size-16 place-items-center rounded-3xl bg-card text-muted"><Music2 className="size-8" /></span>
           <h2 className="text-xl font-semibold">{lang === "ar" ? "Spotify غير متاح حاليًا" : "Spotify is temporarily unavailable"}</h2>
@@ -99,7 +99,7 @@ function Inner() {
   if (!connected) {
     return (
       <>
-        <PageHeader title={t("Music Hub")} subtitle={t("Your Spotify, inside Ukiyo.")} actions={<div className="flex flex-wrap items-center justify-end gap-2">{tabControl}<MusicBridgeLink label={lang === "ar" ? "الحصول على رمز الجهاز من Ukiyo" : "Get device token from Ukiyo"} /></div>} />
+        <PageHeader title={t("Music")} subtitle={t("Your Spotify, inside Ukiyo.")} actions={<div className="flex flex-wrap items-center justify-end gap-2">{tabControl}<MusicBridgeLink label={lang === "ar" ? "الحصول على رمز الجهاز من Ukiyo" : "Get device token from Ukiyo"} /></div>} />
         {(urlError || errorCode === "expired") && <p role="alert" className="mb-4 rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">{errorCode === "expired" ? t("Your Spotify authorization expired. Please reconnect.") : t(ERRORS[urlError!] ?? "Spotify returned an error: {error}").replace("{error}", urlError ?? "")}</p>}
         <Card className="mx-auto max-w-xl py-10 text-center">
           <span className="mx-auto mb-4 grid size-16 place-items-center rounded-3xl bg-card text-accent"><Music2 className="size-8" /></span>
@@ -116,7 +116,7 @@ function Inner() {
   const ctl = "glass-btn btn-icon h-12 w-12";
   return (
     <>
-      <PageHeader title={t("Music Hub")} subtitle={t("Now playing from your Spotify account.")} actions={<>{tabControl}<MusicBridgeLink label={lang === "ar" ? "الحصول على رمز الجهاز من Ukiyo" : "Get device token from Ukiyo"} /><Badge tone="green"><span className="size-1.5 rounded-full bg-emerald-400" /> {t("Connected")}</Badge><OpenInSpotify url={track?.url} /></>} />
+      <PageHeader title={t("Music")} subtitle={t("Now playing from your Spotify account.")} actions={<>{tabControl}<MusicBridgeLink label={lang === "ar" ? "الحصول على رمز الجهاز من Ukiyo" : "Get device token from Ukiyo"} /><Badge tone="green"><span className="size-1.5 rounded-full bg-emerald-400" /> {t("Connected")}</Badge><OpenInSpotify url={track?.url} /></>} />
       {error && errorCode !== "rate_limited" && <p role="alert" className="mb-4 rounded-xl border border-amber-400/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-300">{error} <button className="underline" onClick={() => refresh().catch(() => {})}>{t("Retry")}</button></p>}
       {errorCode === "rate_limited" && <p role="status" className="mb-4 text-xs text-amber-300">{error}</p>}
 

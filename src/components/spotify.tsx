@@ -240,15 +240,16 @@ export function NowPlayingWidget({ source = "spotify" }: { source?: "spotify" | 
     );
   }
   if (source === "spotify" && loadingStatus && !bridge) return <Skeleton className="h-[148px]" />;
-  const bridgeTrack = bridge && !bridge.idle ? bridge.track ?? null : null;
+  const bridgeData = source === "detection" ? bridge : null;
+  const bridgeTrack = bridgeData && !bridgeData.idle ? bridgeData.track ?? null : null;
   const title = spotifyTrack?.title ?? bridgeTrack?.title ?? null;
   const artists = spotifyTrack ? spotifyTrack.artists.map((artist) => artist.name).join(", ") : bridgeTrack?.artist ?? "";
   const album = spotifyTrack?.album.name ?? bridgeTrack?.album ?? "";
   const image = spotifyTrack?.album.image ?? bridgeTrack?.artwork ?? null;
   const playing = spotifyTrack ? !!(np && !np.idle && np.playing) : !!bridgeTrack && !!bridge?.playing;
-  const device = spotifyTrack ? (np && !np.idle ? np.device?.name : "") : bridge?.device?.name ?? bridgeTrack?.appName ?? "";
+  const device = spotifyTrack ? (np && !np.idle ? np.device?.name : "") : bridgeData?.device?.name ?? bridgeTrack?.appName ?? "";
   const duration = spotifyTrack?.durationMs ?? bridge?.durationMs ?? 0;
-  const position = spotifyTrack ? progress : bridge?.progressMs ?? 0;
+  const position = spotifyTrack ? progress : bridgeData?.progressMs ?? 0;
   const href = source === "detection" ? "/music?tab=detection" : "/music?tab=spotify";
 
   if (source === "spotify" && !title && (!status?.configured || !status.connected)) {
@@ -288,7 +289,7 @@ export function NowPlayingWidget({ source = "spotify" }: { source?: "spotify" | 
             <p className="text-sm text-muted">{source === "detection" ? tr("Start music on a paired device to show it here.") : tr("Start playback in Spotify to show it here.")}</p>
           </>}
         </div>
-        <Link href={href} className="glass-btn btn-icon shrink-0" aria-label={tr("Open Music Hub")}><Music2 className="size-4" /></Link>
+        <Link href={href} className="glass-btn btn-icon shrink-0" aria-label={tr("Open Music")}><Music2 className="size-4" /></Link>
       </div>
     </Card>
   );
