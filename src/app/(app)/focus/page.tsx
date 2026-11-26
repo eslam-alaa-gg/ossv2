@@ -143,8 +143,23 @@ export default function FocusPage() {
     setPhase("idle"); setSid(null); setRemaining(minutes * 60); setPlanned(minutes * 60); reload();
   }
   async function toggleZen() {
-    if (!zen) { setZen(true); try { await document.documentElement.requestFullscreen?.(); } catch { /* fullscreen optional */ } }
-    else { setZen(false); if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {}); }
+    if (!zen) {
+      // Must be invoked directly from the user's tap/click; browsers do not allow
+      // websites to synthesize the physical F11 key.
+      try {
+        if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+          await document.documentElement.requestFullscreen();
+        }
+      } catch {
+        // Keep the immersive in-page mode as a fallback on browsers without Fullscreen API support.
+      }
+      setZen(true);
+    } else {
+      setZen(false);
+      if (document.fullscreenElement) {
+        try { await document.exitFullscreen(); } catch { /* browser may already have exited */ }
+      }
+    }
   }
 
   const pct = planned ? ((planned - remaining) / planned) * 100 : 0;
@@ -176,29 +191,17 @@ export default function FocusPage() {
   );
 
   if (zen) return (
-    <div className="fixed inset-0 z-[90] flex flex-col items-center justify-center overflow-y-auto p-3 sm:p-6">
-      {backgroundImage && <div className="absolute inset-0 scale-105 bg-cover bg-center" style={{ backgroundImage: `url(${backgroundImage})`, filter: "blur(14px)" }} />}
-      <div className="absolute inset-0 bg-black/45 backdrop-blur-[2px]" />
-      {!backgroundImage && <div className="app-glow" />}
-      <div className="relative z-10 flex w-full max-w-5xl flex-col items-center gap-5">
-        <div className="flex w-full flex-wrap items-center justify-center gap-3 rounded-2xl border border-white/10 bg-black/25 p-3 backdrop-blur-xl">
-          <select className="input w-auto" value={taskId} onChange={(e) => setTaskId(e.target.value)} disabled={phase !== "idle"} aria-label={t("Focus on a task (optional)")}><option value="">{t("No task — general focus")}</option>{data?.tasks.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}</select>
-          <Segmented value={mode} onChange={pickMode} label={t("Focus mode")} options={MODES.map((m) => ({ value: m.value, label: t(m.label) }))} />
-          {(mode === "focus" || mode === "custom") && <>
-            {PRESETS.map((p) => <button key={p} type="button" disabled={phase !== "idle"} onClick={() => setDuration(p)} aria-pressed={minutes === p} className={cn("chip px-3 py-1 text-sm", minutes === p && "!border-accent !text-fg", "disabled:opacity-40")}>{p} {t("min")}</button>)}
-            <label className="chip px-3 py-1 text-sm">{t("Custom")} <input type="number" min={1} max={240} disabled={phase !== "idle"} value={minutes} onChange={(e) => setDuration(Number(e.target.value))} className="w-14 bg-transparent text-center outline-none" aria-label={t("Custom minutes")} /> {t("min")}</label>
-          </>}
-        </div>
+    <div className="fixed inset-0 z-[90] flex min-h-[100dvh] w-screen flex-col items-center justify-center overflow-hidden p-3 sm:p-6">
+      {backgroundImage ? (
+        <div
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{ backgroundImage: `url(${backgroundImage})`, backgroundSize: "cover", backgroundPosition: "center center" }}
+          aria-hidden
+        />
+      ) : <div className="absolute inset-0 app-glow" />}
+      <div className="absolute inset-0 bg-black/35" aria-hidden />
+      <div className="relative z-10 flex w-full max-w-5xl flex-col items-center justify-center">
         {timer}
-        <div className="flex flex-wrap items-center justify-center gap-3 rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-sm backdrop-blur-xl">
-          <span className="text-white/80">{t("Ambient sound")}</span>
-          <select className="input w-auto" value={sound} onChange={(e) => { setSound(e.target.value); setAudioOn(e.target.value !== "none"); }} aria-label={t("Ambient sound")}>
-            <option value="none">{t("Silent")}</option>
-            {SOUNDS.map((item) => <option key={item.id} value={item.id}>{t(item.label)}</option>)}
-          </select>
-          <Volume2 className="size-4 text-white/80" />
-          <input type="range" min={0} max={1} step={0.01} value={volume} onChange={(e) => setVolume(Number(e.target.value))} aria-label={t("Volume")} />
-        </div>
       </div>
     </div>
   );
