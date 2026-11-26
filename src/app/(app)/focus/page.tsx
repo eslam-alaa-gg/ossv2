@@ -181,6 +181,27 @@ export default function FocusPage() {
     }
   }
 
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const target = event.target;
+      if (target instanceof HTMLElement && target.closest('input, textarea, select, button, a, [contenteditable="true"]')) return;
+      if (event.altKey || event.ctrlKey || event.metaKey) return;
+      if (event.code === "Space") {
+        event.preventDefault();
+        if (phase === "idle") void start();
+        else if (phase === "running") pause();
+        else resume();
+      } else if (event.key.toLowerCase() === "m" && sound !== "none") {
+        setAudioOn((value) => !value);
+      } else if (event.key.toLowerCase() === "f") {
+        void toggleZen();
+      } else if (event.key === "Escape" && zen) {
+        void toggleZen();
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [phase, sound, zen, minutes, taskId, remaining, audioOn]);
   const pct = planned ? ((planned - remaining) / planned) * 100 : 0;
   const R = 150, C = 2 * Math.PI * R;
   const task = data?.tasks.find((t) => t.id === taskId);
@@ -206,6 +227,7 @@ export default function FocusPage() {
         <Button variant="ghost" size="icon" className="h-12 w-12" onClick={toggleZen} aria-label={zen ? t("Exit fullscreen focus") : t("Fullscreen focus mode")}>{zen ? <Minimize2 className="size-5" /> : <Maximize2 className="size-5" />}</Button>
       </div>
       {phase !== "idle" && <p className="mt-3 text-xs text-faint">{t("Rewards are only granted when the full duration has elapsed on the server.")}</p>}
+      <p className="mt-3 text-[11px] text-faint">{t("Shortcuts")}: <kbd className="kbd">Space</kbd> {t("Start / pause")} · <kbd className="kbd">M</kbd> {t("Ambient sound")} · <kbd className="kbd">F</kbd> {t("Immersive mode")} · <kbd className="kbd">Esc</kbd> {t("Exit immersive mode")}</p>
     </div>
   );
 
