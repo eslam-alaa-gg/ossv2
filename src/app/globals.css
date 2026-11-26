@@ -49,6 +49,11 @@ html[dir="rtl"] .text-base { line-height: 1.85; }
 .grad-layer.anim { background-size: var(--grad-size); animation: gradShift var(--grad-dur) ease-in-out infinite; animation-direction: var(--grad-dir); }
 @keyframes gradShift { 0% { background-position: 0% 30%; } 50% { background-position: 100% 70%; } 100% { background-position: 0% 30%; } }
 
+.dashboard-widget { transition: opacity .18s ease, transform .18s ease, outline-color .18s ease, box-shadow .18s ease; }
+.dashboard-widget-dragging { opacity: .48; transform: scale(.985); }
+.dashboard-widget-drop-target { outline: 2px dashed var(--accent); outline-offset: 4px; box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent) 10%, transparent); }
+@media (prefers-reduced-motion: reduce) { .dashboard-widget { transition: none; } }
+
 /* Focus Room live wallpapers — lightweight CSS motion, no autoplay media requests. */
 .focus-wallpaper {
   position: absolute; inset: 0; overflow: hidden; isolation: isolate;
@@ -117,7 +122,7 @@ html[dir="rtl"] .text-base { line-height: 1.85; }
   background-image: radial-gradient(ellipse at 52% 45%, rgba(144,102,216,.28), transparent 38%);
   filter: blur(35px);
 }
-.focus-wallpaper-preview { height: 68px; position: relative; overflow: hidden; }
+.focus-wallpaper-preview { height: 68px; position: relative; overflow: hidden; background-size: 190% 190%; animation: focusWallpaperDrift 34s ease-in-out infinite alternate; isolation: isolate; }
 @keyframes focusWallpaperDrift { 0% { background-position: 0% 35%; } 100% { background-position: 100% 65%; } }
 @keyframes focusWallpaperGlow { 0% { transform: translate3d(-3%, 1%, 0) scale(.96); } 100% { transform: translate3d(4%, -2%, 0) scale(1.08); } }
 @keyframes focusRainFall { from { transform: translate3d(-2%, -8%, 0); } to { transform: translate3d(2%, 8%, 0); } }
