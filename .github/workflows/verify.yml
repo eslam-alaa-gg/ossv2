@@ -1,0 +1,95 @@
+name: Verify
+on:
+  push:
+    branches: ["verify/**"]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: ci
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U ci" --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      DATABASE_URL: postgresql://ci:ci@127.0.0.1:5432/ci
+      APP_SECRET: throwaway-ci-secret-0123456789-0123456789
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install
+        run: npm install --no-audit --no-fund --no-package-lock
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Lint (this branch vs main)
+        run: |
+          git worktree add ../base origin/main
+          cp -r node_modules ../base/node_modules
+          npx eslint . -f unix > /tmp/lint-head.txt || true
+          (cd ../base && npx eslint . -f unix > /tmp/lint-base.txt) || true
+          norm() { sed -E 's#^.*/(base|ossv2|OSSv2)/(src|tests|native|public)/#\2/#; s#:[0-9]+:[0-9]+:#:#' "$1" | grep -v ' problem' | sort; }
+          echo "== main: $(tail -1 /tmp/lint-base.txt)"
+          echo "== branch: $(tail -1 /tmp/lint-head.txt)"
+          echo "== only on this branch"; comm -13 <(norm /tmp/lint-base.txt) <(norm /tmp/lint-head.txt)
+          echo "== fixed by this branch"; comm -23 <(norm /tmp/lint-base.txt) <(norm /tmp/lint-head.txt)
+      - name: Unit tests
+        run: node --experimental-strip-types --test tests/logic.test.mjs
+      - name: Database
+        run: |
+          createdb() { PGPASSWORD=ci psql -h 127.0.0.1 -U ci -d ci -c "create database $1"; }
+          createdb ci_base
+          for db in ci ci_base; do for f in drizzle/*.sql; do PGPASSWORD=ci psql -q -h 127.0.0.1 -U ci -d $db -v ON_ERROR_STOP=1 -f $f; done; done
+      - name: Build
+        run: npm run build
+      - name: Existing API tests (this branch)
+        continue-on-error: true
+        run: |
+          npx next start -p 3000 > /tmp/server-e2e.log 2>&1 &
+          timeout 60 bash -c 'until curl -sf -o /dev/null http://127.0.0.1:3000/login; do sleep 1; done'
+          BASE_URL=http://127.0.0.1:3000 node tests/e2e.mjs; code=$?
+          pkill -f "next-server" || true
+          exit $code
+      - name: Existing API tests (main, for comparison)
+        continue-on-error: true
+        working-directory: ../base
+        env:
+          DATABASE_URL: postgresql://ci:ci@127.0.0.1:5432/ci_base
+        run: |
+          npm run build > /tmp/base-build.log 2>&1
+          npx next start -p 3001 > /tmp/server-base.log 2>&1 &
+          timeout 60 bash -c 'until curl -sf -o /dev/null http://127.0.0.1:3001/login; do sleep 1; done'
+          BASE_URL=http://127.0.0.1:3001 node tests/e2e.mjs; code=$?
+          pkill -f "next-server" || true
+          exit $code
+      - name: Browser tests
+        run: |
+          npm install --no-save --no-audit --no-fund --no-package-lock playwright@1.55.0
+          npm install --no-audit --no-fund --no-package-lock >/dev/null
+          npm install --no-save --no-audit --no-fund --no-package-lock playwright@1.55.0
+          npx playwright install --with-deps chromium webkit > /tmp/pw.log 2>&1
+          sleep 2
+          npx next start -p 3000 > /tmp/server.log 2>&1 &
+          timeout 60 bash -c 'until curl -sf -o /dev/null http://127.0.0.1:3000/login; do sleep 1; done'
+          BASE_URL=http://127.0.0.1:3000 node tests/browser.mjs
+      - name: Server errors
+        if: always()
+        run: grep -n -i -A6 "error" /tmp/server.log | head -80 || echo "no server errors logged"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: screenshots
+          path: screenshots
+      - name: Screenshots (encoded)
+        if: always()
+        run: for f in screenshots/*.jpg; do [ -f "$f" ] && echo "SHOT $(basename $f) $(base64 -w0 $f)"; done || true
