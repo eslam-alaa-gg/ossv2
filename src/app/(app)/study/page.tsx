@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpen, Brain, CalendarDays, Check, Clock3, Plus, Sparkles, Trash2 } from "lucide-react";
+import { BookOpen, Brain, CalendarDays, Clock3, Plus, Sparkles, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useApp } from "@/components/providers";
