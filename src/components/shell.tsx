@@ -237,24 +237,20 @@ function CommandMenu({ open, onClose }: { open: boolean; onClose: () => void }) 
 }
 
 
-type QuickHabit = { id: string; name: string; kind: "standard" | "water" | "reading" | "learning"; target: number; todayAmount: number; todayDone: boolean; unit: string };
-type QuickTrackers = { today: string; water: { goal: number; total: number }; reading: { target: number; todayPages: number }; learning: { target: number; todayCount: number; entries: { id: string; date: string; title: string }[] } };
+type QuickHabit = { id: string; name: string; icon: string; kind: "standard" | "water" | "reading" | "learning"; target: number; todayAmount: number; todayDone: boolean; unit: string };
+type QuickTrackers = { today: string; water: { goal: number; total: number }; reading: { target: number; todayPages: number }; learning: { target: number; todayCount: number } };
 
 function HabitQuickPanel() {
   const { t } = useApp();
   const { run, toast } = useUI();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [habits, setHabits] = useState<QuickHabit[]>([]);
   const [tracker, setTracker] = useState<QuickTrackers | null>(null);
   const [loading, setLoading] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [book, setBook] = useState("");
-  const [pages, setPages] = useState("5");
-  const [learnTitle, setLearnTitle] = useState("");
-  const [message, setMessage] = useState("");
-  const [hiddenIds, setHiddenIds] = useState<string[]>([]);
-  const [customizing, setCustomizing] = useState(false);
+  const [busyId, setBusyId] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
@@ -264,136 +260,147 @@ function HabitQuickPanel() {
       ]);
       setHabits(h.habits);
       setTracker(tr);
-      try {
-        const saved = localStorage.getItem("ukiyo.habit-quick.hidden");
-        if (saved === null) {
-          setHiddenIds([]);
-          localStorage.setItem("ukiyo.habit-quick.hidden", "[]");
-        } else {
-          const parsed: unknown = JSON.parse(saved);
-          setHiddenIds(Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === "string" && h.habits.some((item) => item.id === id)) : []);
-        }
-      } catch { setHiddenIds([]); }
-      setMessage("");
-    } catch (e) {
-      setMessage(e instanceof Error ? e.message : t("Could not load habit progress."));
+    } catch {
+      // The quick panel remains usable when a refresh fails.
     } finally {
       setLoading(false);
     }
-  }, [t]);
-  useEffect(() => { void Promise.resolve().then(load); }, [load]);
+  }, []);
+
+  useEffect(() => { void load(); }, [load]);
   useEffect(() => {
     if (!open) return;
-    if (!tracker) void Promise.resolve().then(load);
+    void load();
     const outside = (e: PointerEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false); };
     const escape = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
     document.addEventListener("pointerdown", outside);
     document.addEventListener("keydown", escape);
     return () => { document.removeEventListener("pointerdown", outside); document.removeEventListener("keydown", escape); };
-  }, [open, load, tracker]);
-  const act = async (fn: () => Promise<unknown>, success?: string) => {
-    setBusy(true);
-    try {
-      const result = await run(fn, success);
-      if (result !== undefined) await load();
-      return result;
-    } finally {
-      setBusy(false);
-    }
-  };
-  const special = habits.filter((h) => h.kind !== "standard");
+  }, [open, load]);
+
+  const water = habits.find((h) => h.kind === "water");
+  const reading = habits.find((h) => h.kind === "reading");
+  const learning = habits.find((h) => h.kind === "learning");
   const standard = habits.filter((h) => h.kind === "standard");
   const cup = 250;
-  const waterCups = tracker ? Number((tracker.water.total / cup).toFixed(1)) : 0;
-  const waterGoal = tracker ? Math.ceil(tracker.water.goal / cup) : 0;
-  const waterHabit = special.find((h) => h.kind === "water");
-  const reading = special.find((h) => h.kind === "reading" && !hiddenIds.includes(h.id));
-  const learning = special.find((h) => h.kind === "learning" && !hiddenIds.includes(h.id));
-  const waterVisible = !waterHabit || !hiddenIds.includes(waterHabit.id);
-  const waterProgress = tracker ? Math.min(100, tracker.water.goal ? (100 * tracker.water.total) / tracker.water.goal : 0) : 0;
-  const toggleVisible = (id: string) => {
-    const next = hiddenIds.includes(id) ? hiddenIds.filter((x) => x !== id) : [...hiddenIds, id];
-    setHiddenIds(next);
-    try { localStorage.setItem("ukiyo.habit-quick.hidden", JSON.stringify(next)); } catch { /* storage may be unavailable */ }
+  const waterAmount = tracker?.water.total ?? 0;
+  const waterGoal = tracker?.water.goal ?? 0;
+
+  const logStandard = async (h: QuickHabit) => {
+    if (busyId) return;
+    setBusyId(h.id);
+    try {
+      const next = h.target === 1 ? (h.todayDone ? 0 : 1) : Math.min(h.target, h.todayAmount + 1);
+      const r = await run(() => api<{ completed: boolean }>(`/api/habits/${h.id}/log`, { body: { amount: next } }));
+      if (r) {
+        if (r.completed) toast("success", t("Habit complete"));
+        await load();
+      }
+    } finally {
+      setBusyId(null);
+    }
   };
-  const addWater = () => act(() => api("/api/trackers/water", { body: { ml: cup } }), t("Water logged"));
-  const addReading = async (e: FormEvent) => {
-    e.preventDefault();
-    const n = Number(pages);
-    if (!book.trim() || !Number.isInteger(n) || n < 1) return;
-    await act(() => api("/api/trackers/reading", { body: { book, pages: n } }), t("Reading logged"));
-    setPages("5");
+
+  const addWater = async () => {
+    if (busyId) return;
+    setBusyId("water");
+    try {
+      if (await run(() => api("/api/trackers/water", { body: { ml: cup } }), t("Water logged"))) await load();
+    } finally { setBusyId(null); }
   };
-  const addLearning = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!learnTitle.trim()) return;
-    await act(() => api("/api/trackers/learning", { body: { title: learnTitle, explanation: "" } }), t("Learning saved"));
-    setLearnTitle("");
+
+  const openTracker = (tab: "reading" | "learning") => {
+    setOpen(false);
+    router.push(`/habits?tab=${tab}`);
   };
-  const logStandard = (h: QuickHabit, amount: number) => act(async () => {
-    const r = await api<{ completed: boolean; xp: number }>(`/api/habits/${h.id}/log`, { body: { amount } });
-    if (r.completed) toast("success", t("Habit complete"));
-    return r;
-  });
+
+  const HabitButton = ({ id, name, icon, amount, target, done, onClick, disabled }: {
+    id: string; name: string; icon: string; amount: number; target: number; done?: boolean; onClick: () => void; disabled?: boolean;
+  }) => {
+    const pct = target > 0 ? Math.min(100, (amount / target) * 100) : 0;
+    const radius = 20;
+    const circumference = 2 * Math.PI * radius;
+    const complete = done ?? (target > 0 && amount >= target);
+    return (
+      <button
+        key={id}
+        type="button"
+        onClick={onClick}
+        disabled={disabled || complete}
+        title={`${t(name)} · ${amount}/${target}`}
+        aria-label={`${t(name)}: ${amount} / ${target}`}
+        className="group flex min-w-0 flex-col items-center gap-1.5 rounded-xl p-2 transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-default"
+      >
+        <span className="relative grid size-12 place-items-center">
+          <svg viewBox="0 0 48 48" className="absolute inset-0 size-12 -rotate-90" aria-hidden="true">
+            <circle cx="24" cy="24" r={radius} fill="none" stroke="rgba(255,255,255,.17)" strokeWidth="3" />
+            <circle cx="24" cy="24" r={radius} fill="none" stroke="var(--accent)" strokeWidth="3" strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={circumference * (1 - pct / 100)} className="transition-[stroke-dashoffset] duration-300" />
+          </svg>
+          <span className={cn("grid size-9 place-items-center rounded-full transition-transform", complete ? "text-accent" : "text-white/90 group-hover:scale-110")}>
+            {icon === "water" ? <Droplets className="size-5" /> : icon === "reading" ? <BookOpen className="size-5" /> : icon === "learning" ? <Lightbulb className="size-5" /> : <HabitIcon name={icon} className="size-5" />}
+          </span>
+          {complete && <Check className="absolute -end-0.5 -top-0.5 size-3.5 rounded-full bg-[var(--accent)] p-0.5 text-[var(--on-accent)]" />}
+        </span>
+        <span className="max-w-full truncate text-[11px] text-white/85">{t(name)}</span>
+        <span className="text-[10px] tabular-nums text-white/55">{amount}/{target}</span>
+      </button>
+    );
+  };
+
   return (
     <div ref={ref} className="relative">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className={cn(
-          "header-icon-btn glass-btn btn-ghost btn-icon grid size-10 shrink-0 place-items-center rounded-xl border border-line/70 transition-all duration-200 hover:border-accent/40 hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50",
-          open && "border-accent/50 bg-card shadow-sm",
-        )}
+        className="header-icon-btn grid size-10 shrink-0 place-items-center rounded-xl border-0 bg-transparent text-current transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
         aria-label={t("Habit quick tracker")}
         title={t("Habit quick tracker")}
         aria-haspopup="dialog"
         aria-expanded={open}
         aria-controls="habit-quick-panel"
       >
-        <span className="relative grid size-7 place-items-center">
-          <svg viewBox="0 0 24 24" className="absolute inset-0 size-7 -rotate-90" aria-hidden="true">
-            <circle cx="12" cy="12" r="10" fill="none" stroke="var(--input)" strokeWidth="1.5" />
-            <circle cx="12" cy="12" r="10" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeDasharray={62.83} strokeDashoffset={62.83 * (1 - waterProgress / 100)} />
-          </svg>
-          <Droplets className="relative size-[17px] stroke-[2.1]" aria-hidden="true" />
-        </span>
+        <Droplets className="size-[22px] stroke-[2.1]" aria-hidden="true" />
       </button>
       <AnimatePresence>
         {open && (
-          <motion.div id="habit-quick-panel" role="dialog" aria-label={t("Quick habit tracker")} initial={{ opacity: 0, y: -7, scale: .97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -5, scale: .98 }} transition={{ duration: .16 }} className="popover absolute start-0 top-[calc(100%+0.65rem)] z-[80] max-h-[min(78dvh,560px)] w-[min(calc(100vw-2rem),340px)] overflow-hidden p-3 shadow-2xl">
-            <div className="mb-3 flex items-center justify-between"><div><p className="text-sm font-semibold">{t("Quick habit tracker")}</p><p className="text-[11px] text-faint">{t("Your daily targets")}</p></div><div className="flex items-center gap-1"><button type="button" onClick={() => setCustomizing((v) => !v)} className="rounded-lg px-2 py-1 text-[11px] text-accent hover:bg-card">{t(customizing ? "Done" : "Customize")}</button><button type="button" onClick={() => setOpen(false)} aria-label={t("Close")} className="rounded-lg p-1.5 hover:bg-card"><X className="size-4" /></button></div></div>
-            {customizing && <div className="mb-3 grid grid-cols-2 gap-2 rounded-xl border border-line bg-card p-2">{habits.map((h) => <label key={h.id} className="flex min-w-0 items-center gap-2 text-xs"><input type="checkbox" checked={!hiddenIds.includes(h.id)} onChange={() => toggleVisible(h.id)} /><span className="truncate">{t(h.name)}</span></label>)}</div>}
-            {loading && !tracker ? <p className="py-5 text-center text-xs text-muted">{t("Loading…")}</p> : message ? <p role="alert" className="text-xs text-muted">{message}</p> : (
-              <div className="max-h-[min(65vh,430px)] space-y-2 overflow-y-auto">
-                {tracker && waterVisible && <div className="rounded-xl border border-line bg-card p-3">
-                  <div className="flex items-center gap-2"><Droplets className="size-4 text-accent" /><p className="flex-1 text-sm font-medium">{t("Drink Water")}</p><span className="text-xs tabular-nums text-muted">{waterCups}/{waterGoal} {t("cups")}</span></div>
-                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[var(--input)]"><div className="h-full rounded-full bg-accent transition-all" style={{ width: `${Math.min(100, waterGoal ? (100 * waterCups) / waterGoal : 0)}%` }} /></div>
-                  <button type="button" disabled={busy} onClick={addWater} className="glass-btn btn-secondary mt-2 h-8 w-full text-xs"><Plus className="size-3.5" /> {t("Add one cup")}</button>
-                  {waterCups < waterGoal && <p className="mt-1 text-[11px] text-faint">{t("Goal not reached yet.")}</p>}
-                </div>}
-                {reading && tracker && <div className="rounded-xl border border-line bg-card p-3">
-                  <div className="mb-2 flex items-center gap-2"><BookOpen className="size-4 text-accent" /><p className="flex-1 text-sm font-medium">{t("Read Books")}</p><span className="text-xs tabular-nums text-muted">{tracker.reading.todayPages}/{reading.target} {t("pages")}</span></div>
-                  <form onSubmit={addReading} className="flex gap-1.5"><input className="input min-w-0 flex-1 text-xs" value={book} onChange={(e) => setBook(e.target.value)} placeholder={t("Book name")} maxLength={120} required /><input className="input w-14 text-xs" type="number" min={1} max={2000} value={pages} onChange={(e) => setPages(e.target.value)} aria-label={t("Pages read")} required /><button type="submit" disabled={busy} className="glass-btn btn-primary h-9 w-9 shrink-0 justify-center" aria-label={t("Log reading")}><Plus className="size-4" /></button></form>
-                  {tracker.reading.todayPages < reading.target && <p className="mt-1 text-[11px] text-faint">{t("Goal not reached yet.")}</p>}
-                </div>}
-                {learning && tracker && <div className="rounded-xl border border-line bg-card p-3">
-                  <div className="mb-2 flex items-center gap-2"><Lightbulb className="size-4 text-accent" /><p className="flex-1 text-sm font-medium">{t("Learn Something New")}</p><span className="text-xs tabular-nums text-muted">{tracker.learning.todayCount}/{learning.target}</span></div>
-                  <form onSubmit={addLearning} className="flex gap-1.5"><input className="input min-w-0 flex-1 text-xs" value={learnTitle} onChange={(e) => setLearnTitle(e.target.value)} placeholder={t("What did you learn?")} maxLength={120} required /><button type="submit" disabled={busy} className="glass-btn btn-primary h-9 w-9 shrink-0 justify-center" aria-label={t("Save entry")}><Plus className="size-4" /></button></form>
-                  {tracker.learning.todayCount < learning.target && <p className="mt-1 text-[11px] text-faint">{t("Goal not reached yet.")}</p>}
-                </div>}
-                {standard.filter((h) => !hiddenIds.includes(h.id)).map((h) => <div key={h.id} className="rounded-xl border border-line bg-card p-3">
-                  <div className="flex items-center gap-2"><p className="min-w-0 flex-1 truncate text-sm font-medium">{t(h.name)}</p><span className="text-xs tabular-nums text-muted">{h.todayAmount}/{h.target} {t(h.unit)}</span></div>
-                  <div className="mt-2 flex items-center gap-2">
-                    {h.target === 1 ? <button type="button" disabled={busy} onClick={() => logStandard(h, h.todayDone ? 0 : 1)} className="glass-btn btn-secondary h-8 w-full text-xs">{h.todayDone ? <><Check className="size-3.5" /> {t("Completed today")}</> : t("Mark as done")}</button> : <>
-                      <button type="button" disabled={busy || h.todayAmount <= 0} onClick={() => logStandard(h, h.todayAmount - 1)} aria-label={t("Decrease")} className="rounded-lg border border-line p-1.5 disabled:opacity-40"><Minus className="size-3.5" /></button><div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[var(--input)]"><div className="h-full rounded-full bg-accent" style={{ width: `${Math.min(100, 100 * h.todayAmount / h.target)}%` }} /></div><button type="button" disabled={busy || h.todayAmount >= h.target} onClick={() => logStandard(h, h.todayAmount + 1)} aria-label={t("Increase")} className="rounded-lg border border-line p-1.5 disabled:opacity-40"><Plus className="size-3.5" /></button>
-                    </>}
-                  </div>
-                  {h.todayAmount < h.target && <p className="mt-1 text-[11px] text-faint">{t("Goal not reached yet.")}</p>}
-                </div>)}
-                {!waterVisible && !reading && !learning && !standard.some((h) => !hiddenIds.includes(h.id)) && <p className="py-5 text-center text-xs text-muted">{t("Add a habit with a daily target to see it here.")}</p>}
+          <motion.div
+            id="habit-quick-panel"
+            role="dialog"
+            aria-label={t("Quick habit tracker")}
+            initial={{ opacity: 0, y: -7, scale: .97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -5, scale: .98 }}
+            transition={{ duration: .16 }}
+            className="absolute start-0 top-[calc(100%+0.65rem)] z-[80] w-[min(calc(100vw-2rem),320px)] overflow-hidden rounded-2xl border border-white/15 p-3 shadow-2xl"
+            style={{ background: "rgba(12, 12, 20, .66)", backdropFilter: "blur(24px) saturate(160%)", WebkitBackdropFilter: "blur(24px) saturate(160%)" }}
+          >
+            <div className="mb-2 flex items-center justify-between px-1">
+              <div>
+                <p className="text-sm font-semibold text-white">{t("Quick habit tracker")}</p>
+                <p className="text-[11px] text-white/55">{t("Your daily targets")}</p>
+              </div>
+              <button type="button" onClick={() => setOpen(false)} aria-label={t("Close")} className="rounded-lg p-1.5 text-white/70 hover:bg-white/10"><X className="size-4" /></button>
+            </div>
+            {loading && !tracker ? <p className="py-5 text-center text-xs text-white/60">{t("Loading…")}</p> : (
+              <div className="grid grid-cols-3 gap-1">
+                {tracker && water && (
+                  <HabitButton id="water" name="Drink Water" icon="water" amount={Math.floor(waterAmount / cup)} target={Math.max(1, Math.ceil(waterGoal / cup))} onClick={addWater} disabled={!!busyId || waterAmount >= waterGoal} />
+                )}
+                {reading && tracker && (
+                  <HabitButton id={reading.id} name={reading.name} icon="reading" amount={tracker.reading.todayPages} target={reading.target} onClick={() => openTracker("reading")} />
+                )}
+                {learning && tracker && (
+                  <HabitButton id={learning.id} name={learning.name} icon="learning" amount={tracker.learning.todayCount} target={learning.target} onClick={() => openTracker("learning")} />
+                )}
+                {standard.map((h) => (
+                  <HabitButton key={h.id} id={h.id} name={h.name} icon={h.icon} amount={h.todayAmount} target={h.target} done={h.todayDone} onClick={() => void logStandard(h)} disabled={!!busyId || (h.target > 1 && h.todayAmount >= h.target)} />
+                ))}
+                {!habits.length && <p className="col-span-3 py-5 text-center text-xs text-white/60">{t("Add a habit with a daily target to see it here.")}</p>}
               </div>
             )}
-            <div className="mt-3 border-t border-line pt-2"><Link href="/habits" onClick={() => setOpen(false)} className="block text-center text-xs text-accent">{t("Open all habits")}</Link></div>
+            <div className="mt-2 border-t border-white/15 pt-2">
+              <Link href="/habits" onClick={() => setOpen(false)} className="block rounded-lg py-1.5 text-center text-xs text-white/80 transition-colors hover:bg-white/10">{t("Open all habits")}</Link>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
