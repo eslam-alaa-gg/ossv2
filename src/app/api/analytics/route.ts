@@ -48,7 +48,7 @@ export const GET = handle(async (req) => {
     taskEntry.minutes += minutes;
     taskEntry.sessions += 1;
     taskFocus.set(taskKey, taskEntry);
-    const subjectMatch = row.taskDescription?.match(/^Study subject:\\s*(.+)$/i);
+    const subjectMatch = row.taskDescription?.match(/^Study subject:\s*(.+)$/i);
     const subject = subjectMatch?.[1]?.trim() || (row.taskCategory?.toLowerCase() === "study" ? "General study" : "Other tasks");
     const subjectEntry = subjectFocus.get(subject) ?? { subject, minutes: 0, sessions: 0 };
     subjectEntry.minutes += minutes;
