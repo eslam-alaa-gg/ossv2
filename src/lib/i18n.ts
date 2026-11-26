@@ -49,6 +49,8 @@ const ar: Record<string, string> = {
   "Could not control Spotify.": "تعذر التحكم في Spotify.",
   "Previous track": "المقطع السابق",
   "Next track": "المقطع التالي",
+  "Learning entries": "إدخالات التعلّم",
+  "Learning activity (30 days)": "نشاط التعلّم (آخر 30 يومًا)",
   "Focus background": "خلفية التركيز",
   "Choose one of five looping video wallpapers. Your selection is saved to your account.": "اختار واحدة من خمس خلفيات فيديو بتتكرر تلقائيًا، واختيارك هيتحفظ في حسابك.",
   "Misty Forest": "غابة ضبابية",
