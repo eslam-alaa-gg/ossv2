@@ -52,10 +52,10 @@ export const GET = handle(async () => {
     });
   }
 
-  const subjectGroups = new Map<string, { subjectId: string | null; count: number }>();
+  const subjectGroups = new Map<string, { subjectId: string | null; subjectName: string | null; count: number }>();
   for (const card of dueCards) {
     const key = card.subjectId ?? "general";
-    const group = subjectGroups.get(key) ?? { subjectId: card.subjectId, count: 0 };
+    const group = subjectGroups.get(key) ?? { subjectId: card.subjectId, subjectName: card.subjectName, count: 0 };
     group.count += 1;
     subjectGroups.set(key, group);
   }
@@ -65,7 +65,7 @@ export const GET = handle(async () => {
     suggestions.push({
       key,
       kind: "review",
-      title: reviewGroup[1].subjectId ? "Review your due flashcards" : "Clear your general review queue",
+      title: reviewGroup[1].subjectName ? "Review " + reviewGroup[1].subjectName : "Clear your general review queue",
       description: reviewGroup[1].count + " card" + (reviewGroup[1].count === 1 ? "" : "s") + " due. A short recall session will keep your reviews on track.",
       minutes: Math.min(focusMinutesThisWeek > 300 ? 15 : 25, Math.max(10, reviewGroup[1].count * 2)),
       subjectId: reviewGroup[1].subjectId,
@@ -80,7 +80,7 @@ export const GET = handle(async () => {
 export const POST = handle(async (request) => {
   const auth = await requireUser();
   const input = await body(request, z.object({
-    date: z.string().regex(/^\\d{4}-\\d{2}-\\d{2}$/),
+    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
     suggestionKey: z.string().trim().min(1).max(120),
     status: z.enum(["accepted", "dismissed"]),
   }));
