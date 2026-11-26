@@ -47,6 +47,16 @@ export async function queueOfflineAction(userId: string, path: string, method: P
   } catch { return false; }
 }
 
+export async function cancelQueuedAction(userId: string, path: string, bodyMatch: Record<string, unknown>) {
+  const db = database();
+  if (!db || !userId) return;
+  try {
+    const actions = await db.pending.where("userId").equals(userId).toArray();
+    await Promise.all(actions.filter((action) => action.path === path && action.method === "POST" && JSON.stringify(action.body) === JSON.stringify(bodyMatch))
+      .map((action) => action.id === undefined ? Promise.resolve() : db.pending.delete(action.id)));
+  } catch { /* Best-effort cancellation of a local-only item. */ }
+}
+
 export async function syncOfflineQueue(userId: string) {
   const db = database();
   if (!db || !userId || !navigator.onLine) return;
