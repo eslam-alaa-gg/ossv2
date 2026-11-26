@@ -57,9 +57,9 @@ export async function cancelQueuedAction(userId: string, path: string, bodyMatch
   } catch { /* Best-effort cancellation of a local-only item. */ }
 }
 
-export async function syncOfflineQueue(userId: string) {
+export async function syncOfflineQueue(userId: string): Promise<boolean> {
   const db = database();
-  if (!db || !userId || !navigator.onLine) return;
+  if (!db || !userId || !navigator.onLine) return false;
   const actions = await db.pending.where("userId").equals(userId).sortBy("createdAt");
   for (const action of actions) {
     if (action.id === undefined) continue;
@@ -67,9 +67,10 @@ export async function syncOfflineQueue(userId: string) {
       await api(action.path, { method: action.method, ...(action.body ? { body: action.body } : {}) });
       await db.pending.delete(action.id);
     } catch {
-      break;
+      return false;
     }
   }
+  return true;
 }
 
 export async function isolateOfflineUser(userId: string | null) {
