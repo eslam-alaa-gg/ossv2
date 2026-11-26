@@ -268,6 +268,34 @@ await test("daily study suggestions rank study work and persist accept/dismiss d
   })).status, 400);
 });
 
+
+await test("water, reading and learning trackers persist per user and update linked habit progress", async () => {
+  const waterHabit = (await A.req("POST", "/api/habits", { name: "Water tracker test", kind: "water", target: 2000 })).json.habit;
+  const readingHabit = (await A.req("POST", "/api/habits", { name: "Reading tracker test", kind: "reading", target: 15 })).json.habit;
+  const learningHabit = (await A.req("POST", "/api/habits", { name: "Learning tracker test", kind: "learning", target: 2 })).json.habit;
+  assert.ok(waterHabit?.id && readingHabit?.id && learningHabit?.id);
+
+  await A.req("POST", "/api/trackers/water", { ml: 500 });
+  const reading = (await A.req("POST", "/api/trackers/reading", { book: "Test book", pages: 5 })).json;
+  const learning = (await A.req("POST", "/api/trackers/learning", { title: "Test concept", explanation: "A short explanation." })).json;
+  assert.ok(reading.ok && learning.ok);
+
+  const tracker = (await A.req("GET", "/api/trackers")).json;
+  assert.equal(tracker.water.total, 500);
+  assert.equal(tracker.reading.todayPages, 5);
+  assert.equal(tracker.learning.todayCount, 1);
+  const mine = (await A.req("GET", "/api/habits")).json.habits;
+  assert.equal(mine.find((h) => h.id === waterHabit.id).todayAmount, 500);
+  assert.equal(mine.find((h) => h.id === readingHabit.id).todayAmount, 5);
+  assert.equal(mine.find((h) => h.id === learningHabit.id).todayAmount, 1);
+
+  const other = (await B.req("GET", "/api/trackers")).json;
+  assert.equal(other.water.total, 0);
+  assert.equal(other.reading.entries.length, 0);
+  assert.equal(other.learning.entries.length, 0);
+  assert.equal((await B.req("DELETE", `/api/trackers/reading?id=${reading.json.entry?.id ?? "00000000-0000-4000-8000-000000000000"}`)).status, 404);
+});
+
 /* ---------------- demo ---------------- */
 await test("demo login creates authenticated, seeded, isolated session", async () => {
   const r = await D.req("POST", "/api/auth/demo", { timezone: "UTC" });
