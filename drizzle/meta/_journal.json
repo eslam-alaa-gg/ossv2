@@ -50,6 +50,13 @@
       "when": 1795687200000,
       "tag": "0006_custom_fonts",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1795690800000,
+      "tag": "0007_study_learning",
+      "breakpoints": true
     }
   ]
 }
