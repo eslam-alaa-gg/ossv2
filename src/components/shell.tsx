@@ -1,7 +1,7 @@
 "use client";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  BarChart3, Bell, BookMarked, BookOpen, CalendarCheck, CalendarDays, Check, CheckSquare, ChevronsLeft, ChevronsRight, Droplets, GlassWater, Languages, LayoutDashboard, Lightbulb, LogOut, Minus, Music2, Palette, Plus, Repeat, Search, Settings, Target, Timer,
+  BarChart3, Bell, BookMarked, BookOpen, CalendarCheck, CalendarDays, Check, CheckSquare, ChevronsLeft, ChevronsRight, Droplets, Languages, LayoutDashboard, Lightbulb, LogOut, Minus, Music2, Palette, Plus, Repeat, Search, Settings, Target, Timer,
   Trophy, User as UserIcon, X, Zap,
 } from "lucide-react";
 import Link from "next/link";
@@ -285,11 +285,11 @@ function HabitQuickPanel() {
   useEffect(() => {
     if (!open) return;
     if (!tracker) void Promise.resolve().then(load);
-    const outside = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false); };
+    const outside = (e: PointerEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false); };
     const escape = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
-    document.addEventListener("mousedown", outside);
+    document.addEventListener("pointerdown", outside);
     document.addEventListener("keydown", escape);
-    return () => { document.removeEventListener("mousedown", outside); document.removeEventListener("keydown", escape); };
+    return () => { document.removeEventListener("pointerdown", outside); document.removeEventListener("keydown", escape); };
   }, [open, load, tracker]);
   const act = async (fn: () => Promise<unknown>, success?: string) => {
     setBusy(true);
@@ -337,18 +337,30 @@ function HabitQuickPanel() {
   });
   return (
     <div ref={ref} className="relative">
-      <button type="button" onClick={() => setOpen((v) => !v)} className="header-icon-btn glass-btn btn-ghost btn-icon h-9 w-9" aria-label={t("Habit quick tracker")} title={t("Habit quick tracker")} aria-expanded={open}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className={cn(
+          "header-icon-btn glass-btn btn-ghost btn-icon grid size-10 shrink-0 place-items-center rounded-xl border border-line/70 transition-all duration-200 hover:border-accent/40 hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50",
+          open && "border-accent/50 bg-card shadow-sm",
+        )}
+        aria-label={t("Habit quick tracker")}
+        title={t("Habit quick tracker")}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        aria-controls="habit-quick-panel"
+      >
         <span className="relative grid size-7 place-items-center">
           <svg viewBox="0 0 24 24" className="absolute inset-0 size-7 -rotate-90" aria-hidden="true">
-            <circle cx="12" cy="12" r="10" fill="none" stroke="var(--input)" strokeWidth="1.6" />
-            <circle cx="12" cy="12" r="10" fill="none" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" strokeDasharray={62.83} strokeDashoffset={62.83 * (1 - waterProgress / 100)} />
+            <circle cx="12" cy="12" r="10" fill="none" stroke="var(--input)" strokeWidth="1.5" />
+            <circle cx="12" cy="12" r="10" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeDasharray={62.83} strokeDashoffset={62.83 * (1 - waterProgress / 100)} />
           </svg>
-          <GlassWater className="relative size-4" />
+          <Droplets className="relative size-[17px] stroke-[2.1]" aria-hidden="true" />
         </span>
       </button>
       <AnimatePresence>
         {open && (
-          <motion.div initial={{ opacity: 0, y: -7, scale: .97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -5, scale: .98 }} transition={{ duration: .16 }} className="popover absolute end-0 top-12 z-[80] w-[min(92vw,340px)] p-3 shadow-2xl">
+          <motion.div id="habit-quick-panel" role="dialog" aria-label={t("Quick habit tracker")} initial={{ opacity: 0, y: -7, scale: .97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -5, scale: .98 }} transition={{ duration: .16 }} className="popover absolute start-0 top-[calc(100%+0.65rem)] z-[80] max-h-[min(78dvh,560px)] w-[min(calc(100vw-2rem),340px)] overflow-hidden p-3 shadow-2xl">
             <div className="mb-3 flex items-center justify-between"><div><p className="text-sm font-semibold">{t("Quick habit tracker")}</p><p className="text-[11px] text-faint">{t("Your daily targets")}</p></div><div className="flex items-center gap-1"><button type="button" onClick={() => setCustomizing((v) => !v)} className="rounded-lg px-2 py-1 text-[11px] text-accent hover:bg-card">{t(customizing ? "Done" : "Customize")}</button><button type="button" onClick={() => setOpen(false)} aria-label={t("Close")} className="rounded-lg p-1.5 hover:bg-card"><X className="size-4" /></button></div></div>
             {customizing && <div className="mb-3 grid grid-cols-2 gap-2 rounded-xl border border-line bg-card p-2">{habits.map((h) => <label key={h.id} className="flex min-w-0 items-center gap-2 text-xs"><input type="checkbox" checked={!hiddenIds.includes(h.id)} onChange={() => toggleVisible(h.id)} /><span className="truncate">{t(h.name)}</span></label>)}</div>}
             {loading && !tracker ? <p className="py-5 text-center text-xs text-muted">{t("Loading…")}</p> : message ? <p role="alert" className="text-xs text-muted">{message}</p> : (
