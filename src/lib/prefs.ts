@@ -50,7 +50,7 @@ export type Prefs = {
   notifications: { inApp: boolean; push: boolean; email: boolean; quietStart: string; quietEnd: string; challengeTime: string; habitTime: string };
   spotify: { ambience: boolean; autoRefresh: boolean };
   waterGoal: number;
-  focus: { sound: string; volume: number; preset: number };
+  focus: { sound: string; volume: number; preset: number; background: "none" | "forest" | "ocean" | "rain" | "sunset" | "cosmos" };
   onboarding: { goals: string[]; habits: string[] };
 };
 
@@ -63,7 +63,7 @@ export const DEFAULT_PREFS: Prefs = {
   notifications: { inApp: true, push: false, email: false, quietStart: "22:00", quietEnd: "07:00", challengeTime: "09:00", habitTime: "18:00" },
   spotify: { ambience: true, autoRefresh: true },
   waterGoal: 2000,
-  focus: { sound: "none", volume: 0.5, preset: 25 },
+  focus: { sound: "none", volume: 0.5, preset: 25, background: "none" },
   onboarding: { goals: [], habits: [] },
 };
 
@@ -74,7 +74,7 @@ export const prefSchemas: { [K in keyof Prefs]: z.ZodType<Prefs[K]> } = {
   notifications: z.object({ inApp: b, push: b, email: b, quietStart: hhmm, quietEnd: hhmm, challengeTime: hhmm, habitTime: hhmm }),
   spotify: z.object({ ambience: b, autoRefresh: b }),
   waterGoal: z.number().int().min(500).max(10000),
-  focus: z.object({ sound: z.string().max(20), volume: z.number().min(0).max(1), preset: z.number().int().min(1).max(240) }),
+  focus: z.object({ sound: z.string().max(20), volume: z.number().min(0).max(1), preset: z.number().int().min(1).max(240), background: z.enum(["none", "forest", "ocean", "rain", "sunset", "cosmos"]).default("none") }),
   onboarding: z.object({ goals: z.array(z.string().max(60)).max(20), habits: z.array(z.string().max(60)).max(20) }),
 };
 
