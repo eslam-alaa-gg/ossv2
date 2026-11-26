@@ -13,8 +13,8 @@ type A = {
   year: number; today: string; dailyGoal: number; heatmap: HeatDay[];
   annual: { activeDays: number; score: number; tasks: number; habits: number; challenges: number; focusMinutes: number; bestDay: { date: string; score: number } | null; goalDays: number };
   streak: { current: number; longest: number; weekly: number }; today30: { daily: number; weekly: number; monthly: number };
-  trend: { date: string; score: number; tasks: number; habits: number; focusMinutes: number }[]; weeks: { week: string; score: number; tasks: number; focusMinutes: number }[];
-  months: { month: string; score: number; tasks: number }[]; habitConsistency: { name: string; done: number; scheduled: number; pct: number }[];
+  trend: { date: string; score: number; tasks: number; habits: number; focusMinutes: number; learningEntries: number }[]; weeks: { week: string; score: number; tasks: number; focusMinutes: number }[];
+  months: { month: string; score: number; tasks: number; learningEntries: number }[]; habitConsistency: { name: string; done: number; scheduled: number; pct: number }[];
   goalProgress: { title: string; status: string; progress: number }[]; goalsCompleted: number; goalsTotal: number; insights: string[];
 };
 const tip = { contentStyle: { background: "var(--pop)", border: "1px solid var(--border-strong)", borderRadius: 12, fontSize: 12, color: "var(--fg)" }, cursor: { fill: "rgba(128,128,150,.12)" }, labelStyle: { color: "var(--muted)" } };
@@ -32,7 +32,7 @@ export default function AnalyticsPage() {
   const c1 = colors[0], c2 = colors[1] ?? colors[0], c3 = colors[2] ?? colors[0];
   if (error && !data) return <><PageHeader title={t("Analytics")} /><ErrorState message={error} retry={reload} /></>;
   if (!data) return <><PageHeader title={t("Analytics")} /><div className="grid gap-4 md:grid-cols-3">{[0, 1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-28" />)}</div><Skeleton className="mt-4 h-64" /></>;
-  const empty = data.annual.activeDays === 0 && data.trend.every((d) => d.score === 0);
+  const empty = data.annual.activeDays === 0 && data.trend.every((d) => d.score === 0 && d.learningEntries === 0);
   const insightText = (value: string) => {
     if (value.startsWith("Not enough activity yet")) return t("Not enough activity yet for trends — insights appear once you have at least 5 active days across a week.");
     const best = value.match(/^Your highest average activity is on (\w+)s \(([\d.]+) points, from (\d+) active days\)\.$/);
@@ -56,6 +56,7 @@ export default function AnalyticsPage() {
         <Stat label={`${t("Tasks in")} ${data.year}`} value={data.annual.tasks} />
         <Stat label={t("Challenges")} value={data.annual.challenges} sub={`${t("in")} ${data.year}`} />
         <Stat label={t("Focus time")} value={minutesLabel(data.annual.focusMinutes)} sub={`in ${data.year}`} />
+        <Stat label={t("Learning entries")} value={data.annual.learningEntries} sub={`in ${data.year}`} />
         <Stat label={t("Goals completed")} value={`${data.goalsCompleted}/${data.goalsTotal}`} />
       </div>
 
@@ -72,7 +73,7 @@ export default function AnalyticsPage() {
         <ul className="space-y-1.5 text-sm text-muted">{data.insights.map((i) => <li key={i}>• {insightText(i)}</li>)}</ul>
       </Card>
 
-      {empty && <p className="mt-4 text-center text-sm text-muted">{t("No completed activity yet — charts will populate as you finish tasks, habits, challenges and focus sessions.")}</p>}
+      {empty && <p className="mt-4 text-center text-sm text-muted">{t("No completed activity yet — charts will populate as you finish tasks, habits, challenges, learning entries and focus sessions.")}</p>}
       <div className="mt-[var(--gap)] grid gap-[var(--gap)] lg:grid-cols-2">
         <Card><h3 className="mb-3 text-sm font-medium text-muted">{t("Productivity trend (30 days)")}</h3>
           <div className="h-56"><ResponsiveContainer><AreaChart data={data.trend} margin={{ left: -20, right: 4 }}><defs><linearGradient id="g1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={c1} stopOpacity={0.45} /><stop offset="100%" stopColor={c1} stopOpacity={0} /></linearGradient></defs><CartesianGrid stroke="var(--border)" vertical={false} /><XAxis dataKey="date" tickFormatter={(d: string) => fmtShort(d, lang)} {...axis} interval={6} /><YAxis allowDecimals={false} {...axis} /><Tooltip {...tip} labelFormatter={(d) => fmtShort(String(d), lang)} formatter={(v) => [`${v} ${t("pts")}`, t("Score")]} /><Area type="monotone" dataKey="score" stroke={c1} strokeWidth={2} fill="url(#g1)" /></AreaChart></ResponsiveContainer></div></Card>
@@ -80,7 +81,9 @@ export default function AnalyticsPage() {
           <div className="h-56"><ResponsiveContainer><BarChart data={data.weeks} margin={{ left: -20, right: 4 }}><CartesianGrid stroke="var(--border)" vertical={false} /><XAxis dataKey="week" tickFormatter={(d: string) => fmtShort(d, lang)} {...axis} interval={2} /><YAxis allowDecimals={false} {...axis} /><Tooltip {...tip} labelFormatter={(d) => `Week of ${fmtShort(String(d), lang)}`} formatter={(v) => [v, t("Tasks")]} /><Bar dataKey="tasks" fill={c2} radius={[6, 6, 0, 0]} /></BarChart></ResponsiveContainer></div></Card>
         <Card><h3 className="mb-3 text-sm font-medium text-muted">{t("Focus time (minutes / day)")}</h3>
           <div className="h-56"><ResponsiveContainer><BarChart data={data.trend} margin={{ left: -20, right: 4 }}><CartesianGrid stroke="var(--border)" vertical={false} /><XAxis dataKey="date" tickFormatter={(d: string) => fmtShort(d, lang)} {...axis} interval={6} /><YAxis allowDecimals={false} {...axis} /><Tooltip {...tip} labelFormatter={(d) => fmtShort(String(d), lang)} formatter={(v) => [`${v} ${t("min")}`, t("Focus")]} /><Bar dataKey="focusMinutes" fill={c3} radius={[4, 4, 0, 0]} /></BarChart></ResponsiveContainer></div></Card>
-        <Card><h3 className="mb-3 text-sm font-medium text-muted">{t("Habit consistency (last 30 days)")}</h3>
+<Card><h3 className="mb-3 text-sm font-medium text-muted">{t("Learning activity (30 days)")}</h3>
+          <div className="h-56"><ResponsiveContainer><BarChart data={data.trend} margin={{ left: -20, right: 4 }}><CartesianGrid stroke="var(--border)" vertical={false} /><XAxis dataKey="date" tickFormatter={(d: string) => fmtShort(d, lang)} {...axis} interval={6} /><YAxis allowDecimals={false} {...axis} /><Tooltip {...tip} labelFormatter={(d) => fmtShort(String(d), lang)} formatter={(v) => [v, t("Learning entries")]} /><Bar dataKey="learningEntries" fill={c1} radius={[4, 4, 0, 0]} /></BarChart></ResponsiveContainer></div></Card>
+                <Card><h3 className="mb-3 text-sm font-medium text-muted">{t("Habit consistency (last 30 days)")}</h3>
           {data.habitConsistency.length === 0 ? <p className="py-16 text-center text-sm text-muted">{t("Add habits to see consistency.")}</p> : <div className="h-56"><ResponsiveContainer><BarChart data={data.habitConsistency} layout="vertical" margin={{ left: 10, right: 12 }}><CartesianGrid stroke="var(--border)" horizontal={false} /><XAxis type="number" domain={[0, 100]} unit="%" {...axis} /><YAxis type="category" dataKey="name" width={110} {...axis} /><Tooltip {...tip} formatter={(v, _n, p) => [`${v}% (${p.payload.done}/${p.payload.scheduled} days)`, t("Consistency")]} /><Bar dataKey="pct" fill={c1} radius={[0, 6, 6, 0]} /></BarChart></ResponsiveContainer></div>}</Card>
         <Card className="lg:col-span-2"><h3 className="mb-3 text-sm font-medium text-muted">{t("Goal progress")}</h3>
           {data.goalProgress.length === 0 ? <p className="py-10 text-center text-sm text-muted">{t("No goals yet.")}</p> : <div style={{ height: Math.max(140, data.goalProgress.length * 38) }}><ResponsiveContainer><BarChart data={data.goalProgress} layout="vertical" margin={{ left: 10, right: 12 }}><CartesianGrid stroke="var(--border)" horizontal={false} /><XAxis type="number" domain={[0, 100]} unit="%" {...axis} /><YAxis type="category" dataKey="title" width={150} {...axis} /><Tooltip {...tip} formatter={(v) => [`${v}%`, "Progress"]} /><Bar dataKey="progress" fill={c2} radius={[0, 6, 6, 0]} /></BarChart></ResponsiveContainer></div>}</Card>
