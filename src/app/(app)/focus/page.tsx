@@ -165,7 +165,7 @@ export default function FocusPage() {
   const [backgroundScene, setBackgroundScene] = useState<FocusWallpaper>(prefs.focus.background);
   const [wallpaperVideoFailed, setWallpaperVideoFailed] = useState(false);
   const [timerStyle, setTimerStyle] = useState<TimerStyle>(prefs.focus.timerStyle);
-  useEffect(() => { setBackgroundScene(prefs.focus.background); setTimerStyle(prefs.focus.timerStyle); }, [prefs.focus.background, prefs.focus.timerStyle]);
+  useEffect(() => { setBackgroundScene(prefs.focus.background); setTimerStyle(prefs.focus.timerStyle); setWallpaperVideoFailed(false); }, [prefs.focus.background, prefs.focus.timerStyle]);
   const [imageMessage, setImageMessage] = useState("");
   const endAt = useRef(0);
   const amb = useRef<AmbientHandle | null>(null);
@@ -316,7 +316,7 @@ export default function FocusPage() {
   async function selectTimerStyle(style: TimerStyle) {
     setTimerStyle(style);
     try {
-      await savePrefs({ focus: { ...prefs.focus, timerStyle: style } });
+      await savePrefs({ focus: { ...prefs.focus, background: backgroundScene, timerStyle: style } });
     } catch {
       setImageMessage(t("Could not save the timer style. Please try again."));
     }
@@ -326,7 +326,7 @@ export default function FocusPage() {
     setBackgroundScene(id);
     setWallpaperVideoFailed(false);
     try {
-      await savePrefs({ focus: { ...prefs.focus, background: id } });
+      await savePrefs({ focus: { ...prefs.focus, background: id, timerStyle } });
     } catch {
       setImageMessage(t("Could not save the wallpaper selection. Please try again."));
     }
