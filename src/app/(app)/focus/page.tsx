@@ -13,6 +13,14 @@ type FocusData = { todayMinutes: number; weekMinutes: number; totalSessions: num
 type Mode = "focus" | "short_break" | "long_break" | "custom";
 const MODES: { value: Mode; label: string; min: number }[] = [{ value: "focus", label: "Standard Focus", min: 25 }, { value: "short_break", label: "Short Break", min: 5 }, { value: "long_break", label: "Long Break", min: 15 }, { value: "custom", label: "Custom Session", min: 30 }];
 const PRESETS = [15, 25, 45, 60];
+type FocusWallpaper = "none" | "forest" | "ocean" | "rain" | "sunset" | "cosmos";
+const WALLPAPERS: { id: Exclude<FocusWallpaper, "none">; label: string; hint: string }[] = [
+  { id: "forest", label: "Misty Forest", hint: "Soft green light and drifting fog" },
+  { id: "ocean", label: "Ocean Drift", hint: "Deep blue waves and moving light" },
+  { id: "rain", label: "Rainy Window", hint: "Quiet rain and blurred city lights" },
+  { id: "sunset", label: "Golden Hour", hint: "Warm sunset clouds and soft glow" },
+  { id: "cosmos", label: "Deep Space", hint: "Slow stars and violet nebula" },
+];
 const mmss = (s: number) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 
 function FocusNowPlaying({ immersive = false }: { immersive?: boolean }) {
@@ -55,6 +63,7 @@ export default function FocusPage() {
   const [volume, setVolume] = useState(prefs.focus.volume);
   const [audioOn, setAudioOn] = useState(false);
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
+  const [backgroundScene, setBackgroundScene] = useState<FocusWallpaper>(prefs.focus.background);
   const [imageMessage, setImageMessage] = useState("");
   const endAt = useRef(0);
   const amb = useRef<AmbientHandle | null>(null);
@@ -199,6 +208,15 @@ export default function FocusPage() {
     }
   }
 
+  async function selectWallpaper(id: FocusWallpaper) {
+    setBackgroundScene(id);
+    try {
+      await savePrefs({ focus: { ...prefs.focus, background: id } });
+    } catch {
+      setImageMessage(t("Could not save the wallpaper selection. Please try again."));
+    }
+  }
+
   async function start() {
     const r = await run(() => api<{ session: Session }>("/api/focus", { body: { mode, minutes, taskId: taskId || null } }));
     if (!r) return;
@@ -285,6 +303,8 @@ export default function FocusPage() {
     <div className="fixed inset-0 z-[90] flex min-h-[100dvh] w-screen flex-col items-center justify-center overflow-hidden p-3 sm:p-6">
       {backgroundImage ? (
         <div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: `url(${backgroundImage})`, backgroundSize: "cover", backgroundPosition: "center center" }} aria-hidden />
+      ) : backgroundScene !== "none" ? (
+        <div className={`focus-wallpaper focus-wallpaper-${backgroundScene}`} aria-hidden />
       ) : <div className="absolute inset-0 app-glow" />}
       <div className="absolute inset-0 bg-black/35" aria-hidden />
       <div className="relative z-10 flex w-full max-w-5xl flex-col items-center gap-5">
@@ -314,8 +334,8 @@ export default function FocusPage() {
   return (
     <>
       <PageHeader title={t("Focus Room")} subtitle={t("Deep work, one session at a time.")} />
-      {backgroundImage && <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden>
-        <div className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-45" style={{ backgroundImage: `url(${backgroundImage})` }} />
+      {(backgroundImage || backgroundScene !== "none") && <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden>
+        {backgroundImage ? <div className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-45" style={{ backgroundImage: `url(${backgroundImage})` }} /> : <div className={`focus-wallpaper focus-wallpaper-${backgroundScene} opacity-60`} />}
         <div className="absolute inset-0 bg-gradient-to-b from-[color-mix(in_srgb,var(--bg)_48%,transparent)] via-[color-mix(in_srgb,var(--bg)_72%,transparent)] to-[var(--bg)]" />
       </div>}
       <div className="relative z-10">
@@ -358,7 +378,17 @@ export default function FocusPage() {
             <p className="mt-2 text-xs text-faint">{t("Sounds are synthesised in your browser. Never autoplays; your choice is remembered.")}</p>
           </Card>
           <Card>
-            <div className="mb-3 flex items-center justify-between"><h2 className="text-sm font-medium text-muted">{t("Focus background")}</h2>{backgroundImage && <Badge tone="green">{t("Ready")}</Badge>}</div>
+            <div className="mb-3 flex items-center justify-between"><h2 className="text-sm font-medium text-muted">{t("Focus background")}</h2>{(backgroundImage || backgroundScene !== "none") && <Badge tone="green">{t("Ready")}</Badge>}</div>
+            <p className="mb-3 text-xs text-faint">{t("Choose one of five animated live wallpapers. Your selection is saved to your account.")}</p>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {WALLPAPERS.map((wallpaper) => <button key={wallpaper.id} type="button" onClick={() => void selectWallpaper(wallpaper.id)} aria-pressed={backgroundScene === wallpaper.id} className={cn("group overflow-hidden rounded-xl border text-start transition", backgroundScene === wallpaper.id ? "border-accent ring-1 ring-accent/40" : "border-line hover:border-[var(--border-strong)]")}>
+                <div className={`focus-wallpaper-preview focus-wallpaper-${wallpaper.id}`} />
+                <span className="block px-2.5 py-2 text-xs font-medium">{t(wallpaper.label)}</span>
+              </button>)}
+              <button type="button" onClick={() => void selectWallpaper("none")} aria-pressed={backgroundScene === "none"} className={cn("flex min-h-[86px] flex-col items-center justify-center gap-1 rounded-xl border text-xs", backgroundScene === "none" ? "border-accent ring-1 ring-accent/40" : "border-line hover:border-[var(--border-strong)]")}><span className="text-lg">◌</span>{t("No wallpaper")}</button>
+            </div>
+            {backgroundImage && <p className="mt-3 text-[11px] text-faint">{t("Your uploaded image currently appears above the selected live wallpaper.")}</p>}
+            <div className="my-3 border-t border-line" />
             <label className="glass-btn btn-secondary flex h-10 cursor-pointer items-center justify-center gap-2 text-sm">
               <ImagePlus className="size-4" /> {t("Upload background image")}
               <input type="file" accept="image/*" className="sr-only" onChange={(e) => { const file = e.target.files?.[0]; if (file) void uploadFocusBackground(file); e.currentTarget.value = ""; }} />
