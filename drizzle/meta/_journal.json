@@ -36,6 +36,13 @@
       "when": 1795680000000,
       "tag": "0004_focus_backgrounds",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1795683600000,
+      "tag": "0005_focus_pause_recovery",
+      "breakpoints": true
     }
   ]
 }
