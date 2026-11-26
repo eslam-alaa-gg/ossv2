@@ -1,7 +1,7 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
 import { motion, AnimatePresence } from "framer-motion";
-import { ExternalLink, Music2, Pause, Play } from "lucide-react";
+import { ExternalLink, Music2 } from "lucide-react";
 import Link from "next/link";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { api, ApiErr } from "@/lib/client";
