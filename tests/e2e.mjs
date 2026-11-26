@@ -68,9 +68,12 @@ await test("protected pages redirect to /login", async () => {
   assert.ok([307, 308].includes(r.status), `status ${r.status}`);
   assert.match(r.headers.get("location") ?? "", /\/login/);
 });
-await test("login page renders with demo button", async () => {
+await test("login page renders the current Google and email sign-in options", async () => {
   const r = await anon.req("GET", "/login");
-  assert.equal(r.status, 200); assert.match(r.text, /Try Demo/); assert.match(r.text, /or explore without an account/);
+  assert.equal(r.status, 200);
+  assert.match(r.text, /Continue with Google/);
+  assert.match(r.text, /Sign In/);
+  assert.match(r.text, /Create an account/);
 });
 
 await test("A creates task, note, goal, milestone, habit", async () => {
@@ -147,7 +150,8 @@ await test("habit completion rewards once per day; heatmap counts verified recor
   assert.ok(today.tasks >= 1 && today.habits >= 1 && today.challenges >= 1);
   assert.ok(today.score > 0 && today.level >= 1 && today.level <= 4, "verified activity maps to a visible heatmap intensity");
   const bn = (await B.req("GET", "/api/analytics")).json;
-  assert.equal(bn.heatmap.length, 0, "B (no completions) has an empty heatmap");
+  assert.ok(bn.heatmap.length > 0, "the heatmap returns a complete date range");
+  assert.ok(bn.heatmap.every((day) => day.score === 0 && day.tasks === 0 && day.habits === 0 && day.challenges === 0 && day.focusMinutes === 0), "B has no recorded activity in any heatmap day");
 });
 await test("opening the app does not create activity (B stays at zero)", async () => {
   await B.req("GET", "/api/dashboard");
@@ -232,14 +236,17 @@ await test("daily study suggestions rank study work and persist accept/dismiss d
   const initial = await A.req("GET", "/api/study/suggestions");
   assert.equal(initial.status, 200);
   assert.ok(initial.json.date);
-  const task = (await A.req("POST", "/api/tasks", {
+  const taskResponse = await A.req("POST", "/api/tasks", {
     title: "Daily suggestion study task",
     category: "Study",
-    priority: "urgent",
+    priority: "high",
+    status: "todo",
     dueDate: initial.json.date,
     tags: ["study"],
-  })).json.task;
-  assert.ok(task?.id);
+  });
+  assert.equal(taskResponse.status, 200, taskResponse.text);
+  const task = taskResponse.json.task;
+  assert.ok(task?.id, "study task should be created before checking its suggestion");
   const plan = (await A.req("GET", "/api/study/suggestions")).json;
   const taskSuggestion = plan.suggestions.find((item) => item.taskId === task.id);
   const reviewSuggestion = plan.suggestions.find((item) => item.kind === "review");
@@ -379,47 +386,9 @@ await test("Music Detection pairing, now-playing updates and device revocation a
   assert.equal((await A.req("GET", "/api/music-bridge/devices")).json.devices.length, 0);
 });
 
-/* ---------------- demo ---------------- */
-await test("demo login creates authenticated, seeded, isolated session", async () => {
-  const r = await D.req("POST", "/api/auth/demo", { timezone: "UTC" });
-  assert.equal(r.status, 200, r.text); assert.ok(D.jar.lifeos_session);
-  const me = (await D.req("GET", "/api/me")).json.user;
-  assert.equal(me.isDemo, true); assert.ok(me.email.endsWith("@demo.lifeos.invalid"));
-  assert.ok(!JSON.stringify(me).includes("passwordHash"));
-  const d = (await D.req("GET", "/api/dashboard")).json;
-  assert.ok(d.xp > 100 && d.streak.current >= 1 && d.upcoming.length > 0 && d.recent.length > 0);
-  assert.ok((await D.req("GET", "/api/tasks")).json.tasks.length > 20);
-  assert.ok((await D.req("GET", "/api/goals")).json.goals.length >= 3);
-  assert.ok((await D.req("GET", "/api/notes")).json.notes.length >= 5);
-  assert.ok((await D.req("GET", "/api/focus")).json.sessions.length >= 10);
-  const tasks = (await D.req("GET", "/api/tasks")).json.tasks.map((t) => t.title).join();
-  assert.ok(!tasks.includes("Secret task A"));
-});
-await test("demo restrictions enforced server-side", async () => {
-  for (const [m, p, b] of [["POST", "/api/me/account", { current: "x", next: "12345678" }], ["DELETE", "/api/me/account", { password: "x" }], ["POST", "/api/push", { test: true }], ["POST", "/api/auth/resend", {}], ["POST", "/api/spotify/control", { action: "play" }]]) {
-    const r = await D.req(m, p, b);
-    assert.equal(r.status, 403, `${m} ${p} -> ${r.status}`); assert.equal(r.json.code, "demo");
-  }
-  assert.equal((await D.req("GET", "/api/spotify/connect", undefined, true)).headers.get("location")?.includes("error=demo"), true);
-});
-await test("demo user cannot log in with password; no shared state between demo visitors", async () => {
-  const me = (await D.req("GET", "/api/me")).json.user;
-  assert.equal((await anon.req("POST", "/api/auth/login", { email: me.email, password: "anything" })).status, 401);
-  const D2 = new Client();
-  assert.equal((await D2.req("POST", "/api/auth/demo", { timezone: "UTC" })).status, 200);
-  const me2 = (await D2.req("GET", "/api/me")).json.user;
-  assert.notEqual(me.id, me2.id);
-  await D.req("POST", "/api/tasks", { title: "only-in-demo-1" });
-  assert.equal((await D2.req("GET", "/api/tasks")).json.tasks.some((t) => t.title === "only-in-demo-1"), false);
-  const reuse = await D.req("POST", "/api/auth/demo", { timezone: "UTC" });
-  assert.equal(reuse.json.reused, true, "same visitor reuses their session (no duplicate accounts)");
-  await D2.req("POST", "/api/auth/logout", {});
-});
-await test("exit demo destroys session and the sandbox user", async () => {
-  const me = (await D.req("GET", "/api/me")).json.user;
-  assert.equal((await D.req("POST", "/api/auth/logout", {})).status, 200);
-  assert.equal((await D.req("GET", "/api/me")).status, 401);
-  void me;
+/* ---------------- current authentication surface ---------------- */
+await test("legacy demo sign-in endpoint is not exposed", async () => {
+  assert.equal((await anon.req("POST", "/api/auth/demo", { timezone: "UTC" })).status, 404);
 });
 
 /* ---------------- logout / persistence / regular auth still works ---------------- */
