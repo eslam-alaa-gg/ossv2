@@ -125,14 +125,14 @@ export default function StudyPage() {
     if (task.dueDate) return t("It is approaching its due date and should stay on your radar.");
     return t("It is your highest-priority study task without a nearer deadline.");
   };
-  const taskSubject = (task: StudyTask) => {
+  const resolveTaskSubject = (task: StudyTask) => {
     const label = task.description.match(/^Study subject:\s*(.+)$/m)?.[1]?.trim().toLocaleLowerCase();
     return (subjects.data?.subjects ?? []).find((subject) =>
       (label && subject.name.toLocaleLowerCase() === label) ||
       task.tags.some((tag) => tag.toLocaleLowerCase() === subject.name.toLocaleLowerCase()),
     ) ?? null;
   };
-  const recommendationSubject = recommendedTask ? taskSubject(recommendedTask) : null;
+  const recommendationSubject = recommendedTask ? resolveTaskSubject(recommendedTask) : null;
   const recommendationDueCards = recommendationSubject
     ? (due.data?.cards ?? []).filter((card) => card.subjectId === recommendationSubject.id).length
     : 0;
