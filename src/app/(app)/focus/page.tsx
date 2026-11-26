@@ -1,12 +1,13 @@
 "use client";
-import { ImagePlus, Maximize2, Minimize2, Music2, Pause, Play, RotateCcw, Square, Trash2, Volume2, VolumeX } from "lucide-react";
+/* eslint-disable @next/next/no-img-element */
+import { ImagePlus, Maximize2, Minimize2, Music2, Pause, Play, RotateCcw, SkipBack, SkipForward, Square, Trash2, Volume2, VolumeX } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useApp } from "@/components/providers";
 import { PriorityBadge, type Task } from "@/components/task-form";
 import { Badge, Button, Card, EmptyState, Field, PageHeader, Segmented, cn, useUI } from "@/components/ui";
 import { api, minutesLabel, useFetch } from "@/lib/client";
 import { SOUNDS, startAmbient, type AmbientHandle } from "@/lib/ambient";
-import { useSpotify } from "@/components/spotify";
+import { useProgress, useSpotify } from "@/components/spotify";
 
 type Session = { id: string; mode: string; plannedSeconds: number; actualSeconds: number; status: string; startedAt: string; taskTitle?: string | null };
 type FocusData = { todayMinutes: number; weekMinutes: number; totalSessions: number; sessions: Session[]; running: (Session & { serverNow: number }) | null; tasks: { id: string; title: string; priority: Task["priority"] }[]; prefs: { sound: string; volume: number; preset: number } };
@@ -25,26 +26,54 @@ const WALLPAPERS: { id: Exclude<FocusWallpaper, "none">; label: string; hint: st
 const mmss = (s: number) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 
 function FocusNowPlaying({ immersive = false }: { immersive?: boolean }) {
-  const { np } = useSpotify();
+  const { np, status, refresh } = useSpotify();
+  const { t } = useApp();
+  const progress = useProgress(np);
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
   const track = np && !np.idle ? np.track : null;
-  if (!track || !np || np.idle) return null;
-  const artist = track.artists.map((a) => a.name).join(", ");
+  const premium = status?.profile?.product === "premium";
+
+  async function control(action: "play" | "pause" | "next" | "previous") {
+    setBusy(true);
+    setMessage("");
+    try {
+      await api("/api/spotify/control", { body: { action } });
+      await refresh();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : t("Could not control Spotify."));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
-    <div className={immersive ? "pointer-events-auto absolute bottom-4 left-1/2 z-20 w-[min(92vw,420px)] -translate-x-1/2 sm:bottom-6" : "pointer-events-auto w-full max-w-[420px]"}>
-      <div className="flex items-center gap-3 rounded-2xl border border-white/15 bg-black/45 p-2.5 text-white shadow-2xl backdrop-blur-2xl">
-        <div className="size-11 shrink-0 overflow-hidden rounded-xl bg-white/10">
-          {track.album.image ? <img src={track.album.image} alt="" className="size-full object-cover" /> : <div className="grid size-full place-items-center"><Music2 className="size-5 text-white/65" /></div>}
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="mb-0.5 flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-[0.16em] text-white/60">
-            <span className={"size-1.5 rounded-full " + (np.playing ? "bg-emerald-400" : "bg-amber-300")} />
-            {np.playing ? "Now Playing" : "Paused"}
+    <div className={immersive ? "pointer-events-auto absolute bottom-4 left-1/2 z-30 w-[min(92vw,390px)] -translate-x-1/2 sm:bottom-6" : "pointer-events-auto relative z-20 flex w-full justify-center"}>
+      <button type="button" onClick={() => setOpen((value) => !value)} aria-expanded={open} aria-label={t("Open music controls")} className="flex max-w-full items-center gap-2.5 rounded-full border border-white/15 bg-black/45 px-3 py-2 text-white shadow-xl backdrop-blur-2xl transition hover:bg-black/60">
+        <span className="grid size-8 shrink-0 place-items-center overflow-hidden rounded-full bg-white/10">{track?.album.image ? <img src={track.album.image} alt="" className="size-full object-cover" /> : <Music2 className="size-4 text-white/75" />}</span>
+        <span className="min-w-0 text-start">
+          <span className="block text-[9px] font-semibold uppercase tracking-[0.16em] text-white/55">{track ? (np && !np.idle && np.playing ? t("Now playing") : t("Paused")) : t("Music")}</span>
+          <span className="block max-w-[230px] truncate text-xs font-medium">{track?.title ?? (status?.connected ? t("Nothing playing") : t("Connect Spotify"))}</span>
+        </span>
+        <Music2 className="size-4 shrink-0 text-white/65" />
+      </button>
+      {open && <div role="dialog" aria-label={t("Music controls")} className="absolute bottom-[calc(100%+10px)] left-1/2 w-[min(92vw,360px)] -translate-x-1/2 rounded-2xl border border-white/15 bg-[#11131b]/95 p-3 text-white shadow-2xl backdrop-blur-2xl">
+        {track && np && !np.idle ? <>
+          <div className="flex items-center gap-3">
+            <div className="size-12 shrink-0 overflow-hidden rounded-xl bg-white/10">{track.album.image ? <img src={track.album.image} alt="" className="size-full object-cover" /> : <div className="grid size-full place-items-center"><Music2 className="size-5" /></div>}</div>
+            <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{track.title}</p><p className="truncate text-xs text-white/60">{track.artists.map((artist) => artist.name).join(", ")}</p><p className="truncate text-[10px] text-white/40">{np.device?.name ?? "Spotify"}</p></div>
+            <span className={"size-2 rounded-full " + (np.playing ? "bg-emerald-400" : "bg-amber-300")} />
           </div>
-          <p className="truncate text-sm font-semibold">{track.title}</p>
-          <p className="truncate text-xs text-white/65">{artist}</p>
-        </div>
-        <Music2 className="mr-1 size-4 shrink-0 text-white/55" />
-      </div>
+          <div className="mt-3 h-1 overflow-hidden rounded-full bg-white/15"><div className="h-full rounded-full bg-white/75" style={{ width: `${track.durationMs ? Math.min(100, progress / track.durationMs * 100) : 0}%` }} /></div>
+          <div className="mt-3 flex items-center justify-center gap-4">
+            {premium && <button type="button" disabled={busy || np.disallows?.previous} onClick={() => void control("previous")} className="rounded-full p-2 hover:bg-white/10 disabled:opacity-40" aria-label={t("Previous track")}><SkipBack className="size-4" /></button>}
+            {premium ? <button type="button" disabled={busy || (np.playing ? np.disallows?.pausing : np.disallows?.resuming)} onClick={() => void control(np.playing ? "pause" : "play")} className="grid size-10 place-items-center rounded-full bg-white text-black disabled:opacity-50" aria-label={np.playing ? t("Pause") : t("Play")}>{np.playing ? <Pause className="size-4" /> : <Play className="size-4" />}</button> : <a href="/music" className="rounded-full bg-white/10 px-4 py-2 text-xs font-medium hover:bg-white/15">{t("Open Music Hub")}</a>}
+            {premium && <button type="button" disabled={busy || np.disallows?.skipping_next} onClick={() => void control("next")} className="rounded-full p-2 hover:bg-white/10 disabled:opacity-40" aria-label={t("Next track")}><SkipForward className="size-4" /></button>}
+          </div>
+        </> : <div className="py-2 text-center"><Music2 className="mx-auto mb-2 size-6 text-white/55" /><p className="text-sm font-medium">{status?.connected ? t("Nothing playing") : t("Connect Spotify")}</p><p className="mt-1 text-xs text-white/55">{status?.connected ? t("Start playback in Spotify and it will show up here.") : t("Connect Spotify to see what you're listening to.")}</p><a href="/music" className="mt-3 inline-flex rounded-full bg-white/10 px-4 py-2 text-xs font-medium hover:bg-white/15">{status?.connected ? t("Open Music Hub") : t("Connect Spotify")}</a></div>}
+        {message && <p role="status" className="mt-2 text-center text-xs text-amber-300">{message}</p>}
+      </div>}
     </div>
   );
 }
