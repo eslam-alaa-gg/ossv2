@@ -126,7 +126,7 @@ export default function StudyPage() {
     return t("It is your highest-priority study task without a nearer deadline.");
   };
   const taskSubject = (task: StudyTask) => {
-    const label = task.description.match(/^Study subject:\\s*(.+)$/m)?.[1]?.trim().toLocaleLowerCase();
+    const label = task.description.match(/^Study subject:\s*(.+)$/m)?.[1]?.trim().toLocaleLowerCase();
     return (subjects.data?.subjects ?? []).find((subject) =>
       (label && subject.name.toLocaleLowerCase() === label) ||
       task.tags.some((tag) => tag.toLocaleLowerCase() === subject.name.toLocaleLowerCase()),
