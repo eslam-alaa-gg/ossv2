@@ -49,7 +49,7 @@ function Inner() {
   const artist = useFetch<{ name: string; genres: string[]; followers: number | null; image: string | null; url: string | null }>(connected && artistId ? `/api/spotify/artist?id=${artistId}` : null);
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => { setBoost(true); return () => setBoost(false); }, [setBoost]);
+  useEffect(() => { setBoost(tab === "spotify"); return () => setBoost(false); }, [setBoost, tab]);
   useEffect(() => { const requested = sp.get("tab"); if (requested === "youtube" || requested === "detection") setTab(requested); else if (!requested) setTab("spotify"); if (sp.get("connected")) { toast("success", t("Spotify connected")); reloadStatus(); } }, [sp]); // eslint-disable-line react-hooks/exhaustive-deps
   const urlError = sp.get("error");
 
