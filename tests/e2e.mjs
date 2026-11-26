@@ -145,6 +145,7 @@ await test("habit completion rewards once per day; heatmap counts verified recor
   const an = (await A.req("GET", "/api/analytics")).json;
   const today = an.heatmap.find((d) => d.date === an.today);
   assert.ok(today.tasks >= 1 && today.habits >= 1 && today.challenges >= 1);
+  assert.ok(today.score > 0 && today.level >= 1 && today.level <= 4, "verified activity maps to a visible heatmap intensity");
   const bn = (await B.req("GET", "/api/analytics")).json;
   assert.equal(bn.heatmap.length, 0, "B (no completions) has an empty heatmap");
 });
