@@ -36,13 +36,19 @@ jobs:
         run: |
           git worktree add ../base origin/main
           cp -r node_modules ../base/node_modules
-          npx eslint . -f unix > /tmp/lint-head.txt || true
-          (cd ../base && npx eslint . -f unix > /tmp/lint-base.txt) || true
-          norm() { sed -E 's#^.*/(base|ossv2|OSSv2)/(src|tests|native|public)/#\2/#; s#:[0-9]+:[0-9]+:#:#' "$1" | grep -v ' problem' | sort; }
-          echo "== main: $(tail -1 /tmp/lint-base.txt)"
-          echo "== branch: $(tail -1 /tmp/lint-head.txt)"
-          echo "== only on this branch"; comm -13 <(norm /tmp/lint-base.txt) <(norm /tmp/lint-head.txt)
-          echo "== fixed by this branch"; comm -23 <(norm /tmp/lint-base.txt) <(norm /tmp/lint-head.txt)
+          npx eslint . -f json -o /tmp/lint-head.json || true
+          (cd ../base && npx eslint . -f json -o /tmp/lint-base.json) || true
+          cat > /tmp/lint.cjs <<'JS'
+          const fs = require("fs");
+          const load = (f) => JSON.parse(fs.readFileSync(f)).flatMap((r) => r.messages.map((m) => ({ file: r.filePath.replace(/^.*?\/(base|ossv2\/ossv2)\//, ""), line: m.line, key: `${m.severity === 2 ? "error" : "warn"} ${m.ruleId}: ${m.message.split("\n")[0]}` })));
+          const base = load("/tmp/lint-base.json"), head = load("/tmp/lint-head.json");
+          const count = (l) => `${l.filter((m) => m.key.startsWith("error")).length} errors, ${l.filter((m) => m.key.startsWith("warn")).length} warnings`;
+          console.log(`LINT main: ${count(base)}\nLINT branch: ${count(head)}`);
+          const diff = (a, b) => { const left = b.map((m) => m.file + " " + m.key); return a.filter((m) => { const i = left.indexOf(m.file + " " + m.key); if (i < 0) return true; left.splice(i, 1); return false; }); };
+          for (const m of diff(head, base)) console.log(`LINT new      ${m.file}:${m.line} ${m.key}`);
+          for (const m of diff(base, head)) console.log(`LINT resolved ${m.file}:${m.line} ${m.key}`);
+          JS
+          node /tmp/lint.cjs
       - name: Unit tests
         run: node --experimental-strip-types --test tests/logic.test.mjs
       - name: Database
@@ -75,9 +81,8 @@ jobs:
       - name: Browser tests
         run: |
           npm install --no-save --no-audit --no-fund --no-package-lock playwright@1.55.0
-          npm install --no-audit --no-fund --no-package-lock >/dev/null
-          npm install --no-save --no-audit --no-fund --no-package-lock playwright@1.55.0
-          npx playwright install --with-deps chromium webkit > /tmp/pw.log 2>&1
+          npx playwright --version
+          npx playwright install --with-deps chromium webkit > /tmp/pw.log 2>&1 || { tail -40 /tmp/pw.log; exit 1; }
           sleep 2
           npx next start -p 3000 > /tmp/server.log 2>&1 &
           timeout 60 bash -c 'until curl -sf -o /dev/null http://127.0.0.1:3000/login; do sleep 1; done'
