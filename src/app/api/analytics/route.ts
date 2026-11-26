@@ -1,4 +1,4 @@
-import { and, eq, gte } from "drizzle-orm";
+import { and, eq, gte, lte } from "drizzle-orm";
 import { db } from "@/db";
 import { goalMilestones, goals, habitLogs, habits, learningEntries } from "@/db/schema";
 import { addDays, diffDays, dow, todayIn, weekStart } from "@/lib/dates";
