@@ -192,8 +192,18 @@ async function focusChecks(page, label) {
       await exit();
     }
   });
+  const toggleBlur = async () => {
+    const control = page.getByRole("switch", { name: "Blur background" });
+    if (label === "mobile") {
+      // In Android-style mobile emulation, Playwright mouse-click scrolling can stall after leaving the fixed immersive layer.
+      // Scroll the real page to the control and use a touch tap, matching the interaction on a phone.
+      await control.evaluate((e) => e.scrollIntoView({ block: "center", behavior: "instant" }));
+      await pause(250);
+      await control.tap();
+    } else await control.click();
+  };
   await step(`${label}: switching blur off shows the sharp original, which is unchanged`, async () => {
-    await page.getByRole("switch", { name: "Blur background" }).click();
+    await toggleBlur();
     await full();
     try {
       assert.equal(await filter(), "none");
@@ -208,7 +218,7 @@ async function focusChecks(page, label) {
   await step(`${label}: blur setting and strength survive a refresh`, async () => {
     const stored = page.waitForResponse((r) => r.url().includes("/api/me/prefs") && r.ok() && r.request().postData()?.includes('"blurAmount":30'));
     stored.catch(() => {});
-    await page.getByRole("switch", { name: "Blur background" }).click();
+    await toggleBlur();
     await page.getByRole("slider", { name: "Blur strength" }).fill("30");
     await stored;
     await page.reload();
