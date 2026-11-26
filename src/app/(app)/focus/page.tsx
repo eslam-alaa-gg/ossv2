@@ -181,27 +181,32 @@ export default function FocusPage() {
     }
   }
 
+  const keyboardActions = useRef({
+    phase, sound, start: () => {}, pause: () => {}, resume: () => {}, toggleZen: () => {},
+  });
+  keyboardActions.current = {
+    phase, sound, start: () => { void start(); }, pause, resume, toggleZen: () => { void toggleZen(); },
+  };
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       const target = event.target;
       if (target instanceof HTMLElement && target.closest('input, textarea, select, button, a, [contenteditable="true"]')) return;
       if (event.altKey || event.ctrlKey || event.metaKey) return;
+      const actions = keyboardActions.current;
       if (event.code === "Space") {
         event.preventDefault();
-        if (phase === "idle") void start();
-        else if (phase === "running") pause();
-        else resume();
-      } else if (event.key.toLowerCase() === "m" && sound !== "none") {
+        if (actions.phase === "idle") actions.start();
+        else if (actions.phase === "running") actions.pause();
+        else actions.resume();
+      } else if (event.key.toLowerCase() === "m" && actions.sound !== "none") {
         setAudioOn((value) => !value);
-      } else if (event.key.toLowerCase() === "f") {
-        void toggleZen();
-      } else if (event.key === "Escape" && zen) {
-        void toggleZen();
+      } else if (event.key.toLowerCase() === "f" || (event.key === "Escape" && zen)) {
+        actions.toggleZen();
       }
     };
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
-  }, [phase, sound, zen, minutes, taskId, remaining, audioOn]);
+  }, []);
   const pct = planned ? ((planned - remaining) / planned) * 100 : 0;
   const R = 150, C = 2 * Math.PI * R;
   const task = data?.tasks.find((t) => t.id === taskId);
