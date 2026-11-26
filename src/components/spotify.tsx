@@ -190,7 +190,7 @@ type BridgeNowPlaying = {
   fetchedAt?: number;
 };
 
-/** Responsive dashboard widget. Spotify takes priority; paired-device detection is the fallback. */
+/** Responsive dashboard music widget; its source is selected in Dashboard preferences. */
 export function NowPlayingWidget({ source = "spotify" }: { source?: "spotify" | "detection" | "youtube" }) {
   const { t: tr } = useApp();
   const { status, np, error, errorCode, loadingStatus, refresh } = useSpotify();
@@ -248,7 +248,7 @@ export function NowPlayingWidget({ source = "spotify" }: { source?: "spotify" | 
   const image = spotifyTrack?.album.image ?? bridgeTrack?.artwork ?? null;
   const playing = spotifyTrack ? !!(np && !np.idle && np.playing) : !!bridgeTrack && !!bridge?.playing;
   const device = spotifyTrack ? (np && !np.idle ? np.device?.name : "") : bridgeData?.device?.name ?? bridgeTrack?.appName ?? "";
-  const duration = spotifyTrack?.durationMs ?? bridge?.durationMs ?? 0;
+  const duration = spotifyTrack?.durationMs ?? bridgeData?.durationMs ?? 0;
   const position = spotifyTrack ? progress : bridgeData?.progressMs ?? 0;
   const href = source === "detection" ? "/music?tab=detection" : "/music?tab=spotify";
 
