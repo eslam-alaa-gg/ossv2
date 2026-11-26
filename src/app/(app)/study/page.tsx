@@ -11,6 +11,7 @@ import { cancelQueuedAction, queueOfflineAction, readOfflineSnapshot, saveOfflin
 type Subject = { id: string; name: string; color: string };
 type Flashcard = { id: string; subjectId: string | null; subjectName: string | null; front: string; back: string; dueAt: string; intervalDays: number; repetitions: number; lapses: number };
 type StudyTask = { id: string; title: string; description: string; category: string; priority: string; status: string; dueDate: string | null; tags: string[] };
+type FocusOverview = { todayMinutes: number; weekMinutes: number; sessions: Array<{ taskId: string | null; startedAt: string; actualSeconds: number; mode: string; status: string }> };
 
 function localDate() {
   const date = new Date();
@@ -25,6 +26,7 @@ export default function StudyPage() {
   const cards = useFetch<{ cards: Flashcard[] }>("/api/study/flashcards");
   const due = useFetch<{ cards: Flashcard[] }>("/api/study/flashcards?due=1");
   const tasks = useFetch<{ tasks: StudyTask[] }>("/api/tasks");
+  const focus = useFetch<FocusOverview>("/api/focus");
   const [subjectName, setSubjectName] = useState("");
   const [subjectColor, setSubjectColor] = useState("#8b7cff");
   const [front, setFront] = useState("");
@@ -104,6 +106,13 @@ export default function StudyPage() {
     }
   }
 
+  const dueCardsBySubject = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const card of due.data?.cards ?? []) {
+      if (card.subjectId) counts.set(card.subjectId, (counts.get(card.subjectId) ?? 0) + 1);
+    }
+    return counts;
+  }, [due.data]);
   const studyTasks = useMemo(() => {
     const today = localDate();
     const score = (task: StudyTask) => {
@@ -112,15 +121,26 @@ export default function StudyPage() {
         ? Math.round((new Date(task.dueDate + "T12:00:00").getTime() - new Date(today + "T12:00:00").getTime()) / 86400000)
         : null;
       const urgency = days === null ? 0 : days < 0 ? Math.min(54, Math.abs(days) * 6) : days === 0 ? 38 : days <= 3 ? 28 : days <= 7 ? 14 : 0;
-      return priority + urgency;
+      const subjectLabel = task.description.match(/^Study subject:\s*(.+)$/m)?.[1]?.trim().toLocaleLowerCase();
+      const subject = (subjects.data?.subjects ?? []).find((item) =>
+        (subjectLabel && item.name.toLocaleLowerCase() === subjectLabel) ||
+        task.tags.some((tag) => tag.toLocaleLowerCase() === item.name.toLocaleLowerCase()),
+      );
+      const reviewBacklog = subject ? Math.min(24, (dueCardsBySubject.get(subject.id) ?? 0) * 3) : 0;
+      const continuation = task.status === "in_progress" ? 8 : 0;
+      return priority + urgency + reviewBacklog + continuation;
     };
     return (tasks.data?.tasks ?? [])
       .filter((task) => task.status !== "completed" && task.status !== "archived" && (task.category.toLowerCase() === "study" || task.tags?.includes("study")))
       .sort((a, b) => score(b) - score(a) || (a.dueDate ?? "9999-12-31").localeCompare(b.dueDate ?? "9999-12-31"));
-  }, [tasks.data]);
+  }, [tasks.data, subjects.data, dueCardsBySubject]);
   const recommendedTask = studyTasks[0] ?? null;
   const recommendationReason = (task: StudyTask) => {
     if (task.dueDate && task.dueDate < localDate()) return t("This task is overdue, so it is prioritized first.");
+    const subject = resolveTaskSubject(task);
+    const backlog = subject ? dueCardsBySubject.get(subject.id) ?? 0 : 0;
+    if (backlog >= 5) return t("This subject has several flashcards due, so studying it also helps clear your review backlog.");
+    if (task.status === "in_progress") return t("You have already started this task, so finishing it keeps your study momentum.");
     if (task.priority === "urgent" || task.priority === "high") return t("Its priority is high, so it is a strong next focus candidate.");
     if (task.dueDate === localDate()) return t("It is due today, so it is a good task to focus on now.");
     if (task.dueDate) return t("It is approaching its due date and should stay on your radar.");
@@ -243,6 +263,11 @@ export default function StudyPage() {
         {tab === "plan" && <div className="grid gap-[var(--gap)] lg:grid-cols-[minmax(0,1fr)_minmax(280px,360px)]">
           <Card className="space-y-4">
             <div className="flex items-center justify-between gap-3"><div><h2 className="font-semibold">{t("Upcoming study tasks")}</h2><p className="mt-1 text-xs text-muted">{t("Study tasks also appear in your main Tasks list.")}</p></div><CalendarDays className="size-5 text-muted" /></div>
+            <div className="grid grid-cols-3 gap-2">
+              <div className="rounded-xl border border-line bg-card p-3"><p className="text-[11px] text-muted">{t("Due reviews")}</p><p className="mt-1 text-lg font-semibold tabular-nums">{due.data?.cards.length ?? 0}</p></div>
+              <div className="rounded-xl border border-line bg-card p-3"><p className="text-[11px] text-muted">{t("Open study tasks")}</p><p className="mt-1 text-lg font-semibold tabular-nums">{studyTasks.length}</p></div>
+              <div className="rounded-xl border border-line bg-card p-3"><p className="text-[11px] text-muted">{t("Focus this week")}</p><p className="mt-1 text-lg font-semibold tabular-nums">{focus.data ? focus.data.weekMinutes : "—"}<span className="ml-1 text-[10px] font-normal text-muted">{t("min")}</span></p></div>
+            </div>
             {recommendedTask && <div className="rounded-xl border border-accent/30 bg-accent/5 p-3">
               <div className="mb-1 flex items-center justify-between gap-2"><p className="text-xs font-semibold uppercase tracking-wide text-accent">{t("Recommended next")}</p><Badge>{t(recommendedTask.priority)}</Badge></div>
               <p className="text-sm font-semibold">{recommendedTask.title}</p>
