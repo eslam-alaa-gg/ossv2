@@ -2,9 +2,10 @@
 /* eslint-disable @next/next/no-img-element */
 import { AnimatePresence, motion } from "framer-motion";
 import { Disc3, Link2Off, Monitor, Music2, Pause, Play, SkipBack, SkipForward, Smartphone, Speaker } from "lucide-react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { useApp } from "@/components/providers";
+import { MusicBridgePanel } from "@/components/music-bridge";
 import { OpenInSpotify, fmtMs, useProgress, useSpotify, type NPTrack } from "@/components/spotify";
 import { Badge, Button, Card, EmptyState, Field, PageHeader, Skeleton, Switch, useUI } from "@/components/ui";
 import { api, useFetch } from "@/lib/client";
@@ -32,6 +33,11 @@ function Inner() {
   const { prefs, savePrefs, t, lang } = useApp();
   const { run, toast, confirm } = useUI();
   const sp = useSearchParams();
+  const router = useRouter();
+  const [tab, setTab] = useState<"spotify" | "youtube" | "detection">("spotify");
+  const [youtubeQuery, setYoutubeQuery] = useState("");
+  const selectTab = (value: string) => { const next = value as "spotify" | "youtube" | "detection"; setTab(next); router.replace(next === "spotify" ? "/music" : `/music?tab=${next}`, { scroll: false }); };
+  const tabControl = <Segmented value={tab} onChange={selectTab} label={t("Music sections")} options={[{ value: "spotify", label: "Spotify" }, { value: "youtube", label: "YouTube Music" }, { value: "detection", label: t("Music Detection") }]} />;
   const { status, np, error, errorCode, loadingStatus, refresh, reloadStatus, setBoost } = useSpotify();
   const progress = useProgress(np);
   const connected = !!status?.connected;
@@ -44,8 +50,24 @@ function Inner() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => { setBoost(true); return () => setBoost(false); }, [setBoost]);
-  useEffect(() => { if (sp.get("connected")) { toast("success", t("Spotify connected")); reloadStatus(); } }, [sp]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { const requested = sp.get("tab"); if (requested === "youtube" || requested === "detection") setTab(requested); else if (!requested) setTab("spotify"); if (sp.get("connected")) { toast("success", t("Spotify connected")); reloadStatus(); } }, [sp]); // eslint-disable-line react-hooks/exhaustive-deps
   const urlError = sp.get("error");
+
+  if (tab === "detection") return <><div className="mb-4">{tabControl}</div><MusicBridgePanel /></>;
+  if (tab === "youtube") return <>
+    <PageHeader title={t("Music Hub")} subtitle={t("Search and open music from the official YouTube Music service.")} actions={tabControl} />
+    <Card className="mx-auto max-w-2xl py-8">
+      <div className="mx-auto grid size-14 place-items-center rounded-2xl bg-card text-muted"><Music2 className="size-7" /></div>
+      <h2 className="mt-4 text-center text-lg font-semibold">{t("YouTube Music")}</h2>
+      <p className="mx-auto mt-2 max-w-md text-center text-sm text-muted">{t("Search tracks, artists or albums and open the results in YouTube Music. Playback stays in the official YouTube Music app or website.")}</p>
+      <form className="mt-6 flex flex-col gap-2 sm:flex-row" onSubmit={(event) => event.preventDefault()}>
+        <input className="input min-w-0 flex-1" value={youtubeQuery} onChange={(event) => setYoutubeQuery(event.target.value)} placeholder={t("Search YouTube Music")} maxLength={120} aria-label={t("Search YouTube Music")} />
+        <a className={cn("glass-btn btn-primary justify-center", !youtubeQuery.trim() && "pointer-events-none opacity-50")} href={youtubeQuery.trim() ? `https://music.youtube.com/search?q=${encodeURIComponent(youtubeQuery.trim())}` : undefined} target="_blank" rel="noreferrer noopener">{t("Search on YouTube Music")}</a>
+      </form>
+      <div className="mt-5 text-center"><a href="https://music.youtube.com" target="_blank" rel="noreferrer noopener" className="text-xs text-accent underline">{t("Open YouTube Music")}</a></div>
+    </Card>
+  </>;
+
 
   async function control(action: string, extra: object = {}) {
     setBusy(true);
@@ -63,7 +85,7 @@ function Inner() {
   if (!status?.configured) {
     return (
       <>
-        <PageHeader title={t("Music Hub")} subtitle={t("Your Spotify, inside Ukiyo.")} actions={<MusicBridgeLink label={lang === "ar" ? "الحصول على رمز الجهاز من Ukiyo" : "Get device token from OSSv2"} />} />
+        <PageHeader title={t("Music Hub")} subtitle={t("Your Spotify, inside Ukiyo.")} actions={<div className="flex flex-wrap items-center justify-end gap-2">{tabControl}<MusicBridgeLink label={lang === "ar" ? "الحصول على رمز الجهاز من Ukiyo" : "Get device token from Ukiyo"} /></div>} />
         <Card className="mx-auto max-w-xl py-10 text-center">
           <span className="mx-auto mb-4 grid size-16 place-items-center rounded-3xl bg-card text-muted"><Music2 className="size-8" /></span>
           <h2 className="text-xl font-semibold">{lang === "ar" ? "Spotify غير متاح حاليًا" : "Spotify is temporarily unavailable"}</h2>
@@ -93,7 +115,7 @@ function Inner() {
   const ctl = "glass-btn btn-icon h-12 w-12";
   return (
     <>
-      <PageHeader title={t("Music Hub")} subtitle={t("Now playing from your Spotify account.")} actions={<><MusicBridgeLink label={lang === "ar" ? "الحصول على رمز الجهاز من Ukiyo" : "Get device token from OSSv2"} /><Badge tone="green"><span className="size-1.5 rounded-full bg-emerald-400" /> {t("Connected")}</Badge><OpenInSpotify url={track?.url} /></>} />
+      <PageHeader title={t("Music Hub")} subtitle={t("Now playing from your Spotify account.")} actions={<>{tabControl}<MusicBridgeLink label={lang === "ar" ? "الحصول على رمز الجهاز من Ukiyo" : "Get device token from Ukiyo"} /><Badge tone="green"><span className="size-1.5 rounded-full bg-emerald-400" /> {t("Connected")}</Badge><OpenInSpotify url={track?.url} /></>} />
       {error && errorCode !== "rate_limited" && <p role="alert" className="mb-4 rounded-xl border border-amber-400/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-300">{error} <button className="underline" onClick={() => refresh().catch(() => {})}>{t("Retry")}</button></p>}
       {errorCode === "rate_limited" && <p role="status" className="mb-4 text-xs text-amber-300">{error}</p>}
 
