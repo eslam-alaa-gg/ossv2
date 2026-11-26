@@ -49,6 +49,17 @@ html[dir="rtl"] .text-base { line-height: 1.85; }
 .grad-layer.anim { background-size: var(--grad-size); animation: gradShift var(--grad-dur) ease-in-out infinite; animation-direction: var(--grad-dir); }
 @keyframes gradShift { 0% { background-position: 0% 30%; } 50% { background-position: 100% 70%; } 100% { background-position: 0% 30%; } }
 
+.now-playing-widget { container-type: inline-size; }
+@container (max-width: 380px) {
+  .now-playing-row { gap: .65rem; }
+  .now-playing-artwork { width: 3.5rem; height: 3.5rem; border-radius: .85rem; }
+  .now-playing-title { font-size: .9rem; }
+  .now-playing-artist { font-size: .75rem; }
+}
+@container (min-width: 520px) {
+  .now-playing-artwork { width: 6rem; height: 6rem; }
+}
+
 .dashboard-widget { transition: opacity .18s ease, transform .18s ease, outline-color .18s ease, box-shadow .18s ease; }
 .dashboard-widget-dragging { opacity: .48; transform: scale(.985); }
 .dashboard-widget-drop-target { outline: 2px dashed var(--accent); outline-offset: 4px; box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent) 10%, transparent); }
