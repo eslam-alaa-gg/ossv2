@@ -163,39 +163,47 @@ async function focusChecks(page, label) {
     original = await page.evaluate(() => localStorage.getItem("ukiyo.focus.background"));
     assert.ok(original.startsWith("data:image/"));
   });
-  const full = async () => { await page.getByRole("button", { name: "Fullscreen focus mode" }).click(); await page.getByRole("button", { name: "Exit fullscreen focus" }).waitFor(); await pause(700); };
+  const full = async () => {
+    await page.getByRole("button", { name: "Fullscreen focus mode" }).click();
+    await page.getByRole("button", { name: "Exit fullscreen focus" }).waitFor({ state: "visible" });
+    await pause(700);
+  };
   const exit = async () => {
-    await page.getByRole("button", { name: "Exit fullscreen focus" }).click();
-    await pause(400);
-    const state = await Promise.race([
-      page.evaluate(() => new Promise((r) => requestAnimationFrame(() => r(JSON.stringify({ fullscreen: !!document.fullscreenElement, w: innerWidth, h: innerHeight, scrollY }))))),
-      pause(4000).then(() => "no animation frame within 4s"),
-    ]);
-    console.log(`     after leaving full screen: ${state}`);
+    const exitButton = page.getByRole("button", { name: "Exit fullscreen focus" });
+    if (await exitButton.isVisible().catch(() => false)) await exitButton.click();
+    // The page can use native Fullscreen API or its in-page immersive fallback (notably iOS).
+    await page.getByRole("button", { name: "Fullscreen focus mode" }).waitFor({ state: "visible" });
+    await page.waitForFunction(() => !document.fullscreenElement, { timeout: 5000 });
   };
   const clip = { x: 4, y: 4, width: 70, height: 70 };
   await step(`${label}: full-screen focus blurs the image only, not the controls`, async () => {
     await full();
-    assert.equal(await filter(), "blur(14px)");
-    const filtered = await page.getByRole("timer").evaluate((e) => { const out = []; for (let n = e; n; n = n.parentElement) { const f = getComputedStyle(n).filter; if (f !== "none") out.push(f); } return out; });
-    assert.deepEqual(filtered, []);
-    const size = page.viewportSize();
-    const box = await image.last().boundingBox();
-    assert.ok(box.x <= 0 && box.y <= 0 && box.x + box.width >= size.width - 1 && box.y + box.height >= size.height - 1, `image does not cover the screen ${JSON.stringify(box)}`);
-    const c = await contrast(page, clip);
-    assert.ok(c < 20, `blurred background still has contrast ${c}`);
-    await shot(page, `${label}-focus-blur-on`);
-    await exit();
+    try {
+      assert.equal(await filter(), "blur(14px)");
+      const filtered = await page.getByRole("timer").evaluate((e) => { const out = []; for (let n = e; n; n = n.parentElement) { const f = getComputedStyle(n).filter; if (f !== "none") out.push(f); } return out; });
+      assert.deepEqual(filtered, []);
+      const size = page.viewportSize();
+      const box = await image.last().boundingBox();
+      assert.ok(box.x <= 0 && box.y <= 0 && box.x + box.width >= size.width - 1 && box.y + box.height >= size.height - 1, `image does not cover the screen ${JSON.stringify(box)}`);
+      const c = await contrast(page, clip);
+      assert.ok(c < 20, `blurred background still has contrast ${c}`);
+      await shot(page, `${label}-focus-blur-on`);
+    } finally {
+      await exit();
+    }
   });
   await step(`${label}: switching blur off shows the sharp original, which is unchanged`, async () => {
     await page.getByRole("switch", { name: "Blur background" }).click();
     await full();
-    assert.equal(await filter(), "none");
-    const c = await contrast(page, clip);
-    assert.ok(c > 40, `sharp background has low contrast ${c}`);
-    await shot(page, `${label}-focus-blur-off`);
-    await exit();
-    assert.equal(await page.evaluate(() => localStorage.getItem("ukiyo.focus.background")), original);
+    try {
+      assert.equal(await filter(), "none");
+      const c = await contrast(page, clip);
+      assert.ok(c > 40, `sharp background has low contrast ${c}`);
+      await shot(page, `${label}-focus-blur-off`);
+      assert.equal(await page.evaluate(() => localStorage.getItem("ukiyo.focus.background")), original);
+    } finally {
+      await exit();
+    }
   });
   await step(`${label}: blur setting and strength survive a refresh`, async () => {
     const stored = page.waitForResponse((r) => r.url().includes("/api/me/prefs") && r.ok() && r.request().postData()?.includes('"blurAmount":30'));
@@ -208,8 +216,11 @@ async function focusChecks(page, label) {
     await image.first().waitFor();
     assert.equal(await page.getByRole("switch", { name: "Blur background" }).getAttribute("aria-checked"), "true");
     await full();
-    assert.equal(await filter(), "blur(30px)");
-    await exit();
+    try {
+      assert.equal(await filter(), "blur(30px)");
+    } finally {
+      await exit();
+    }
   });
   await step(`${label}: a setting changed just before leaving the page is still saved`, async () => {
     await page.getByRole("slider", { name: "Blur strength" }).fill("22");
