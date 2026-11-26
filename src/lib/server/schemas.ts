@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-const dateString = z.string().regex(/^\\d{4}-\\d{2}-\\d{2}$/).nullable().default(null);
+const dateString = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().default(null);
 export const goalFields = {
   title: z.string().trim().min(1).max(160),
   description: z.string().max(2000).default(""),
