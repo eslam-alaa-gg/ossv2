@@ -29,7 +29,7 @@ export default function StudyPage() {
   const due = useFetch<{ cards: Flashcard[] }>("/api/study/flashcards?due=1");
   const tasks = useFetch<{ tasks: StudyTask[] }>("/api/tasks");
   const focus = useFetch<FocusOverview>("/api/focus");
-  const dailySuggestions = useFetch<{ date: string; suggestions: DailySuggestion[] }>("/api/study/suggestions");
+  const dailySuggestions = useFetch<{ date: string; focusMinutesThisWeek: number; suggestions: DailySuggestion[] }>("/api/study/suggestions");
   const [subjectName, setSubjectName] = useState("");
   const [subjectColor, setSubjectColor] = useState("#8b7cff");
   const [front, setFront] = useState("");
@@ -134,7 +134,7 @@ export default function StudyPage() {
         }
       }
     } catch (error) {
-      toast("error", error instanceof Error ? error.message : t("Something went wrong."));
+      toast("info", error instanceof Error ? error.message : t("Something went wrong."));
     }
   }
 
@@ -302,7 +302,7 @@ export default function StudyPage() {
             </div>
             {dailySuggestions.data?.suggestions.some((item) => item.status !== "dismissed") && <section className="space-y-2 rounded-xl border border-line bg-card/70 p-3">
               <div className="flex items-center justify-between gap-2">
-                <div><p className="text-xs font-semibold uppercase tracking-wide text-accent">{t("Daily study suggestions")}</p><p className="mt-1 text-xs text-muted">{t("A small, practical plan based on your open tasks and due reviews.")}</p></div>
+                <div><p className="text-xs font-semibold uppercase tracking-wide text-accent">{t("Daily study suggestions")}</p><p className="mt-1 text-xs text-muted">{t("A small, practical plan based on your open tasks, due reviews and weekly focus time.")} <span className="text-muted">· {dailySuggestions.data.focusMinutesThisWeek} {t("focus min this week")}</span></p></div>
                 <Sparkles className="size-4 text-accent" />
               </div>
               {dailySuggestions.data.suggestions.filter((item) => item.status !== "dismissed").map((suggestion) => <div key={suggestion.key} className="rounded-lg border border-line bg-card p-3">
