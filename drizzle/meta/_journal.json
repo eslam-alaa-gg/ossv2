@@ -43,6 +43,13 @@
       "when": 1795683600000,
       "tag": "0005_focus_pause_recovery",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1795687200000,
+      "tag": "0006_custom_fonts",
+      "breakpoints": true
     }
   ]
 }
