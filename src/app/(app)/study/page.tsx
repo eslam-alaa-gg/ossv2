@@ -312,7 +312,7 @@ export default function StudyPage() {
                     <p className="text-sm font-semibold">{suggestion.title}</p>
                     <p className="mt-1 text-xs text-muted">{t(suggestion.description)}</p>
                   </div>
-                  {suggestion.status === "accepted" && <Badge tone="green">{t("Accepted")}</Badge>}
+                  {suggestion.status === "accepted" && <Badge>{t("Accepted")}</Badge>}
                 </div>
                 {suggestion.status !== "accepted" && <div className="mt-3 flex flex-wrap gap-2">
                   <Button size="sm" variant="primary" onClick={() => void updateSuggestion(suggestion, "accepted")}>{t("Accept suggestion")}</Button>
