@@ -2,7 +2,7 @@ import { and, asc, eq, lte } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import { dailyStudySuggestionDecisions, flashcards, studySubjects, tasks } from "@/db/schema";
-import { body, handle } from "@/lib/server/api";
+import { ApiError, body, handle } from "@/lib/server/api";
 import { requireUser } from "@/lib/server/auth";
 import { todayIn, weekStart } from "@/lib/dates";
 import { activityByDay } from "@/lib/server/stats";
@@ -86,7 +86,7 @@ export const POST = handle(async (request) => {
   }));
   const today = todayIn(auth.tz);
   if (input.date !== today) {
-    return { ok: false, error: "This daily suggestion has expired. Refresh your study plan." };
+    throw new ApiError(409, "This daily suggestion has expired. Refresh your study plan.");
   }
   const [decision] = await db.insert(dailyStudySuggestionDecisions).values({
     userId: auth.id,
