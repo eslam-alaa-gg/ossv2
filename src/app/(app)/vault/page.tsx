@@ -76,6 +76,8 @@ function Editor({ note, onChange, onDeleted }: { note: Note; onChange: (n: Note)
   );
 }
 
+/* eslint-enable react-hooks/refs */
+
 function Journal() {
   const { t } = useApp();
   const { run } = useUI();
