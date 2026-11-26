@@ -2,7 +2,6 @@
 /* eslint-disable @next/next/no-img-element */
 import { ImagePlus, Keyboard, Maximize2, Minimize2, Music2, Pause, Play, RotateCcw, SkipBack, SkipForward, Square, Trash2, Volume2, VolumeX } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import { useApp } from "@/components/providers";
 import { PriorityBadge, type Task } from "@/components/task-form";
 import { Badge, Button, Card, EmptyState, Field, PageHeader, Segmented, cn, useUI } from "@/components/ui";
@@ -151,12 +150,11 @@ function FocusNowPlaying({ immersive = false }: { immersive?: boolean }) {
 export default function FocusPage() {
   const { savePrefs, prefs, t, lang } = useApp();
   const { run, toast } = useUI();
-  const searchParams = useSearchParams();
   const { data, reload } = useFetch<FocusData>("/api/focus");
   const [mode, setMode] = useState<Mode>("focus");
   const [minutes, setMinutes] = useState(25);
   const [taskId, setTaskId] = useState("");
-  useEffect(() => { const requestedTask = searchParams.get("task"); if (requestedTask) setTaskId(requestedTask); }, [searchParams]);
+  useEffect(() => { const requestedTask = new URLSearchParams(window.location.search).get("task"); if (requestedTask) setTaskId(requestedTask); }, []);
   const [phase, setPhase] = useState<"idle" | "running" | "paused">("idle");
   const [remaining, setRemaining] = useState(25 * 60);
   const [sid, setSid] = useState<string | null>(null);
