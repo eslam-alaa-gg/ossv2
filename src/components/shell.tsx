@@ -20,6 +20,7 @@ export const NAV = [
   { href: "/habits", label: "Habits", icon: Repeat, primary: true },
   { href: "/challenge", label: "Daily Challenge", icon: Zap },
   { href: "/focus", label: "Focus Room", icon: Timer, primary: true },
+  { href: "/study", label: "Study Planner", icon: BookOpen, primary: true },
   { href: "/goals", label: "Life Goals", icon: Target },
   { href: "/vault", label: "Memory Vault", icon: BookMarked },
   { href: "/achievements", label: "Achievement Journey", icon: Trophy },
