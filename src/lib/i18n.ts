@@ -49,7 +49,7 @@ const ar: Record<string, string> = {
   "Previous track": "المقطع السابق",
   "Next track": "المقطع التالي",
   "Focus background": "خلفية التركيز",
-  "Choose one of five animated live wallpapers. Your selection is saved to your account.": "اختار واحدة من خمس خلفيات متحركة، واختيارك هيتحفظ في حسابك.",
+  "Choose one of five looping video wallpapers. Your selection is saved to your account.": "اختار واحدة من خمس خلفيات فيديو بتتكرر تلقائيًا، واختيارك هيتحفظ في حسابك.",
   "Misty Forest": "غابة ضبابية",
   "Ocean Drift": "أمواج المحيط",
   "Rainy Window": "نافذة ممطرة",
