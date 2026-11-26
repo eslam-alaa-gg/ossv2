@@ -118,6 +118,19 @@ export const flashcardReviews = ossv2.table("flashcard_reviews", {
 }));
 
 
+export const dailyStudySuggestionDecisions = ossv2.table("daily_study_suggestion_decisions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: userRef(),
+  date: date("date").notNull(),
+  suggestionKey: text("suggestion_key").notNull(),
+  status: text("status").notNull(), // accepted | dismissed
+  createdAt: createdAt(),
+  updatedAt: ts("updated_at").notNull().defaultNow(),
+}, (t) => ({
+  userDateKeyUnique: uniqueIndex("daily_study_suggestion_decisions_unique").on(t.userId, t.date, t.suggestionKey),
+  userDateIdx: index("daily_study_suggestion_decisions_user_date_idx").on(t.userId, t.date),
+}));
+
 export const sessions = ossv2.table(
   "sessions",
   {
