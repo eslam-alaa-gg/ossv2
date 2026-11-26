@@ -9,6 +9,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { api, useFetch } from "@/lib/client";
 import { Avatar } from "./avatar";
+import { HabitIcon } from "./habit-icon";
 import { useApp } from "./providers";
 import { SpotifyProvider } from "./spotify";
 import { Button, Modal, cn, useUI } from "./ui";
