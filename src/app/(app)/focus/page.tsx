@@ -66,6 +66,7 @@ export default function FocusPage() {
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
   const [backgroundScene, setBackgroundScene] = useState<FocusWallpaper>(prefs.focus.background);
   const [timerStyle, setTimerStyle] = useState<TimerStyle>(prefs.focus.timerStyle);
+  useEffect(() => { setBackgroundScene(prefs.focus.background); setTimerStyle(prefs.focus.timerStyle); }, [prefs.focus.background, prefs.focus.timerStyle]);
   const [imageMessage, setImageMessage] = useState("");
   const endAt = useRef(0);
   const amb = useRef<AmbientHandle | null>(null);
@@ -179,11 +180,11 @@ export default function FocusPage() {
         if (!context) throw new Error("Image processing is not available in this browser.");
         context.drawImage(img, 0, 0, canvas.width, canvas.height);
         result = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/webp", quality));
-        if (result && result.size <= 400 * 1024) break;
+        if (result && result.size <= 440 * 1024) break;
         if (quality > 0.5) quality -= 0.08;
         else { width *= 0.82; height *= 0.82; quality = 0.82; }
       }
-      if (!result || result.size > 400 * 1024) throw new Error("The image could not be reduced below 400 KB. Try a smaller image.");
+      if (!result || result.size > 440 * 1024) throw new Error("The image could not be reduced below 450 KB. Try a smaller image.");
       const form = new FormData();
       form.append("file", new File([result], "focus-background.webp", { type: "image/webp" }));
       const response = await fetch("/api/me/focus-background", { method: "POST", body: form });
