@@ -37,7 +37,7 @@ function Inner() {
   const trackers = useFetch<Trackers>("/api/trackers");
   const [tab, setTab] = useState("habits");
   const [modal, setModal] = useState<{ habit?: Habit } | null>(null);
-  useEffect(() => { if (sp.get("new") === "1") setModal({}); }, [sp]);
+  useEffect(() => { if (sp.get("new") === "1") setModal({}); const requestedTab = sp.get("tab"); if (requestedTab === "reading" || requestedTab === "learning" || requestedTab === "water" || requestedTab === "habits") setTab(requestedTab); }, [sp]);
   const reloadAll = () => { habits.reload(); trackers.reload(); };
 
   async function log(h: Habit, amount: number) {
