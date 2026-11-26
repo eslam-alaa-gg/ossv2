@@ -210,24 +210,48 @@ function Inner() {
           </Card>
         </div>
       )}
-      {tab === "reading" && trackers.data && <ReadingTab tracker={trackers.data} reload={reloadAll} />}
-      {tab === "learning" && trackers.data && <LearningTab tracker={trackers.data} reload={reloadAll} />}
+      {tab === "reading" && trackers.data && <ReadingTab tracker={trackers.data} reload={reloadAll} userId={user?.id} setTrackerData={trackers.setData} />}
+      {tab === "learning" && trackers.data && <LearningTab tracker={trackers.data} reload={reloadAll} userId={user?.id} setTrackerData={trackers.setData} />}
       {tab !== "habits" && !trackers.data && (trackers.error ? <ErrorState message={trackers.error} retry={trackers.reload} /> : <ListSkeleton />)}
       <HabitModal open={!!modal} habit={modal?.habit} onClose={() => setModal(null)} onSaved={reloadAll} existing={habits.data?.habits ?? []} />
     </>
   );
 }
 
-function ReadingTab({ tracker, reload }: { tracker: Trackers; reload: () => void }) {
+type TrackerSetter = (value: Trackers | null | ((current: Trackers | null) => Trackers | null)) => void;
+
+function ReadingTab({ tracker, reload, userId, setTrackerData }: { tracker: Trackers; reload: () => void; userId?: string; setTrackerData: TrackerSetter }) {
   const { t } = useApp();
-  const { run } = useUI();
+  const { run, toast } = useUI();
   const [book, setBook] = useState("");
   const [pages, setPages] = useState("");
   return (
     <div className="grid gap-[var(--gap)] md:grid-cols-2">
       <Card>
         <div className="mb-4 flex items-center gap-3"><BookOpen className="size-5 text-accent" /><div className="flex-1"><p className="font-medium">{t("Today")}: {tracker.reading.todayPages} / {tracker.reading.target} {t("pages")}</p><Progress value={(100 * tracker.reading.todayPages) / tracker.reading.target} className="mt-2" />{tracker.reading.todayPages < tracker.reading.target && <p className="mt-1 text-xs text-faint">{t("Goal not reached yet.")}</p>}</div></div>
-        <form className="space-y-3" onSubmit={async (e) => { e.preventDefault(); if (await run(() => api("/api/trackers/reading", { body: { book, pages: Number(pages) } }), t("Reading logged"))) { setPages(""); reload(); } }}>
+        <form className="space-y-3" onSubmit={async (e) => {
+          e.preventDefault();
+          const count = Number(pages);
+          if (!navigator.onLine && userId) {
+            const actionId = crypto.randomUUID();
+            const body = { book, pages: count, clientActionId: actionId };
+            if (await queueOfflineAction(userId, "/api/trackers/reading", "POST", body)) {
+              setTrackerData((current) => current ? {
+                ...current,
+                reading: {
+                  ...current.reading,
+                  todayPages: current.reading.todayPages + count,
+                  entries: [{ id: `offline-${actionId}`, date: current.today, book, pages: count }, ...current.reading.entries],
+                  days: current.reading.days.map((day) => day.d === current.today ? { ...day, v: day.v + count } : day).concat(current.reading.days.some((day) => day.d === current.today) ? [] : [{ d: current.today, v: count }]),
+                },
+              } : current);
+              setPages("");
+              toast("info", t("Saved offline. It will sync when you're online."));
+            } else toast("error", t("Could not save offline action."));
+            return;
+          }
+          if (await run(() => api("/api/trackers/reading", { body: { book, pages: count } }), t("Reading logged"))) { setPages(""); reload(); }
+        }}>
           <Field label={t("Book name")}><input className="input" value={book} onChange={(e) => setBook(e.target.value)} maxLength={120} required aria-label={t("Book name")} list="books" /><datalist id="books">{[...new Set(tracker.reading.entries.map((e) => e.book))].map((b) => <option key={b} value={b} />)}</datalist></Field>
           <Field label={t("Pages read")}><input className="input" type="number" min={1} max={2000} value={pages} onChange={(e) => setPages(e.target.value)} required aria-label={t("Pages read")} /></Field>
           <Button type="submit" variant="primary" className="w-full">{t("Log reading")}</Button>
@@ -237,15 +261,32 @@ function ReadingTab({ tracker, reload }: { tracker: Trackers; reload: () => void
       </Card>
       <Card>
         <h3 className="mb-3 text-sm font-medium text-muted">{t("Reading history")}</h3>
-        {tracker.reading.entries.length === 0 ? <EmptyState icon={<BookOpen className="size-5" />} title={t("No reading yet")} text={t("Log your first session to start a history.")} /> : <ul className="divide-y divide-[var(--border)]">{tracker.reading.entries.map((r) => <li key={r.id} className="flex items-center justify-between py-2.5 text-sm"><span className="min-w-0"><span className="block truncate">{r.book}</span><span className="text-xs text-faint">{fmtShort(r.date)} · {r.pages} {t("pages")}</span></span><Button variant="ghost" size="icon" aria-label={t("Remove entry")} onClick={async () => { await run(() => api(`/api/trackers/reading?id=${r.id}`, { method: "DELETE" })); reload(); }}><Trash2 className="size-3.5" /></Button></li>)}</ul>}
+        {tracker.reading.entries.length === 0 ? <EmptyState icon={<BookOpen className="size-5" />} title={t("No reading yet")} text={t("Log your first session to start a history.")} /> : <ul className="divide-y divide-[var(--border)]">{tracker.reading.entries.map((r) => <li key={r.id} className="flex items-center justify-between py-2.5 text-sm"><span className="min-w-0"><span className="block truncate">{r.book}</span><span className="text-xs text-faint">{fmtShort(r.date)} · {r.pages} {t("pages")}</span></span><Button variant="ghost" size="icon" aria-label={t("Remove entry")} onClick={async () => {
+            if (!navigator.onLine && userId) {
+              if (r.id.startsWith("offline-")) await cancelQueuedAction(userId, "/api/trackers/reading", { book: r.book, pages: r.pages, clientActionId: r.id.slice("offline-".length) });
+              else if (!await queueOfflineAction(userId, `/api/trackers/reading?id=${r.id}`, "DELETE")) { toast("error", t("Could not save offline action.")); return; }
+              setTrackerData((current) => current ? {
+                ...current,
+                reading: {
+                  ...current.reading,
+                  entries: current.reading.entries.filter((item) => item.id !== r.id),
+                  todayPages: current.reading.entries.filter((item) => item.id !== r.id && item.date === current.today).reduce((sum, item) => sum + item.pages, 0),
+                  days: current.reading.days.map((day) => day.d === r.date ? { ...day, v: Math.max(0, day.v - r.pages) } : day),
+                },
+              } : current);
+              toast("info", t("Saved offline. It will sync when you're online."));
+              return;
+            }
+            if (await run(() => api(`/api/trackers/reading?id=${r.id}`, { method: "DELETE" }))) reload();
+          }}><Trash2 className="size-3.5" /></Button></li>)}</ul>}
       </Card>
     </div>
   );
 }
 
-function LearningTab({ tracker, reload }: { tracker: Trackers; reload: () => void }) {
+function LearningTab({ tracker, reload, userId, setTrackerData }: { tracker: Trackers; reload: () => void; userId?: string; setTrackerData: TrackerSetter }) {
   const { t } = useApp();
-  const { run } = useUI();
+  const { run, toast } = useUI();
   const [title, setTitle] = useState("");
   const [text, setText] = useState("");
   return (
@@ -253,7 +294,27 @@ function LearningTab({ tracker, reload }: { tracker: Trackers; reload: () => voi
       <Card>
         <div className="mb-4 flex items-center gap-2"><Lightbulb className="size-5 text-accent" /><div className="flex-1"><p className="font-medium">{t("What did you learn?")}</p><p className="text-xs text-muted">{tracker.learning.todayCount}/{tracker.learning.target} {t("entries today")}</p><Progress value={(100 * tracker.learning.todayCount) / tracker.learning.target} className="mt-2" /></div></div>
         {tracker.learning.todayCount < tracker.learning.target && <p className="mb-3 text-xs text-faint">{t("Goal not reached yet.")}</p>}
-        <form className="space-y-3" onSubmit={async (e) => { e.preventDefault(); if (await run(() => api("/api/trackers/learning", { body: { title, explanation: text } }), t("Learning saved"))) { setTitle(""); setText(""); reload(); } }}>
+        <form className="space-y-3" onSubmit={async (e) => {
+          e.preventDefault();
+          if (!navigator.onLine && userId) {
+            const actionId = crypto.randomUUID();
+            const body = { title, explanation: text, clientActionId: actionId };
+            if (await queueOfflineAction(userId, "/api/trackers/learning", "POST", body)) {
+              setTrackerData((current) => current ? {
+                ...current,
+                learning: {
+                  ...current.learning,
+                  todayCount: current.learning.todayCount + 1,
+                  entries: [{ id: `offline-${actionId}`, date: current.today, title, explanation: text }, ...current.learning.entries],
+                },
+              } : current);
+              setTitle(""); setText("");
+              toast("info", t("Saved offline. It will sync when you're online."));
+            } else toast("error", t("Could not save offline action."));
+            return;
+          }
+          if (await run(() => api("/api/trackers/learning", { body: { title, explanation: text } }), t("Learning saved"))) { setTitle(""); setText(""); reload(); }
+        }}>
           <Field label={t("New knowledge")}><input className="input" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} required aria-label={t("New knowledge")} /></Field>
           <Field label={t("Short explanation")}><textarea className="input min-h-24" value={text} onChange={(e) => setText(e.target.value)} maxLength={1000} aria-label={t("Explanation")} /></Field>
           <Button type="submit" variant="primary" className="w-full">{t("Save entry")}</Button>
@@ -261,7 +322,23 @@ function LearningTab({ tracker, reload }: { tracker: Trackers; reload: () => voi
       </Card>
       <Card>
         <h3 className="mb-3 text-sm font-medium text-muted">{t("Learning log")}</h3>
-        {tracker.learning.entries.length === 0 ? <EmptyState icon={<Lightbulb className="size-5" />} title={t("Nothing recorded yet")} /> : <ul className="space-y-3">{tracker.learning.entries.map((l) => <li key={l.id} className="rounded-xl border border-line bg-card p-3 text-sm"><div className="flex items-start justify-between gap-2"><p className="font-medium">{l.title}</p><Button variant="ghost" size="icon" aria-label={t("Remove entry")} onClick={async () => { await run(() => api(`/api/trackers/learning?id=${l.id}`, { method: "DELETE" })); reload(); }}><Trash2 className="size-3.5" /></Button></div>{l.explanation && <p className="mt-1 text-muted">{l.explanation}</p>}<p className="mt-1 text-xs text-faint">{fmtShort(l.date)}</p></li>)}</ul>}
+        {tracker.learning.entries.length === 0 ? <EmptyState icon={<Lightbulb className="size-5" />} title={t("Nothing recorded yet")} /> : <ul className="space-y-3">{tracker.learning.entries.map((l) => <li key={l.id} className="rounded-xl border border-line bg-card p-3 text-sm"><div className="flex items-start justify-between gap-2"><p className="font-medium">{l.title}</p><Button variant="ghost" size="icon" aria-label={t("Remove entry")} onClick={async () => {
+            if (!navigator.onLine && userId) {
+              if (l.id.startsWith("offline-")) await cancelQueuedAction(userId, "/api/trackers/learning", { title: l.title, explanation: l.explanation, clientActionId: l.id.slice("offline-".length) });
+              else if (!await queueOfflineAction(userId, `/api/trackers/learning?id=${l.id}`, "DELETE")) { toast("error", t("Could not save offline action.")); return; }
+              setTrackerData((current) => current ? {
+                ...current,
+                learning: {
+                  ...current.learning,
+                  entries: current.learning.entries.filter((item) => item.id !== l.id),
+                  todayCount: current.learning.entries.filter((item) => item.id !== l.id && item.date === current.today).length,
+                },
+              } : current);
+              toast("info", t("Saved offline. It will sync when you're online."));
+              return;
+            }
+            if (await run(() => api(`/api/trackers/learning?id=${l.id}`, { method: "DELETE" }))) reload();
+          }}><Trash2 className="size-3.5" /></Button></div>{l.explanation && <p className="mt-1 text-muted">{l.explanation}</p>}<p className="mt-1 text-xs text-faint">{fmtShort(l.date)}</p></li>)}</ul>}
       </Card>
     </div>
   );
