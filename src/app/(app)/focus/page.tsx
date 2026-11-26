@@ -9,7 +9,7 @@ import { api, minutesLabel, useFetch } from "@/lib/client";
 import { SOUNDS, startAmbient, type AmbientHandle } from "@/lib/ambient";
 import { useProgress, useSpotify } from "@/components/spotify";
 
-type Session = { id: string; mode: string; plannedSeconds: number; actualSeconds: number; status: string; startedAt: string; taskTitle?: string | null };
+type Session = { id: string; mode: string; plannedSeconds: number; actualSeconds: number; status: string; startedAt: string; lastResumedAt?: string | null; pausedAt?: string | null; taskTitle?: string | null };
 type FocusData = { todayMinutes: number; weekMinutes: number; totalSessions: number; sessions: Session[]; running: (Session & { serverNow: number }) | null; tasks: { id: string; title: string; priority: Task["priority"] }[]; prefs: { sound: string; volume: number; preset: number } };
 type Mode = "focus" | "short_break" | "long_break" | "custom";
 const MODES: { value: Mode; label: string; min: number }[] = [{ value: "focus", label: "Standard Focus", min: 25 }, { value: "short_break", label: "Short Break", min: 5 }, { value: "long_break", label: "Long Break", min: 15 }, { value: "custom", label: "Custom Session", min: 30 }];
@@ -147,15 +147,18 @@ export default function FocusPage() {
     if (!data?.running || restored.current || phase !== "idle") return;
     restored.current = true;
     const r = data.running;
-    const left = Math.max(0, r.plannedSeconds - Math.floor((Date.now() - new Date(r.startedAt).getTime()) / 1000));
-    setSid(r.id); setPlanned(r.plannedSeconds); setMode(r.mode as Mode); setMinutes(Math.round(r.plannedSeconds / 60)); setRemaining(left); endAt.current = Date.now() + left * 1000; setPhase("running");
+    const elapsed = r.actualSeconds + (r.status === "running" ? Math.max(0, Math.floor((Date.now() - new Date(r.lastResumedAt ?? r.startedAt).getTime()) / 1000)) : 0);
+    const left = Math.max(0, r.plannedSeconds - elapsed);
+    setSid(r.id); setPlanned(r.plannedSeconds); setMode(r.mode as Mode); setMinutes(Math.round(r.plannedSeconds / 60)); setRemaining(left); endAt.current = Date.now() + left * 1000; setPhase(r.status === "paused" ? "paused" : "running");
   }, [data, phase]);
 
   const complete = useCallback(async (id: string) => {
     if (finishing.current) return;
     finishing.current = true;
     const r = await run(() => api<{ xp: number; unlocked: string[] }>(`/api/focus/${id}`, { body: { action: "complete" } }));
-    if (r) { toast("success", r.xp ? ` ${t("Focus session complete")} · +${r.xp} XP` : t("Session complete")); r.unlocked.forEach((u) => toast("success", t(u))); }
+    if (!r) { finishing.current = false; return; }
+    toast("success", r.xp ? ` ${t("Focus session complete")} · +${r.xp} XP` : t("Session complete"));
+    r.unlocked.forEach((u) => toast("success", t(u)));
     setPhase("idle"); setSid(null); setRemaining(minutes * 60); finishing.current = false; reload();
   }, [run, toast, minutes, reload]);
 
@@ -263,8 +266,19 @@ export default function FocusPage() {
     if (!r) return;
     finishing.current = false; setSid(r.session.id); setPlanned(minutes * 60); setRemaining(minutes * 60); endAt.current = Date.now() + minutes * 60000; setPhase("running");
   }
-  const pause = () => { setRemaining(Math.max(0, Math.ceil((endAt.current - Date.now()) / 1000))); setPhase("paused"); };
-  const resume = () => { endAt.current = Date.now() + remaining * 1000; setPhase("running"); };
+  const pause = async () => {
+    if (!sid || phase !== "running") return;
+    const nextRemaining = Math.max(0, Math.ceil((endAt.current - Date.now()) / 1000));
+    const result = await run(() => api(`/api/focus/${sid}`, { body: { action: "pause" } }));
+    if (!result) return;
+    setRemaining(nextRemaining); setPhase("paused"); reload();
+  };
+  const resume = async () => {
+    if (!sid || phase !== "paused") return;
+    const result = await run(() => api(`/api/focus/${sid}`, { body: { action: "resume" } }));
+    if (!result) return;
+    endAt.current = Date.now() + remaining * 1000; setPhase("running"); reload();
+  };
   async function end(reset = false) {
     if (sid) await run(() => api(`/api/focus/${sid}`, { body: { action: "end", activeSeconds: Math.max(0, planned - remaining) } }), reset ? undefined : t("Session ended — time so far was recorded"));
     setPhase("idle"); setSid(null); setRemaining(minutes * 60); setPlanned(minutes * 60); reload();
