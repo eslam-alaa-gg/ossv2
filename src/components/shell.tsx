@@ -1,7 +1,7 @@
 "use client";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  BarChart3, Bell, BookMarked, BookOpen, CalendarCheck, CalendarDays, Check, CheckSquare, ChevronsLeft, ChevronsRight, Droplets, GlassWater, Languages, LayoutDashboard, Lightbulb, LogOut, Minus, Music2, Palette, Plus, Repeat, Search, Settings, Target, Timer,
+  BarChart3, Bell, BookMarked, BookOpen, CalendarCheck, CalendarDays, Check, CheckSquare, ChevronsLeft, ChevronsRight, Droplets, Languages, LayoutDashboard, Lightbulb, LogOut, Minus, Music2, Palette, Plus, Repeat, Search, Settings, Target, Timer,
   Trophy, User as UserIcon, X, Zap,
 } from "lucide-react";
 import Link from "next/link";
@@ -9,6 +9,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { api, useFetch } from "@/lib/client";
 import { Avatar } from "./avatar";
+import { HabitIcon } from "./habit-icon";
 import { useApp } from "./providers";
 import { SpotifyProvider } from "./spotify";
 import { Button, Modal, cn, useUI } from "./ui";
@@ -237,8 +238,34 @@ function CommandMenu({ open, onClose }: { open: boolean; onClose: () => void }) 
 }
 
 
-type QuickHabit = { id: string; name: string; kind: "standard" | "water" | "reading" | "learning"; target: number; todayAmount: number; todayDone: boolean; unit: string };
+type QuickHabit = { id: string; name: string; icon: string; kind: "standard" | "water" | "reading" | "learning"; target: number; todayAmount: number; todayDone: boolean; unit: string };
 type QuickTrackers = { today: string; water: { goal: number; total: number }; reading: { target: number; todayPages: number }; learning: { target: number; todayCount: number; entries: { id: string; date: string; title: string }[] } };
+
+function HabitProgressButton({ label, icon, amount, target, done, disabled, onClick }: {
+  label: string; icon: string; amount: number; target: number; done?: boolean; disabled?: boolean; onClick: () => void;
+}) {
+  const pct = target > 0 ? Math.min(100, amount / target * 100) : 0;
+  const radius = 20;
+  const circumference = 2 * Math.PI * radius;
+  const complete = done ?? (target > 0 && amount >= target);
+  return (
+    <button type="button" onClick={onClick} disabled={disabled} title={`${label} · ${amount}/${target}`} aria-label={`${label}: ${amount} / ${target}`}
+      className="group flex min-w-0 flex-col items-center gap-1.5 rounded-xl p-2 transition-colors hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-default">
+      <span className="relative grid size-12 place-items-center">
+        <svg viewBox="0 0 48 48" className="absolute inset-0 size-12 -rotate-90" aria-hidden="true">
+          <circle cx="24" cy="24" r={radius} fill="none" stroke="var(--input)" strokeWidth="3" />
+          <circle cx="24" cy="24" r={radius} fill="none" stroke="var(--accent)" strokeWidth="3" strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={circumference * (1 - pct / 100)} className="transition-[stroke-dashoffset] duration-300" />
+        </svg>
+        <span className={cn("grid size-9 place-items-center rounded-full transition-transform", complete ? "text-accent" : "text-muted group-hover:scale-110")}>
+          {icon === "water" ? <Droplets className="size-5" /> : icon === "reading" ? <BookOpen className="size-5" /> : icon === "learning" ? <Lightbulb className="size-5" /> : <HabitIcon name={icon} className="size-5" />}
+        </span>
+        {complete && <Check className="absolute -end-0.5 -top-0.5 size-3.5 rounded-full bg-accent p-0.5 text-[var(--on-accent)]" />}
+      </span>
+      <span className="max-w-full truncate text-[11px]">{label}</span>
+      <span className="text-[10px] tabular-nums text-faint">{amount}/{target}</span>
+    </button>
+  );
+}
 
 function HabitQuickPanel() {
   const { t } = useApp();
@@ -254,7 +281,9 @@ function HabitQuickPanel() {
   const [message, setMessage] = useState("");
   const [hiddenIds, setHiddenIds] = useState<string[]>([]);
   const [customizing, setCustomizing] = useState(false);
+  const [activeEntry, setActiveEntry] = useState<"reading" | "learning" | null>(null);
   const ref = useRef<HTMLDivElement>(null);
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
@@ -275,22 +304,24 @@ function HabitQuickPanel() {
         }
       } catch { setHiddenIds([]); }
       setMessage("");
-    } catch (e) {
-      setMessage(e instanceof Error ? e.message : t("Could not load habit progress."));
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : t("Could not load habit progress."));
     } finally {
       setLoading(false);
     }
   }, [t]);
-  useEffect(() => { void Promise.resolve().then(load); }, [load]);
+
+  useEffect(() => { void load(); }, [load]);
   useEffect(() => {
     if (!open) return;
-    if (!tracker) void Promise.resolve().then(load);
-    const outside = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false); };
-    const escape = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
-    document.addEventListener("mousedown", outside);
+    if (!tracker) void load();
+    const outside = (event: PointerEvent) => { if (!ref.current?.contains(event.target as Node)) setOpen(false); };
+    const escape = (event: KeyboardEvent) => { if (event.key === "Escape") setOpen(false); };
+    document.addEventListener("pointerdown", outside);
     document.addEventListener("keydown", escape);
-    return () => { document.removeEventListener("mousedown", outside); document.removeEventListener("keydown", escape); };
+    return () => { document.removeEventListener("pointerdown", outside); document.removeEventListener("keydown", escape); };
   }, [open, load, tracker]);
+
   const act = async (fn: () => Promise<unknown>, success?: string) => {
     setBusy(true);
     try {
@@ -301,85 +332,80 @@ function HabitQuickPanel() {
       setBusy(false);
     }
   };
-  const special = habits.filter((h) => h.kind !== "standard");
-  const standard = habits.filter((h) => h.kind === "standard");
+
+  const special = habits.filter((habit) => habit.kind !== "standard");
+  const standard = habits.filter((habit) => habit.kind === "standard");
   const cup = 250;
   const waterCups = tracker ? Number((tracker.water.total / cup).toFixed(1)) : 0;
   const waterGoal = tracker ? Math.ceil(tracker.water.goal / cup) : 0;
-  const waterHabit = special.find((h) => h.kind === "water");
-  const reading = special.find((h) => h.kind === "reading" && !hiddenIds.includes(h.id));
-  const learning = special.find((h) => h.kind === "learning" && !hiddenIds.includes(h.id));
+  const waterHabit = special.find((habit) => habit.kind === "water");
+  const reading = special.find((habit) => habit.kind === "reading" && !hiddenIds.includes(habit.id));
+  const learning = special.find((habit) => habit.kind === "learning" && !hiddenIds.includes(habit.id));
   const waterVisible = !waterHabit || !hiddenIds.includes(waterHabit.id);
-  const waterProgress = tracker ? Math.min(100, tracker.water.goal ? (100 * tracker.water.total) / tracker.water.goal : 0) : 0;
+
   const toggleVisible = (id: string) => {
-    const next = hiddenIds.includes(id) ? hiddenIds.filter((x) => x !== id) : [...hiddenIds, id];
+    const next = hiddenIds.includes(id) ? hiddenIds.filter((item) => item !== id) : [...hiddenIds, id];
     setHiddenIds(next);
     try { localStorage.setItem("ukiyo.habit-quick.hidden", JSON.stringify(next)); } catch { /* storage may be unavailable */ }
+    if (next.includes(id) && ((reading?.id === id && activeEntry === "reading") || (learning?.id === id && activeEntry === "learning"))) setActiveEntry(null);
   };
+
   const addWater = () => act(() => api("/api/trackers/water", { body: { ml: cup } }), t("Water logged"));
-  const addReading = async (e: FormEvent) => {
-    e.preventDefault();
-    const n = Number(pages);
-    if (!book.trim() || !Number.isInteger(n) || n < 1) return;
-    await act(() => api("/api/trackers/reading", { body: { book, pages: n } }), t("Reading logged"));
-    setPages("5");
+  const addReading = async (event: FormEvent) => {
+    event.preventDefault();
+    const count = Number(pages);
+    if (!book.trim() || !Number.isInteger(count) || count < 1) return;
+    const result = await act(() => api("/api/trackers/reading", { body: { book, pages: count } }), t("Reading logged"));
+    if (result !== undefined) { setPages("5"); setBook(""); setActiveEntry(null); }
   };
-  const addLearning = async (e: FormEvent) => {
-    e.preventDefault();
+  const addLearning = async (event: FormEvent) => {
+    event.preventDefault();
     if (!learnTitle.trim()) return;
-    await act(() => api("/api/trackers/learning", { body: { title: learnTitle, explanation: "" } }), t("Learning saved"));
-    setLearnTitle("");
+    const result = await act(() => api("/api/trackers/learning", { body: { title: learnTitle, explanation: "" } }), t("Learning saved"));
+    if (result !== undefined) { setLearnTitle(""); setActiveEntry(null); }
   };
-  const logStandard = (h: QuickHabit, amount: number) => act(async () => {
-    const r = await api<{ completed: boolean; xp: number }>(`/api/habits/${h.id}/log`, { body: { amount } });
-    if (r.completed) toast("success", t("Habit complete"));
-    return r;
+  const logStandard = (habit: QuickHabit) => act(async () => {
+    const amount = habit.target === 1 ? (habit.todayDone ? 0 : 1) : Math.min(habit.target, habit.todayAmount + 1);
+    const result = await api<{ completed: boolean }>(`/api/habits/${habit.id}/log`, { body: { amount } });
+    if (result.completed) toast("success", t("Habit complete"));
+    return result;
   });
+
   return (
     <div ref={ref} className="relative">
-      <button type="button" onClick={() => setOpen((v) => !v)} className="header-icon-btn glass-btn btn-ghost btn-icon h-9 w-9" aria-label={t("Habit quick tracker")} title={t("Habit quick tracker")} aria-expanded={open}>
-        <span className="relative grid size-7 place-items-center">
-          <svg viewBox="0 0 24 24" className="absolute inset-0 size-7 -rotate-90" aria-hidden="true">
-            <circle cx="12" cy="12" r="10" fill="none" stroke="var(--input)" strokeWidth="1.6" />
-            <circle cx="12" cy="12" r="10" fill="none" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" strokeDasharray={62.83} strokeDashoffset={62.83 * (1 - waterProgress / 100)} />
-          </svg>
-          <GlassWater className="relative size-4" />
-        </span>
+      <button type="button" onClick={() => setOpen((value) => !value)} className="header-icon-btn glass-btn btn-ghost btn-icon h-9 w-9" aria-label={t("Habit quick tracker")} title={t("Habit quick tracker")} aria-expanded={open}>
+        <Droplets className="size-[21px] stroke-[2.1]" />
       </button>
       <AnimatePresence>
         {open && (
-          <motion.div initial={{ opacity: 0, y: -7, scale: .97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -5, scale: .98 }} transition={{ duration: .16 }} className="popover absolute end-0 top-12 z-[80] w-[min(92vw,340px)] p-3 shadow-2xl">
-            <div className="mb-3 flex items-center justify-between"><div><p className="text-sm font-semibold">{t("Quick habit tracker")}</p><p className="text-[11px] text-faint">{t("Your daily targets")}</p></div><div className="flex items-center gap-1"><button type="button" onClick={() => setCustomizing((v) => !v)} className="rounded-lg px-2 py-1 text-[11px] text-accent hover:bg-card">{t(customizing ? "Done" : "Customize")}</button><button type="button" onClick={() => setOpen(false)} aria-label={t("Close")} className="rounded-lg p-1.5 hover:bg-card"><X className="size-4" /></button></div></div>
-            {customizing && <div className="mb-3 grid grid-cols-2 gap-2 rounded-xl border border-line bg-card p-2">{habits.map((h) => <label key={h.id} className="flex min-w-0 items-center gap-2 text-xs"><input type="checkbox" checked={!hiddenIds.includes(h.id)} onChange={() => toggleVisible(h.id)} /><span className="truncate">{t(h.name)}</span></label>)}</div>}
-            {loading && !tracker ? <p className="py-5 text-center text-xs text-muted">{t("Loading…")}</p> : message ? <p role="alert" className="text-xs text-muted">{message}</p> : (
-              <div className="max-h-[min(65vh,430px)] space-y-2 overflow-y-auto">
-                {tracker && waterVisible && <div className="rounded-xl border border-line bg-card p-3">
-                  <div className="flex items-center gap-2"><Droplets className="size-4 text-accent" /><p className="flex-1 text-sm font-medium">{t("Drink Water")}</p><span className="text-xs tabular-nums text-muted">{waterCups}/{waterGoal} {t("cups")}</span></div>
-                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[var(--input)]"><div className="h-full rounded-full bg-accent transition-all" style={{ width: `${Math.min(100, waterGoal ? (100 * waterCups) / waterGoal : 0)}%` }} /></div>
-                  <button type="button" disabled={busy} onClick={addWater} className="glass-btn btn-secondary mt-2 h-8 w-full text-xs"><Plus className="size-3.5" /> {t("Add one cup")}</button>
-                  {waterCups < waterGoal && <p className="mt-1 text-[11px] text-faint">{t("Goal not reached yet.")}</p>}
-                </div>}
-                {reading && tracker && <div className="rounded-xl border border-line bg-card p-3">
-                  <div className="mb-2 flex items-center gap-2"><BookOpen className="size-4 text-accent" /><p className="flex-1 text-sm font-medium">{t("Read Books")}</p><span className="text-xs tabular-nums text-muted">{tracker.reading.todayPages}/{reading.target} {t("pages")}</span></div>
-                  <form onSubmit={addReading} className="flex gap-1.5"><input className="input min-w-0 flex-1 text-xs" value={book} onChange={(e) => setBook(e.target.value)} placeholder={t("Book name")} maxLength={120} required /><input className="input w-14 text-xs" type="number" min={1} max={2000} value={pages} onChange={(e) => setPages(e.target.value)} aria-label={t("Pages read")} required /><button type="submit" disabled={busy} className="glass-btn btn-primary h-9 w-9 shrink-0 justify-center" aria-label={t("Log reading")}><Plus className="size-4" /></button></form>
-                  {tracker.reading.todayPages < reading.target && <p className="mt-1 text-[11px] text-faint">{t("Goal not reached yet.")}</p>}
-                </div>}
-                {learning && tracker && <div className="rounded-xl border border-line bg-card p-3">
-                  <div className="mb-2 flex items-center gap-2"><Lightbulb className="size-4 text-accent" /><p className="flex-1 text-sm font-medium">{t("Learn Something New")}</p><span className="text-xs tabular-nums text-muted">{tracker.learning.todayCount}/{learning.target}</span></div>
-                  <form onSubmit={addLearning} className="flex gap-1.5"><input className="input min-w-0 flex-1 text-xs" value={learnTitle} onChange={(e) => setLearnTitle(e.target.value)} placeholder={t("What did you learn?")} maxLength={120} required /><button type="submit" disabled={busy} className="glass-btn btn-primary h-9 w-9 shrink-0 justify-center" aria-label={t("Save entry")}><Plus className="size-4" /></button></form>
-                  {tracker.learning.todayCount < learning.target && <p className="mt-1 text-[11px] text-faint">{t("Goal not reached yet.")}</p>}
-                </div>}
-                {standard.filter((h) => !hiddenIds.includes(h.id)).map((h) => <div key={h.id} className="rounded-xl border border-line bg-card p-3">
-                  <div className="flex items-center gap-2"><p className="min-w-0 flex-1 truncate text-sm font-medium">{t(h.name)}</p><span className="text-xs tabular-nums text-muted">{h.todayAmount}/{h.target} {t(h.unit)}</span></div>
-                  <div className="mt-2 flex items-center gap-2">
-                    {h.target === 1 ? <button type="button" disabled={busy} onClick={() => logStandard(h, h.todayDone ? 0 : 1)} className="glass-btn btn-secondary h-8 w-full text-xs">{h.todayDone ? <><Check className="size-3.5" /> {t("Completed today")}</> : t("Mark as done")}</button> : <>
-                      <button type="button" disabled={busy || h.todayAmount <= 0} onClick={() => logStandard(h, h.todayAmount - 1)} aria-label={t("Decrease")} className="rounded-lg border border-line p-1.5 disabled:opacity-40"><Minus className="size-3.5" /></button><div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[var(--input)]"><div className="h-full rounded-full bg-accent" style={{ width: `${Math.min(100, 100 * h.todayAmount / h.target)}%` }} /></div><button type="button" disabled={busy || h.todayAmount >= h.target} onClick={() => logStandard(h, h.todayAmount + 1)} aria-label={t("Increase")} className="rounded-lg border border-line p-1.5 disabled:opacity-40"><Plus className="size-3.5" /></button>
-                    </>}
-                  </div>
-                  {h.todayAmount < h.target && <p className="mt-1 text-[11px] text-faint">{t("Goal not reached yet.")}</p>}
-                </div>)}
-                {!waterVisible && !reading && !learning && !standard.some((h) => !hiddenIds.includes(h.id)) && <p className="py-5 text-center text-xs text-muted">{t("Add a habit with a daily target to see it here.")}</p>}
+          <motion.div initial={{ opacity: 0, y: -7, scale: .97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -5, scale: .98 }} transition={{ duration: .16 }}
+            className="popover absolute end-0 top-12 z-[80] w-[min(92vw,340px)] p-3 shadow-2xl">
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <div><p className="text-sm font-semibold">{t("Quick habit tracker")}</p><p className="text-[11px] text-faint">{t("Your daily targets")}</p></div>
+              <div className="flex items-center gap-1">
+                <button type="button" onClick={() => setCustomizing((value) => !value)} className="rounded-lg px-2 py-1 text-[11px] text-accent hover:bg-card">{t(customizing ? "Done" : "Customize")}</button>
+                <button type="button" onClick={() => setOpen(false)} aria-label={t("Close")} className="rounded-lg p-1.5 hover:bg-card"><X className="size-4" /></button>
               </div>
+            </div>
+            {customizing && <div className="mb-3 grid grid-cols-2 gap-2 rounded-xl border border-line bg-card p-2">{habits.map((habit) => <label key={habit.id} className="flex min-w-0 items-center gap-2 text-xs"><input type="checkbox" checked={!hiddenIds.includes(habit.id)} onChange={() => toggleVisible(habit.id)} /><span className="truncate">{t(habit.name)}</span></label>)}</div>}
+            {loading && !tracker ? <p className="py-5 text-center text-xs text-muted">{t("Loading…")}</p> : message ? <p role="alert" className="text-xs text-muted">{message}</p> : (
+              <>
+                <div className="grid max-h-[min(55vh,320px)] grid-cols-3 gap-1 overflow-y-auto">
+                  {tracker && waterVisible && <HabitProgressButton label={t("Drink Water")} icon="water" amount={waterCups} target={Math.max(1, waterGoal)} disabled={busy || waterCups >= waterGoal} onClick={() => void addWater()} />}
+                  {reading && tracker && <HabitProgressButton label={t("Read Books")} icon="reading" amount={tracker.reading.todayPages} target={reading.target} onClick={() => setActiveEntry((value) => value === "reading" ? null : "reading")} />}
+                  {learning && tracker && <HabitProgressButton label={t("Learn Something New")} icon="learning" amount={tracker.learning.todayCount} target={learning.target} onClick={() => setActiveEntry((value) => value === "learning" ? null : "learning")} />}
+                  {standard.filter((habit) => !hiddenIds.includes(habit.id)).map((habit) => <HabitProgressButton key={habit.id} label={t(habit.name)} icon={habit.icon} amount={habit.todayAmount} target={habit.target} done={habit.todayDone} disabled={busy || (habit.target > 1 && habit.todayAmount >= habit.target)} onClick={() => void logStandard(habit)} />)}
+                  {!habits.length && <p className="col-span-3 py-5 text-center text-xs text-muted">{t("Add a habit with a daily target to see it here.")}</p>}
+                </div>
+                {activeEntry === "reading" && reading && <div id="quick-reading-form" className="mt-3 rounded-xl border border-line bg-card p-3">
+                  <div className="mb-2 flex items-center justify-between"><p className="text-sm font-medium">{t("Read Books")}</p><button type="button" onClick={() => setActiveEntry(null)} aria-label={t("Close")} className="rounded-md p-1 hover:bg-card-hover"><X className="size-3.5" /></button></div>
+                  <form onSubmit={addReading} className="flex gap-1.5"><input className="input min-w-0 flex-1 text-xs" value={book} onChange={(event) => setBook(event.target.value)} placeholder={t("Book name")} maxLength={120} required /><input className="input w-14 text-xs" type="number" min={1} max={2000} value={pages} onChange={(event) => setPages(event.target.value)} aria-label={t("Pages read")} required /><button type="submit" disabled={busy} className="glass-btn btn-primary h-9 w-9 shrink-0 justify-center" aria-label={t("Log reading")}><Plus className="size-4" /></button></form>
+                </div>}
+                {activeEntry === "learning" && learning && <div id="quick-learning-form" className="mt-3 rounded-xl border border-line bg-card p-3">
+                  <div className="mb-2 flex items-center justify-between"><p className="text-sm font-medium">{t("Learn Something New")}</p><button type="button" onClick={() => setActiveEntry(null)} aria-label={t("Close")} className="rounded-md p-1 hover:bg-card-hover"><X className="size-3.5" /></button></div>
+                  <form onSubmit={addLearning} className="flex gap-1.5"><input className="input min-w-0 flex-1 text-xs" value={learnTitle} onChange={(event) => setLearnTitle(event.target.value)} placeholder={t("What did you learn?")} maxLength={120} required /><button type="submit" disabled={busy} className="glass-btn btn-primary h-9 w-9 shrink-0 justify-center" aria-label={t("Save entry")}><Plus className="size-4" /></button></form>
+                </div>}
+              </>
             )}
             <div className="mt-3 border-t border-line pt-2"><Link href="/habits" onClick={() => setOpen(false)} className="block text-center text-xs text-accent">{t("Open all habits")}</Link></div>
           </motion.div>
