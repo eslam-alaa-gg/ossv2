@@ -7,7 +7,8 @@ import type { Authed } from "./auth";
 
 /** Upsert a habit log; reward only the first time that habit/day is completed. */
 export async function setHabitAmount(a: Authed, habit: typeof habits.$inferSelect, date: string, amount: number) {
-  amount = Math.max(0, Math.min(100000, Math.round(amount)));
+  // Progress is capped at the target. Tracker entries (water, pages, learning) keep their real values.
+  amount = Math.max(0, Math.min(100000, habit.target, Math.round(amount)));
   if (amount === 0) {
     await db.delete(habitLogs).where(and(eq(habitLogs.habitId, habit.id), eq(habitLogs.userId, a.id), eq(habitLogs.date, date)));
     return { amount: 0, completed: false, xp: 0 };
@@ -25,14 +26,20 @@ export async function setHabitAmount(a: Authed, habit: typeof habits.$inferSelec
   return { amount, completed, xp };
 }
 
+/** Today's real tracker total for each special habit kind. */
+export async function trackerProgress(userId: string, kind: "water" | "reading" | "learning", date: string, exec: Pick<typeof db, "execute"> = db) {
+  const query =
+    kind === "water" ? sql`select coalesce(sum(ml),0)::int v from ossv2.water_logs where user_id=${userId} and date=${date}::date`
+    : kind === "reading" ? sql`select coalesce(sum(pages),0)::int v from ossv2.reading_logs where user_id=${userId} and date=${date}::date`
+    : sql`select count(*)::int v from ossv2.learning_entries where user_id=${userId} and date=${date}::date`;
+  return Number((await exec.execute(query)).rows[0].v);
+}
+
 /** Water / reading / learning trackers drive their linked habits from real log rows. */
 export async function syncSpecialHabit(a: Authed, kind: "water" | "reading" | "learning", date: string) {
   const hs = await db.select().from(habits).where(and(eq(habits.userId, a.id), eq(habits.kind, kind), eq(habits.archived, false)));
   if (!hs.length) return;
-  let progress = 0;
-  if (kind === "water") progress = Number((await db.execute(sql`select coalesce(sum(ml),0)::int v from ossv2.water_logs where user_id=${a.id} and date=${date}::date`)).rows[0].v);
-  if (kind === "reading") progress = Number((await db.execute(sql`select coalesce(sum(pages),0)::int v from ossv2.reading_logs where user_id=${a.id} and date=${date}::date`)).rows[0].v);
-  if (kind === "learning") progress = Number((await db.execute(sql`select count(*)::int v from ossv2.learning_entries where user_id=${a.id} and date=${date}::date`)).rows[0].v);
+  const progress = await trackerProgress(a.id, kind, date);
   for (const h of hs) {
     const eff = kind === "water" ? { ...h, target: a.prefs.waterGoal } : h;
     await setHabitAmount(a, eff, date, progress);

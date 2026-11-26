@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { layoutsSchema, type Layouts } from "./dashboard-layout";
 import { DEFAULT_THEME, type Theme } from "./theme";
 
 const hex = z.string().regex(/^#[0-9a-fA-F]{6}$/);
@@ -46,11 +47,11 @@ export const themeSchema = z.object({
 export type Prefs = {
   theme: Theme;
   customThemes: { id: string; name: string; theme: Theme }[];
-  dashboard: { widgets: Record<string, boolean>; order: string[]; sizes: Record<string, "compact" | "standard" | "wide"> };
+  dashboard: { widgets: Record<string, boolean>; order: string[]; sizes: Record<string, "compact" | "standard" | "wide">; layouts: Layouts };
   notifications: { inApp: boolean; push: boolean; email: boolean; quietStart: string; quietEnd: string; challengeTime: string; habitTime: string };
   spotify: { ambience: boolean; autoRefresh: boolean };
   waterGoal: number;
-  focus: { sound: string; volume: number; preset: number };
+  focus: { sound: string; volume: number; preset: number; blur: boolean; blurAmount: number };
   onboarding: { goals: string[]; habits: string[] };
 };
 
@@ -59,22 +60,22 @@ export const WIDGETS = ["progress", "streak", "focus", "challenge", "habits", "r
 export const DEFAULT_PREFS: Prefs = {
   theme: DEFAULT_THEME,
   customThemes: [],
-  dashboard: { widgets: Object.fromEntries(WIDGETS.map((w) => [w, true])), order: [...WIDGETS], sizes: Object.fromEntries(WIDGETS.map((w) => [w, "standard" as const])) },
+  dashboard: { widgets: Object.fromEntries(WIDGETS.map((w) => [w, true])), order: [...WIDGETS], sizes: Object.fromEntries(WIDGETS.map((w) => [w, "standard" as const])), layouts: {} },
   notifications: { inApp: true, push: false, email: false, quietStart: "22:00", quietEnd: "07:00", challengeTime: "09:00", habitTime: "18:00" },
   spotify: { ambience: true, autoRefresh: true },
   waterGoal: 2000,
-  focus: { sound: "none", volume: 0.5, preset: 25 },
+  focus: { sound: "none", volume: 0.5, preset: 25, blur: true, blurAmount: 14 },
   onboarding: { goals: [], habits: [] },
 };
 
 export const prefSchemas: { [K in keyof Prefs]: z.ZodType<Prefs[K]> } = {
   theme: themeSchema,
   customThemes: z.array(z.object({ id: z.string().max(60), name: z.string().trim().min(1).max(40), theme: themeSchema })).max(20),
-  dashboard: z.object({ widgets: z.record(z.string(), z.boolean()), order: z.array(z.string().max(40)).max(30).optional().default([...WIDGETS]), sizes: z.record(z.string(), z.enum(["compact", "standard", "wide"])).optional().default({}) }),
+  dashboard: z.object({ widgets: z.record(z.string(), z.boolean()), order: z.array(z.string().max(40)).max(30).optional().default([...WIDGETS]), sizes: z.record(z.string(), z.enum(["compact", "standard", "wide"])).optional().default({}), layouts: layoutsSchema.optional().default({}) }),
   notifications: z.object({ inApp: b, push: b, email: b, quietStart: hhmm, quietEnd: hhmm, challengeTime: hhmm, habitTime: hhmm }),
   spotify: z.object({ ambience: b, autoRefresh: b }),
   waterGoal: z.number().int().min(500).max(10000),
-  focus: z.object({ sound: z.string().max(20), volume: z.number().min(0).max(1), preset: z.number().int().min(1).max(240) }),
+  focus: z.object({ sound: z.string().max(20), volume: z.number().min(0).max(1), preset: z.number().int().min(1).max(240), blur: z.boolean().default(true), blurAmount: z.number().int().min(2).max(40).default(14) }),
   onboarding: z.object({ goals: z.array(z.string().max(60)).max(20), habits: z.array(z.string().max(60)).max(20) }),
 };
 

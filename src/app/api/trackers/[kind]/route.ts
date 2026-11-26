@@ -1,31 +1,55 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { learningEntries, readingLogs, waterLogs } from "@/db/schema";
+import { habits, learningEntries, readingLogs, waterLogs } from "@/db/schema";
 import { todayIn } from "@/lib/dates";
 import { ApiError, body, handle, uuidParam } from "@/lib/server/api";
 import { requireUser } from "@/lib/server/auth";
-import { syncSpecialHabit } from "@/lib/server/habits";
+import { syncSpecialHabit, trackerProgress } from "@/lib/server/habits";
 
 type Kind = "water" | "reading" | "learning";
 const kinds = ["water", "reading", "learning"];
 
+const entrySchemas = {
+  water: z.object({ ml: z.number().int().min(50).max(3000), cap: z.boolean().default(false) }),
+  reading: z.object({ book: z.string().trim().min(1, "Book name is required").max(120), pages: z.number().int().min(1).max(2000), cap: z.boolean().default(false) }),
+  learning: z.object({ title: z.string().trim().min(1, "Title is required").max(120), explanation: z.string().max(1000).default(""), cap: z.boolean().default(false) }),
+};
+
 export const POST = handle<{ kind: string }>(async (req, { kind }) => {
   const a = await requireUser();
   if (!kinds.includes(kind)) throw new ApiError(404, "Not found.");
+  const k = kind as Kind;
   const date = todayIn(a.tz);
-  if (kind === "water") {
-    const d = await body(req, z.object({ ml: z.number().int().min(50).max(3000) }));
-    await db.insert(waterLogs).values({ userId: a.id, date, ml: d.ml });
-  } else if (kind === "reading") {
-    const d = await body(req, z.object({ book: z.string().trim().min(1, "Book name is required").max(120), pages: z.number().int().min(1).max(2000) }));
-    await db.insert(readingLogs).values({ userId: a.id, date, book: d.book, pages: d.pages });
-  } else {
-    const d = await body(req, z.object({ title: z.string().trim().min(1, "Title is required").max(120), explanation: z.string().max(1000).default("") }));
-    await db.insert(learningEntries).values({ userId: a.id, date, title: d.title, explanation: d.explanation });
-  }
-  await syncSpecialHabit(a, kind as Kind, date);
-  return { ok: true };
+  const d = await body(req, entrySchemas[k]);
+  const logged = await db.transaction(async (tx) => {
+    let room = Number.POSITIVE_INFINITY;
+    if (d.cap) {
+      // Serialise capped writes per user and tracker so rapid or parallel taps cannot overshoot the target.
+      await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`${a.id}:${k}:${date}`}))`);
+      let target = a.prefs.waterGoal;
+      if (k !== "water") {
+        const [h] = await tx.select({ target: habits.target }).from(habits).where(and(eq(habits.userId, a.id), eq(habits.kind, k), eq(habits.archived, false))).limit(1);
+        target = h?.target ?? (k === "reading" ? 20 : 1);
+      }
+      room = target - (await trackerProgress(a.id, k, date, tx));
+      if (room <= 0) return 0;
+    }
+    if ("ml" in d) {
+      const ml = Math.min(d.ml, room);
+      await tx.insert(waterLogs).values({ userId: a.id, date, ml });
+      return ml;
+    }
+    if ("pages" in d) {
+      const pages = Math.min(d.pages, room);
+      await tx.insert(readingLogs).values({ userId: a.id, date, book: d.book, pages });
+      return pages;
+    }
+    await tx.insert(learningEntries).values({ userId: a.id, date, title: d.title, explanation: d.explanation });
+    return 1;
+  });
+  if (logged) await syncSpecialHabit(a, k, date);
+  return { ok: true, logged };
 });
 
 export const DELETE = handle<{ kind: string }>(async (req, { kind }) => {

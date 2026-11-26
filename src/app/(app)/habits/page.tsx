@@ -7,6 +7,8 @@ import { useApp } from "@/components/providers";
 import { Badge, Button, Card, Checkbox, EmptyState, ErrorState, Field, ListSkeleton, Modal, PageHeader, Progress, Ring, Segmented, cn, useUI } from "@/components/ui";
 import { api, useFetch } from "@/lib/client";
 import { addDays, fmtShort } from "@/lib/dates";
+import { useHabitsChanged } from "@/lib/habit-events";
+import { CUP_ML, cappedAmount, displayAmounts, habitPercent } from "@/lib/habit-progress";
 import { HABIT_ICONS, PREDEFINED_HABITS_CLIENT } from "@/lib/habit-templates";
 
 type Habit = { id: string; name: string; description: string; icon: string; kind: "standard" | "water" | "reading" | "learning"; days: number[]; target: number; unit: string; reminderTime: string | null; todayAmount: number; todayDone: boolean; current: number; longest: number; history: string[]; total: number };
@@ -39,6 +41,7 @@ function Inner() {
   const [modal, setModal] = useState<{ habit?: Habit } | null>(null);
   useEffect(() => { if (sp.get("new") === "1") setModal({}); const requestedTab = sp.get("tab"); if (requestedTab === "reading" || requestedTab === "learning" || requestedTab === "water" || requestedTab === "habits") setTab(requestedTab); }, [sp]);
   const reloadAll = () => { habits.reload(); trackers.reload(); };
+  useHabitsChanged(reloadAll);
 
   async function log(h: Habit, amount: number) {
     const r = await run(() => api<{ completed: boolean; xp: number }>(`/api/habits/${h.id}/log`, { body: { amount: Math.max(0, amount) } }));
@@ -62,9 +65,8 @@ function Inner() {
         <div className="grid gap-[var(--gap)] md:grid-cols-2">
           {habits.data.habits.map((h) => {
             const special = h.kind !== "standard";
-            const pct = Math.min(100, (100 * h.todayAmount) / h.target);
-            const displayAmount = h.kind === "water" ? Number((h.todayAmount / 250).toFixed(1)) : h.todayAmount;
-            const displayTarget = h.kind === "water" ? Math.ceil(h.target / 250) : h.target;
+            const pct = habitPercent(h.todayAmount, h.target);
+            const { amount: displayAmount, target: displayTarget } = displayAmounts(h.kind, h.todayAmount, h.target);
             const displayUnit = h.kind === "water" ? t("cups") : t(h.unit);
             return (
               <Card key={h.id} hover>
@@ -81,7 +83,7 @@ function Inner() {
                   {special ? (
                     <button onClick={() => setTab(h.kind === "water" ? "water" : h.kind === "reading" ? "reading" : "learning")} className="flex-1 text-start"><Progress value={pct} /><p className="mt-1.5 text-xs text-muted">{displayAmount}/{displayTarget} {displayUnit} {t("today — open tracker")}</p>{h.todayAmount < h.target && <p className="mt-1 text-[11px] text-faint">{t("Goal not reached yet.")}</p>}</button>
                   ) : h.target > 1 ? (
-                    <div className="flex flex-1 items-center gap-2"><Button size="icon" onClick={() => log(h, h.todayAmount - 1)} aria-label={t("Decrease")}><Minus className="size-4" /></Button><div className="flex-1"><Progress value={pct} /><p className="mt-1.5 text-xs text-muted">{h.todayAmount}/{h.target} {h.unit}</p>{h.todayAmount < h.target && <p className="mt-1 text-[11px] text-faint">{t("Goal not reached yet.")}</p>}</div><Button size="icon" onClick={() => log(h, h.todayAmount + 1)} aria-label={t("Increase")}><Plus className="size-4" /></Button></div>
+                    <div className="flex flex-1 items-center gap-2"><Button size="icon" onClick={() => log(h, h.todayAmount - 1)} aria-label={t("Decrease")}><Minus className="size-4" /></Button><div className="flex-1"><Progress value={pct} /><p className="mt-1.5 text-xs text-muted">{h.todayAmount}/{h.target} {h.unit}</p>{h.todayAmount < h.target && <p className="mt-1 text-[11px] text-faint">{t("Goal not reached yet.")}</p>}</div><Button size="icon" onClick={() => log(h, h.todayAmount + 1)} disabled={h.todayAmount >= h.target} aria-label={t("Increase")}><Plus className="size-4" /></Button></div>
                   ) : (
                     <div className="flex flex-1 items-center gap-3 text-sm"><Checkbox checked={h.todayDone} onChange={(v) => void log(h, v ? 1 : 0)} label={`${t("Mark")} ${t(h.name)} ${t(h.todayDone ? "incomplete" : "done")} ${t("today")}`} /><div><p>{t(h.todayDone ? "Done today" : h.days.includes(new Date(habits.data!.today + "T00:00:00Z").getUTCDay()) ? "Mark as done" : "Not scheduled today")}</p>{!h.todayDone && <p className="mt-0.5 text-[11px] text-faint">{t("Goal not reached yet.")}</p>}</div></div>
                   )}
@@ -99,9 +101,9 @@ function Inner() {
       {tab === "water" && trackers.data && (
         <div className="grid gap-[var(--gap)] md:grid-cols-2">
           <Card className="flex flex-col items-center gap-4">
-            <Ring value={Math.min(100, (100 * trackers.data.water.total) / trackers.data.water.goal)} size={170} stroke={11}><div><Droplets className="mx-auto mb-1 size-5 text-accent" /><p className="text-2xl font-semibold tabular-nums">{Number((trackers.data.water.total / 250).toFixed(1))}</p><p className="text-xs text-faint">{t("of")} {Math.ceil(trackers.data.water.goal / 250)} {t("cups")}</p></div></Ring>
+            <Ring value={habitPercent(trackers.data.water.total, trackers.data.water.goal)} size={170} stroke={11}><div><Droplets className="mx-auto mb-1 size-5 text-accent" /><p className="text-2xl font-semibold tabular-nums">{displayAmounts("water", trackers.data.water.total, trackers.data.water.goal).amount}</p><p className="text-xs text-faint">{t("of")} {Math.ceil(trackers.data.water.goal / 250)} {t("cups")}</p></div></Ring>
             {trackers.data.water.total < trackers.data.water.goal && <p className="text-xs text-faint">{t("Goal not reached yet.")}</p>}
-            <div className="flex flex-wrap justify-center gap-2">{[1, 2, 3].map((cups) => <Button key={cups} onClick={async () => { await run(() => api("/api/trackers/water", { body: { ml: cups * 250 } })); reloadAll(); }}>+{cups} {t(cups === 1 ? "cup" : "cups")}</Button>)}</div>
+            <div className="flex flex-wrap justify-center gap-2">{[1, 2, 3].map((cups) => <Button key={cups} disabled={trackers.data!.water.total >= trackers.data!.water.goal} onClick={async () => { await run(() => api("/api/trackers/water", { body: { ml: cups * CUP_ML, cap: true } })); reloadAll(); }}>+{cups} {t(cups === 1 ? "cup" : "cups")}</Button>)}</div>
             <div className="flex w-full items-end gap-2"><Field label={t("Daily goal (cups)")} className="flex-1"><input className="input" type="number" min={2} max={10} step={1} defaultValue={Math.min(10, Math.ceil(prefs.waterGoal / 250))} onBlur={async (e) => { const cups = Number(e.target.value); const v = cups * 250; if (v !== prefs.waterGoal && Number.isInteger(cups) && cups >= 2 && cups <= 10) { await run(() => savePrefs({ waterGoal: v }), t("Water goal updated")); reloadAll(); } }} aria-label={t("Daily water goal")} /></Field></div><div className="mt-2 flex flex-wrap gap-2">{[5, 8, 10].map((cups) => <Button key={cups} size="sm" variant="glass" onClick={async () => { await run(() => savePrefs({ waterGoal: cups * 250 }), t("Water goal updated")); reloadAll(); }}>{cups} {t("cups")}</Button>)}</div>
           </Card>
           <Card>
@@ -128,7 +130,7 @@ function ReadingTab({ tracker, reload }: { tracker: Trackers; reload: () => void
   return (
     <div className="grid gap-[var(--gap)] md:grid-cols-2">
       <Card>
-        <div className="mb-4 flex items-center gap-3"><BookOpen className="size-5 text-accent" /><div className="flex-1"><p className="font-medium">{t("Today")}: {tracker.reading.todayPages} / {tracker.reading.target} {t("pages")}</p><Progress value={(100 * tracker.reading.todayPages) / tracker.reading.target} className="mt-2" />{tracker.reading.todayPages < tracker.reading.target && <p className="mt-1 text-xs text-faint">{t("Goal not reached yet.")}</p>}</div></div>
+        <div className="mb-4 flex items-center gap-3"><BookOpen className="size-5 text-accent" /><div className="flex-1"><p className="font-medium">{t("Today")}: {cappedAmount(tracker.reading.todayPages, tracker.reading.target)} / {tracker.reading.target} {t("pages")}</p><Progress value={(100 * tracker.reading.todayPages) / tracker.reading.target} className="mt-2" />{tracker.reading.todayPages < tracker.reading.target && <p className="mt-1 text-xs text-faint">{t("Goal not reached yet.")}</p>}</div></div>
         <form className="space-y-3" onSubmit={async (e) => { e.preventDefault(); if (await run(() => api("/api/trackers/reading", { body: { book, pages: Number(pages) } }), t("Reading logged"))) { setPages(""); reload(); } }}>
           <Field label={t("Book name")}><input className="input" value={book} onChange={(e) => setBook(e.target.value)} maxLength={120} required aria-label={t("Book name")} list="books" /><datalist id="books">{[...new Set(tracker.reading.entries.map((e) => e.book))].map((b) => <option key={b} value={b} />)}</datalist></Field>
           <Field label={t("Pages read")}><input className="input" type="number" min={1} max={2000} value={pages} onChange={(e) => setPages(e.target.value)} required aria-label={t("Pages read")} /></Field>
@@ -153,7 +155,7 @@ function LearningTab({ tracker, reload }: { tracker: Trackers; reload: () => voi
   return (
     <div className="grid gap-[var(--gap)] md:grid-cols-2">
       <Card>
-        <div className="mb-4 flex items-center gap-2"><Lightbulb className="size-5 text-accent" /><div className="flex-1"><p className="font-medium">{t("What did you learn?")}</p><p className="text-xs text-muted">{tracker.learning.todayCount}/{tracker.learning.target} {t("entries today")}</p><Progress value={(100 * tracker.learning.todayCount) / tracker.learning.target} className="mt-2" /></div></div>
+        <div className="mb-4 flex items-center gap-2"><Lightbulb className="size-5 text-accent" /><div className="flex-1"><p className="font-medium">{t("What did you learn?")}</p><p className="text-xs text-muted">{cappedAmount(tracker.learning.todayCount, tracker.learning.target)}/{tracker.learning.target} {t("entries today")}</p><Progress value={(100 * tracker.learning.todayCount) / tracker.learning.target} className="mt-2" /></div></div>
         {tracker.learning.todayCount < tracker.learning.target && <p className="mb-3 text-xs text-faint">{t("Goal not reached yet.")}</p>}
         <form className="space-y-3" onSubmit={async (e) => { e.preventDefault(); if (await run(() => api("/api/trackers/learning", { body: { title, explanation: text } }), t("Learning saved"))) { setTitle(""); setText(""); reload(); } }}>
           <Field label={t("New knowledge")}><input className="input" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} required aria-label={t("New knowledge")} /></Field>

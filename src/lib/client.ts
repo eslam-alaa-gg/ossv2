@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { HABITS_CHANGED, changesHabits } from "./habit-events";
 
 export class ApiErr extends Error {
   constructor(
@@ -28,6 +29,7 @@ export async function api<T = unknown>(url: string, opts: { method?: string; bod
     if (res.status === 401 && !url.startsWith("/api/auth") && !url.startsWith("/api/spotify") && typeof window !== "undefined") window.location.href = "/login";
     throw new ApiErr((data as { error?: string }).error ?? "Request failed.", res.status, (data as { code?: string }).code);
   }
+  if (typeof window !== "undefined" && changesHabits(url, opts.method ?? (opts.body !== undefined ? "POST" : "GET"), opts.body)) window.dispatchEvent(new Event(HABITS_CHANGED));
   return data as T;
 }
 
