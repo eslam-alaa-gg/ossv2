@@ -386,20 +386,23 @@ export default function FocusPage() {
   }
 
   const keyboardActions = useRef({
-    phase, sound, zen, start: () => {}, pause: () => {}, resume: () => {}, skipPhase: () => {}, exitFocus: () => {}, toggleZen: () => {},
+    phase, sound, zen, shortcutsOpen, start: () => {}, pause: () => {}, resume: () => {}, skipPhase: () => {}, exitFocus: () => {}, closeShortcuts: () => {}, toggleZen: () => {},
   });
   useEffect(() => {
     keyboardActions.current = {
-      phase, sound, zen, start: () => { void start(); }, pause, resume, skipPhase: () => { void skipPhase(); }, exitFocus: () => { void exitFocus(); }, toggleZen: () => { void toggleZen(); },
+      phase, sound, zen, shortcutsOpen, start: () => { void start(); }, pause, resume, skipPhase: () => { void skipPhase(); }, exitFocus: () => { void exitFocus(); }, closeShortcuts: () => setShortcutsOpen(false), toggleZen: () => { void toggleZen(); },
     };
   });
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       const target = event.target;
-      if (target instanceof HTMLElement && target.closest('input, textarea, select, button, a, [contenteditable="true"]')) return;
+      if (target instanceof HTMLElement && target.closest('input, textarea, select, [contenteditable="true"]')) return;
+      if (target instanceof HTMLElement && target.closest("button, a") && event.key !== "Escape") return;
       if (event.altKey || event.ctrlKey || event.metaKey) return;
       const actions = keyboardActions.current;
-      if (event.code === "Space") {
+      if (event.key === "Escape" && actions.shortcutsOpen) {
+        actions.closeShortcuts();
+      } else if (event.code === "Space") {
         event.preventDefault();
         if (actions.phase === "idle") actions.start();
         else if (actions.phase === "running") actions.pause();
