@@ -164,6 +164,8 @@ export default function FocusPage() {
   const [sound, setSound] = useState(prefs.focus.sound);
   const [volume, setVolume] = useState(prefs.focus.volume);
   const [audioOn, setAudioOn] = useState(false);
+  const [soundOpen, setSoundOpen] = useState(false);
+  const soundPanelRef = useRef<HTMLDivElement>(null);
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
   const [backgroundScene, setBackgroundScene] = useState<FocusWallpaper>(prefs.focus.background);
   const [wallpaperVideoFailed, setWallpaperVideoFailed] = useState(false);
@@ -261,6 +263,14 @@ export default function FocusPage() {
   useEffect(() => { amb.current?.setVolume(volume); }, [volume]);
   useEffect(() => { const h = setTimeout(() => { if (sound !== prefs.focus.sound || volume !== prefs.focus.volume) savePrefs({ focus: { ...prefs.focus, sound, volume } }).catch(() => {}); }, 800); return () => clearTimeout(h); }, [sound, volume]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { const h = () => { if (!document.fullscreenElement) setZen(false); }; document.addEventListener("fullscreenchange", h); return () => document.removeEventListener("fullscreenchange", h); }, []);
+  useEffect(() => {
+    if (!soundOpen) return;
+    const outside = (event: PointerEvent) => { if (!soundPanelRef.current?.contains(event.target as Node)) setSoundOpen(false); };
+    const escape = (event: KeyboardEvent) => { if (event.key === "Escape") setSoundOpen(false); };
+    document.addEventListener("pointerdown", outside);
+    document.addEventListener("keydown", escape);
+    return () => { document.removeEventListener("pointerdown", outside); document.removeEventListener("keydown", escape); };
+  }, [soundOpen]);
 
   const setDuration = (m: number) => { if (phase !== "idle") return; const v = Math.min(240, Math.max(1, Math.round(m) || 1)); setMinutes(v); setRemaining(v * 60); setPlanned(v * 60); };
   const pickMode = (m: Mode) => { if (phase !== "idle") return; setMode(m); setDuration(MODES.find((x) => x.value === m)!.min); };
@@ -524,7 +534,27 @@ export default function FocusPage() {
 
   return (
     <>
-      <PageHeader title={t("Focus Room")} subtitle={t("Deep work, one session at a time.")} />
+      <PageHeader title={t("Focus Room")} subtitle={t("Deep work, one session at a time.")} actions={
+        <div ref={soundPanelRef} className="relative">
+          <Button variant="ghost" size="sm" onClick={() => setSoundOpen((value) => !value)} aria-haspopup="dialog" aria-expanded={soundOpen}>
+            {audioOn && sound !== "none" ? <Volume2 className="size-4" /> : <VolumeX className="size-4" />}
+            {t("Sound settings")}
+          </Button>
+          {soundOpen && <div role="dialog" aria-label={t("Sound settings")} className="absolute end-0 top-[calc(100%+8px)] z-50 w-[min(90vw,320px)] rounded-2xl border border-line bg-pop p-4 shadow-2xl">
+            <div className="mb-3 flex items-center justify-between"><p className="text-sm font-semibold">{t("Ambient sound")}</p><button type="button" onClick={() => setSoundOpen(false)} aria-label={t("Close")} className="rounded-md p-1 text-muted hover:bg-card">×</button></div>
+            <div className="grid grid-cols-2 gap-2">
+              <button type="button" onClick={() => { setSound("none"); setAudioOn(false); }} aria-pressed={sound === "none"} className={cn("rounded-xl border px-3 py-2 text-sm", sound === "none" ? "border-accent bg-accent/10" : "border-line")}>{t("Silent")}</button>
+              {SOUNDS.map((item) => <button type="button" key={item.id} onClick={() => { setSound(item.id); setAudioOn(true); }} aria-pressed={sound === item.id} className={cn("rounded-xl border px-3 py-2 text-sm", sound === item.id ? "border-accent bg-accent/10" : "border-line hover:bg-card")}>{t(item.label)}</button>)}
+            </div>
+            <div className="mt-4 flex items-center gap-3">
+              <Button size="icon" onClick={() => setAudioOn((value) => !value)} disabled={sound === "none"} aria-label={audioOn ? t("Pause sound") : t("Play sound")}>{audioOn && sound !== "none" ? <Pause className="size-4" /> : <Play className="size-4" />}</Button>
+              {volume === 0 ? <VolumeX className="size-4 text-muted" /> : <Volume2 className="size-4 text-muted" />}
+              <input type="range" min={0} max={1} step={0.01} value={volume} onChange={(event) => setVolume(Number(event.target.value))} aria-label={t("Volume")} className="min-w-0 flex-1" />
+            </div>
+            <p className="mt-2 text-xs text-faint">{t("Sounds are synthesised in your browser. Never autoplays; your choice is remembered.")}</p>
+          </div>}
+        </div>
+      } />
       {(backgroundImage || backgroundScene !== "none") && <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden>
         {backgroundImage ? <div className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-45" style={{ backgroundImage: `url(${backgroundImage})` }} /> : <FocusWallpaperLayer scene={backgroundScene as Exclude<FocusWallpaper, "none">} failed={wallpaperVideoFailed || !!prefs.theme.reducedMotion} onError={() => setWallpaperVideoFailed(true)} />}
         <div className="absolute inset-0 bg-gradient-to-b from-[color-mix(in_srgb,var(--bg)_48%,transparent)] via-[color-mix(in_srgb,var(--bg)_72%,transparent)] to-[var(--bg)]" />
@@ -555,19 +585,6 @@ export default function FocusPage() {
             </Field>
             {task && <div className="mt-3 flex items-center gap-2 text-sm"><PriorityBadge p={task.priority} /><span className="truncate text-muted">{task.title}</span></div>}
             {data && data.tasks.length === 0 && <p className="mt-2 text-xs text-faint">{t("No pending tasks. Create one to link sessions to it.")}</p>}
-          </Card>
-          <Card>
-            <div className="mb-3 flex items-center justify-between"><h2 className="text-sm font-medium text-muted">{t("Ambient sound")}</h2><Badge>{t("optional")}</Badge></div>
-            <div className="grid grid-cols-2 gap-2">
-              <button onClick={() => { setSound("none"); setAudioOn(false); }} aria-pressed={sound === "none"} className={cn("rounded-xl border px-3 py-2 text-sm", sound === "none" ? "border-accent bg-accent/10" : "border-line")}>{t("Silent")}</button>
-              {SOUNDS.map((s) => <button key={s.id} onClick={() => { setSound(s.id); setAudioOn(true); }} aria-pressed={sound === s.id} className={cn("rounded-xl border px-3 py-2 text-sm", sound === s.id ? "border-accent bg-accent/10" : "border-line hover:bg-card")}>{t(s.label)}</button>)}
-            </div>
-            <div className="mt-4 flex items-center gap-3">
-              <Button size="icon" onClick={() => setAudioOn(!audioOn)} disabled={sound === "none"} aria-label={audioOn ? t("Pause sound") : t("Play sound")}>{audioOn && sound !== "none" ? <Pause className="size-4" /> : <Play className="size-4" />}</Button>
-              {volume === 0 ? <VolumeX className="size-4 text-muted" /> : <Volume2 className="size-4 text-muted" />}
-              <input type="range" min={0} max={1} step={0.01} value={volume} onChange={(e) => setVolume(Number(e.target.value))} aria-label={t("Volume")} />
-            </div>
-            <p className="mt-2 text-xs text-faint">{t("Sounds are synthesised in your browser. Never autoplays; your choice is remembered.")}</p>
           </Card>
           <Card>
             <div className="mb-3 flex items-center justify-between"><h2 className="text-sm font-medium text-muted">{t("Focus background")}</h2>{(backgroundImage || backgroundScene !== "none") && <Badge tone="green">{t("Ready")}</Badge>}</div>
