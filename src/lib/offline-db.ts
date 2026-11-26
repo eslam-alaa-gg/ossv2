@@ -69,7 +69,6 @@ export async function isolateOfflineUser(userId: string | null) {
     await db.transaction("rw", db.snapshots, db.pending, async () => {
       if (userId) {
         await db.snapshots.where("userId").notEqual(userId).delete();
-        await db.pending.where("userId").notEqual(userId).delete();
       } else {
         await db.snapshots.clear();
         await db.pending.clear();
@@ -79,5 +78,7 @@ export async function isolateOfflineUser(userId: string | null) {
 }
 
 export async function clearOfflineData() {
-  await isolateOfflineUser(null);
+  const db = database();
+  if (!db) return;
+  try { await db.snapshots.clear(); } catch { /* Pending sync actions remain partitioned by account. */ }
 }
