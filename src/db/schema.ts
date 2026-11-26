@@ -75,6 +75,49 @@ export const customFonts = ossv2.table("custom_fonts", {
   updatedAt: ts("updated_at").notNull().defaultNow(),
 });
 
+export const studySubjects = ossv2.table("study_subjects", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: userRef(),
+  name: text("name").notNull(),
+  color: text("color").notNull().default("#8b7cff"),
+  createdAt: createdAt(),
+  updatedAt: ts("updated_at").notNull().defaultNow(),
+}, (t) => ({
+  userIdx: index("study_subjects_user_idx").on(t.userId),
+}));
+
+export const flashcards = ossv2.table("flashcards", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: userRef(),
+  subjectId: uuid("subject_id").references(() => studySubjects.id, { onDelete: "set null" }),
+  front: text("front").notNull(),
+  back: text("back").notNull(),
+  dueAt: ts("due_at").notNull().defaultNow(),
+  intervalDays: integer("interval_days").notNull().default(0),
+  easeFactor: integer("ease_factor").notNull().default(2500),
+  repetitions: integer("repetitions").notNull().default(0),
+  lapses: integer("lapses").notNull().default(0),
+  lastReviewedAt: ts("last_reviewed_at"),
+  createdAt: createdAt(),
+  updatedAt: ts("updated_at").notNull().defaultNow(),
+}, (t) => ({
+  userDueIdx: index("flashcards_user_due_idx").on(t.userId, t.dueAt),
+  subjectIdx: index("flashcards_subject_idx").on(t.subjectId),
+}));
+
+export const flashcardReviews = ossv2.table("flashcard_reviews", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: userRef(),
+  flashcardId: uuid("flashcard_id").notNull().references(() => flashcards.id, { onDelete: "cascade" }),
+  rating: text("rating").notNull(),
+  intervalBefore: integer("interval_before").notNull(),
+  intervalAfter: integer("interval_after").notNull(),
+  reviewedAt: createdAt(),
+}, (t) => ({
+  userReviewedIdx: index("flashcard_reviews_user_reviewed_idx").on(t.userId, t.reviewedAt),
+}));
+
+
 export const sessions = ossv2.table(
   "sessions",
   {
