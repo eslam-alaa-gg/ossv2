@@ -35,6 +35,7 @@ export default function StudyPage() {
   const [taskSubject, setTaskSubject] = useState("");
   const [revealed, setRevealed] = useState(false);
   const [reviewing, setReviewing] = useState(false);
+  const [reviewSubjectId, setReviewSubjectId] = useState("");
 
   useEffect(() => {
     if (!user?.id) return;
@@ -124,7 +125,20 @@ export default function StudyPage() {
     if (task.dueDate) return t("It is approaching its due date and should stay on your radar.");
     return t("It is your highest-priority study task without a nearer deadline.");
   };
-  const currentCard = due.data?.cards?.[0] ?? null;
+  const taskSubject = (task: StudyTask) => {
+    const label = task.description.match(/^Study subject:\\s*(.+)$/m)?.[1]?.trim().toLocaleLowerCase();
+    return (subjects.data?.subjects ?? []).find((subject) =>
+      (label && subject.name.toLocaleLowerCase() === label) ||
+      task.tags.some((tag) => tag.toLocaleLowerCase() === subject.name.toLocaleLowerCase()),
+    ) ?? null;
+  };
+  const recommendationSubject = recommendedTask ? taskSubject(recommendedTask) : null;
+  const recommendationDueCards = recommendationSubject
+    ? (due.data?.cards ?? []).filter((card) => card.subjectId === recommendationSubject.id).length
+    : 0;
+  const reviewCards = (due.data?.cards ?? []).filter((card) => !reviewSubjectId || card.subjectId === reviewSubjectId);
+  const currentCard = reviewCards[0] ?? null;
+  const selectedReviewSubject = (subjects.data?.subjects ?? []).find((subject) => subject.id === reviewSubjectId) ?? null;
 
   async function addSubject(event: FormEvent) {
     event.preventDefault();
@@ -232,7 +246,12 @@ export default function StudyPage() {
               <div className="mb-1 flex items-center justify-between gap-2"><p className="text-xs font-semibold uppercase tracking-wide text-accent">{t("Recommended next")}</p><Badge>{t(recommendedTask.priority)}</Badge></div>
               <p className="text-sm font-semibold">{recommendedTask.title}</p>
               <p className="mt-1 text-xs text-muted">{recommendationReason(recommendedTask)}</p>
-              <div className="mt-3"><Link href={recommendedTask.id.startsWith("local-") ? "/focus" : "/focus?task=" + recommendedTask.id} className="glass-btn btn-sm">{t("Start focus")}</Link></div>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <Link href={recommendedTask.id.startsWith("local-") ? "/focus" : "/focus?task=" + recommendedTask.id} className="glass-btn btn-sm">{t("Start focus")}</Link>
+                {recommendationSubject && recommendationDueCards > 0 && <Button size="sm" variant="glass" onClick={() => { setReviewSubjectId(recommendationSubject.id); setTab("review"); setRevealed(false); }}>
+                  <Brain className="size-3.5" /> {t("Review")} {recommendationDueCards} {t("due cards")}
+                </Button>}
+              </div>
             </div>}
             {studyTasks.some((task) => !!task.dueDate && task.dueDate < localDate()) && <p className="text-xs text-amber-400">{t("Overdue tasks receive extra priority in your study plan.")}</p>}
             {tasks.loading ? <p className="py-6 text-center text-sm text-muted">{t("Loading…")}</p> : studyTasks.length ? <ul className="space-y-2">{studyTasks.map((task) => <li key={task.id} className="flex items-center gap-3 rounded-xl border border-line bg-card p-3">
@@ -269,7 +288,8 @@ export default function StudyPage() {
         </div>}
 
         {tab === "review" && <Card className="mx-auto max-w-2xl space-y-5">
-          <div className="flex items-center justify-between gap-3"><div><h2 className="font-semibold">{t("Spaced repetition review")}</h2><p className="mt-1 text-xs text-muted">{t("Rate how well you recalled the answer. Your next review date adjusts automatically.")}</p></div><Badge>{due.data?.cards.length ?? 0} {t("due")}</Badge></div>
+          <div className="flex items-center justify-between gap-3"><div><h2 className="font-semibold">{t("Spaced repetition review")}</h2><p className="mt-1 text-xs text-muted">{t("Rate how well you recalled the answer. Your next review date adjusts automatically.")}</p></div><Badge>{reviewCards.length} {t("due")}</Badge></div>
+          {selectedReviewSubject && <div className="flex items-center justify-between rounded-lg border border-line bg-card px-3 py-2 text-xs"><span>{t("Reviewing subject")}: <strong>{selectedReviewSubject.name}</strong></span><Button size="xs" variant="ghost" onClick={() => setReviewSubjectId("")}>{t("Show all subjects")}</Button></div>}
           {due.loading ? <p className="py-8 text-center text-sm text-muted">{t("Loading…")}</p> : !currentCard ? <EmptyState icon={<Sparkles className="size-6" />} title={t("You're all caught up")} text={t("New cards and future reviews will appear here when they're due.")} /> : <div className="space-y-4">
             <div className="rounded-2xl border border-line bg-card p-6 text-center sm:p-10"><p className="mb-3 text-xs uppercase tracking-[.18em] text-muted">{currentCard.subjectName ?? t("General")}</p><p className="whitespace-pre-wrap text-lg font-semibold">{currentCard.front}</p>{revealed && <div className="mt-6 border-t border-line pt-5"><p className="whitespace-pre-wrap text-sm leading-relaxed text-muted">{currentCard.back}</p></div>}</div>
             {!revealed ? <Button variant="primary" className="w-full" onClick={() => setRevealed(true)}>{t("Show answer")}</Button> : <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
