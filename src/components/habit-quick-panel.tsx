@@ -41,7 +41,10 @@ export function HabitQuickPanel() {
   const { t, lang } = useApp();
   const { run, toast } = useUI();
   const path = usePathname();
-  const [open, setOpen] = useState(false);
+  // The panel remembers which page opened it, so navigating anywhere closes it.
+  const [openedOn, setOpenedOn] = useState<string | null>(null);
+  const open = openedOn === path;
+  const close = useCallback(() => setOpenedOn(null), []);
   const [mounted, setMounted] = useState(false); // the portal only exists after hydration
   const [data, setData] = useState<Data | null>(null);
   const [failed, setFailed] = useState(false);
@@ -79,27 +82,27 @@ export function HabitQuickPanel() {
     setPosition({ top, width, left: Math.max(8, Math.min(preferred, viewport - width - 8)), maxHeight: Math.max(220, window.innerHeight - top - 8) });
   }, []);
 
-  useEffect(() => { setOpen(false); }, [path]);
   useEffect(() => {
     if (!open) return;
-    reposition();
+    const frame = requestAnimationFrame(reposition); // again once a language switch has flipped the page
     void load();
     const outside = (e: PointerEvent) => {
       const target = e.target as Node;
-      if (!panel.current?.contains(target) && !button.current?.contains(target)) setOpen(false);
+      if (!panel.current?.contains(target) && !button.current?.contains(target)) close();
     };
-    const escape = (e: KeyboardEvent) => { if (e.key === "Escape") { setOpen(false); button.current?.focus(); } };
+    const escape = (e: KeyboardEvent) => { if (e.key === "Escape") { close(); button.current?.focus(); } };
     document.addEventListener("pointerdown", outside);
     document.addEventListener("keydown", escape);
     window.addEventListener("resize", reposition);
     window.addEventListener("scroll", reposition, { passive: true });
     return () => {
+      cancelAnimationFrame(frame);
       document.removeEventListener("pointerdown", outside);
       document.removeEventListener("keydown", escape);
       window.removeEventListener("resize", reposition);
       window.removeEventListener("scroll", reposition);
     };
-  }, [open, load, reposition, lang]);
+  }, [open, load, reposition, close, lang]);
 
   const rows = MAIN.map((main) => {
     const habit = data?.habits.find((h) => h.kind === main.kind);
@@ -149,7 +152,7 @@ export function HabitQuickPanel() {
       <button
         ref={button}
         type="button"
-        onClick={() => { setMounted(true); setOpen((v) => !v); }}
+        onClick={() => { setMounted(true); reposition(); setOpenedOn(open ? null : path); }}
         className="header-icon-btn grid size-10 shrink-0 place-items-center rounded-xl border-0 bg-transparent text-current transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
         aria-label={t("Habit quick tracker")}
         title={t("Habit quick tracker")}
@@ -180,7 +183,7 @@ export function HabitQuickPanel() {
                   <p className="text-sm font-semibold">{t("Quick habit tracker")}</p>
                   <p className="text-[11px] text-muted">{t("Your daily targets")}</p>
                 </div>
-                <button type="button" onClick={() => { setOpen(false); button.current?.focus(); }} aria-label={t("Close")} className="rounded-lg p-1.5 text-muted hover:bg-card"><X className="size-4" /></button>
+                <button type="button" onClick={() => { close(); button.current?.focus(); }} aria-label={t("Close")} className="rounded-lg p-1.5 text-muted hover:bg-card"><X className="size-4" /></button>
               </div>
               {!data ? (
                 failed ? <div className="py-3"><ErrorState message="Could not load habit progress." retry={() => void load()} /></div>
@@ -220,7 +223,7 @@ export function HabitQuickPanel() {
                           <span className="text-sm font-semibold tabular-nums" dir="ltr">{percent}%</span>
                           <span className="text-[10px] tabular-nums text-muted">{row.habit ? `${shown.amount}/${shown.target} ${t(row.kind === "water" ? "cups" : row.habit.unit)}` : t("Not added yet")}</span>
                           <span className={cn("chip", row.done && "!text-emerald-400")} aria-hidden>{action(row)}</span>
-                          <Link href={`/habits?tab=${row.kind}`} onClick={() => setOpen(false)} className="text-[10px] text-muted underline underline-offset-2 hover:text-fg">{t("Details")}</Link>
+                          <Link href={`/habits?tab=${row.kind}`} onClick={close} className="text-[10px] text-muted underline underline-offset-2 hover:text-fg">{t("Details")}</Link>
                         </li>
                       );
                     })}
@@ -228,7 +231,7 @@ export function HabitQuickPanel() {
                 </>
               )}
               <div className="mt-2 border-t border-line pt-2">
-                <Link href="/habits" onClick={() => setOpen(false)} className="block rounded-lg py-1.5 text-center text-xs text-muted transition-colors hover:bg-card hover:text-fg">{t("Open all habits")}</Link>
+                <Link href="/habits" onClick={close} className="block rounded-lg py-1.5 text-center text-xs text-muted transition-colors hover:bg-card hover:text-fg">{t("Open all habits")}</Link>
               </div>
             </motion.div>
           )}
