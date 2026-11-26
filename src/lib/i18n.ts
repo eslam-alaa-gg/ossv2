@@ -1115,7 +1115,9 @@ const ar: Record<string, string> = {
 };
 
 export function translate(lang: Lang, s: string): string {
-  return lang === "ar" ? ar[s] ?? s : s;
+  if (lang === "ar") return ar[s] ?? s;
+  const englishUnits: Record<string, string> = { "كيلو": "kg", "كيلوجرام": "kg", "كيلوغرام": "kg", "كجم": "kg", "كغ": "kg", "مل": "ml", "مليلتر": "ml", "لتر": "L" };
+  return englishUnits[s] ?? s;
 }
 
 export function translateError(lang: Lang, s: string): string {
