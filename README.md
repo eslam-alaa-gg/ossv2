@@ -1,4 +1,4 @@
-# LIFE OS — Your Life. Your Goals. Your Progress.
+# Ukiyo — Your Life. Your Goals. Your Progress.
 
 A premium personal operating system: tasks, habits, daily challenges, focus room, life goals, memory vault, achievements, weekly review, analytics, calendar, notifications, a **Spotify Music Hub**, a full **Theme Studio** (presets, accent, glass, gradients), a **Profile** system with avatar upload, and a **one-click Demo mode**.
 
@@ -72,7 +72,7 @@ Playback control, seek and device transfer require **Spotify Premium** (Spotify 
 
 ## Demo mode
 
-“Try Demo — Explore LIFE OS” calls `POST /api/auth/demo`, which creates a **fresh, private, seeded sandbox user per visitor** (random unusable password, no credentials exist to expose), signs them in through the normal session cookie, and shows a `DEMO MODE` banner. Concurrent visitors cannot affect each other; repeat clicks reuse the visitor's own session (no duplicates); sandboxes older than 6 h are purged; *Exit Demo* deletes the sandbox. Server-enforced restrictions: password change, account deletion, email actions, push, Spotify connection/control.
+“Try Demo — Explore Ukiyo” calls `POST /api/auth/demo`, which creates a **fresh, private, seeded sandbox user per visitor** (random unusable password, no credentials exist to expose), signs them in through the normal session cookie, and shows a `DEMO MODE` banner. Concurrent visitors cannot affect each other; repeat clicks reuse the visitor's own session (no duplicates); sandboxes older than 6 h are purged; *Exit Demo* deletes the sandbox. Server-enforced restrictions: password change, account deletion, email actions, push, Spotify connection/control.
 
 ## Notifications
 
@@ -90,4 +90,4 @@ Playback control, seek and device transfer require **Spotify Premium** (Spotify 
 ## Known limitations
 * In-memory rate limiter (per instance) — use a shared store when scaling horizontally.
 * Calendar reminders are stored on tasks; delivery is via the notification pipeline above.
-* The restored focus timer after a page reload is reconstructed from server start time (pause history is not persisted).
+* Focus sessions restore their running or paused state from server-persisted active time; paused time is not counted toward completion.
