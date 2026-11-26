@@ -104,7 +104,7 @@ export default function StudyPage() {
   }
 
   const studyTasks = useMemo(() => (tasks.data?.tasks ?? [])
-    .filter((task) => task.category.toLowerCase() === "study" || task.tags?.includes("study"))
+    .filter((task) => task.status !== "completed" && task.status !== "archived" && (task.category.toLowerCase() === "study" || task.tags?.includes("study")) )
     .sort((a, b) => (a.dueDate ?? "9999-12-31").localeCompare(b.dueDate ?? "9999-12-31")), [tasks.data]);
   const currentCard = due.data?.cards?.[0] ?? null;
 
@@ -210,9 +210,10 @@ export default function StudyPage() {
         {tab === "plan" && <div className="grid gap-[var(--gap)] lg:grid-cols-[minmax(0,1fr)_minmax(280px,360px)]">
           <Card className="space-y-4">
             <div className="flex items-center justify-between gap-3"><div><h2 className="font-semibold">{t("Upcoming study tasks")}</h2><p className="mt-1 text-xs text-muted">{t("Study tasks also appear in your main Tasks list.")}</p></div><CalendarDays className="size-5 text-muted" /></div>
+            {studyTasks.some((task) => !!task.dueDate && task.dueDate < localDate()) && <p className="text-xs text-amber-400">{t("You have overdue study tasks. Start with the earliest due date.")}</p>}
             {tasks.loading ? <p className="py-6 text-center text-sm text-muted">{t("Loading…")}</p> : studyTasks.length ? <ul className="space-y-2">{studyTasks.map((task) => <li key={task.id} className="flex items-center gap-3 rounded-xl border border-line bg-card p-3">
               <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-accent/10 text-accent"><BookOpen className="size-4" /></span>
-              <div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{task.title}</p><p className="text-xs text-muted">{task.dueDate ?? t("No due date")} · {t(task.status)}</p></div>
+              <div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{task.title}</p><p className="text-xs text-muted">{task.dueDate ?? t("No due date")} · {t(task.status)}</p>{task.dueDate && task.dueDate < localDate() && <Badge tone="red">{t("Overdue")}</Badge>}</div>
               <Badge tone={task.priority === "urgent" ? "red" : undefined}>{t(task.priority)}</Badge>
               <Link href={task.id.startsWith("local-") ? "/focus" : `/focus?task=${task.id}`} className="glass-btn btn-sm">{t("Focus")}</Link>
             </li>)}</ul> : <EmptyState icon={<CalendarDays className="size-5" />} title={t("No study tasks yet")} text={t("Add a study task to build your plan.")} />}
