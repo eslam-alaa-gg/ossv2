@@ -428,6 +428,7 @@ const ar: Record<string, string> = {
   "Task": "المهمة",
   "No task — general focus": "من غير مهمة — تركيز عام",
   "No pending tasks. Create one to link sessions to it.": "مفيش مهام مفتوحة. اعمل مهمة عشان تربطها بجلسة التركيز.",
+  "Sound settings": "إعدادات الصوت",
   "Ambient sound": "أصوات هادية",
   "optional": "اختياري",
   "Silent": "صامت",
