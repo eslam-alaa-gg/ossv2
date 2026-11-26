@@ -49,7 +49,7 @@ export function MusicBridgePanel() {
   }, [ar]);
 
   useEffect(() => {
-    let timer: ReturnType<typeof window.setInterval> | null = null;
+    let timer: number | null = null;
     const stop = () => { if (timer) window.clearInterval(timer); timer = null; };
     const start = () => {
       if (document.visibilityState !== "visible" || timer) return;
