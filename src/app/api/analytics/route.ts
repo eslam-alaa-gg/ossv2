@@ -1,6 +1,6 @@
-import { and, eq, gte, lte } from "drizzle-orm";
+import { and, eq, gte, inArray, lte } from "drizzle-orm";
 import { db } from "@/db";
-import { goalMilestones, goals, habitLogs, habits, learningEntries } from "@/db/schema";
+import { focusSessions, goalMilestones, goals, habitLogs, habits, learningEntries, tasks } from "@/db/schema";
 import { addDays, diffDays, dow, todayIn, weekStart } from "@/lib/dates";
 import { handle } from "@/lib/server/api";
 import { requireUser } from "@/lib/server/auth";
@@ -18,10 +18,45 @@ export const GET = handle(async (req) => {
   const goal = a.user.dailyGoal;
   const yearAct = await activityByDay(a.id, a.tz, `${year}-01-01`, `${year}-12-31`, goal);
   const recent = await activityByDay(a.id, a.tz, addDays(today, -400), today, goal);
-  const [learningYearRows, learningRecentRows] = await Promise.all([
+  const [focusRows, learningYearRows, learningRecentRows] = await Promise.all([
+    db.select({
+      taskId: focusSessions.taskId,
+      taskTitle: tasks.title,
+      taskDescription: tasks.description,
+      taskCategory: tasks.category,
+      actualSeconds: focusSessions.actualSeconds,
+    }).from(focusSessions)
+      .leftJoin(tasks, and(eq(tasks.id, focusSessions.taskId), eq(tasks.userId, a.id)))
+      .where(and(
+        eq(focusSessions.userId, a.id),
+        eq(focusSessions.status, "completed"),
+        inArray(focusSessions.mode, ["focus", "custom"]),
+        gte(focusSessions.startedAt, new Date(`${year}-01-01T00:00:00.000Z`)),
+        lte(focusSessions.startedAt, new Date(`${year}-12-31T23:59:59.999Z`)),
+      )),
+
     db.select({ date: learningEntries.date }).from(learningEntries).where(and(eq(learningEntries.userId, a.id), gte(learningEntries.date, `${year}-01-01`), lte(learningEntries.date, `${year}-12-31`))),
     db.select({ date: learningEntries.date }).from(learningEntries).where(and(eq(learningEntries.userId, a.id), gte(learningEntries.date, addDays(today, -29)), lte(learningEntries.date, today))),
   ]);
+  const taskFocus = new Map<string, { taskId: string | null; title: string; minutes: number; sessions: number }>();
+  const subjectFocus = new Map<string, { subject: string; minutes: number; sessions: number }>();
+  for (const row of focusRows) {
+    const minutes = Math.max(0, Math.round(row.actualSeconds / 60));
+    if (!minutes) continue;
+    const taskKey = row.taskId ?? "unlinked";
+    const taskEntry = taskFocus.get(taskKey) ?? { taskId: row.taskId, title: row.taskTitle ?? "Unlinked focus", minutes: 0, sessions: 0 };
+    taskEntry.minutes += minutes;
+    taskEntry.sessions += 1;
+    taskFocus.set(taskKey, taskEntry);
+    const subjectMatch = row.taskDescription?.match(/^Study subject:\\s*(.+)$/i);
+    const subject = subjectMatch?.[1]?.trim() || (row.taskCategory?.toLowerCase() === "study" ? "General study" : "Other tasks");
+    const subjectEntry = subjectFocus.get(subject) ?? { subject, minutes: 0, sessions: 0 };
+    subjectEntry.minutes += minutes;
+    subjectEntry.sessions += 1;
+    subjectFocus.set(subject, subjectEntry);
+  }
+  const focusByTask = [...taskFocus.values()].sort((x, z) => z.minutes - x.minutes).slice(0, 8);
+  const focusBySubject = [...subjectFocus.values()].sort((x, z) => z.minutes - x.minutes).slice(0, 8);
   const learningByDay = new Map<string, number>();
   for (const entry of learningRecentRows) learningByDay.set(String(entry.date), (learningByDay.get(String(entry.date)) ?? 0) + 1);
   const get = (d: string) => recent[d] ?? emptyDay(d);
@@ -91,6 +126,8 @@ export const GET = handle(async (req) => {
     months,
     habitConsistency,
     goalProgress,
+    focusByTask,
+    focusBySubject,
     goalsCompleted: gs.filter((g) => g.status === "completed").length,
     goalsTotal: gs.length,
     insights,

@@ -103,9 +103,27 @@ export default function StudyPage() {
     }
   }
 
-  const studyTasks = useMemo(() => (tasks.data?.tasks ?? [])
-    .filter((task) => task.status !== "completed" && task.status !== "archived" && (task.category.toLowerCase() === "study" || task.tags?.includes("study")) )
-    .sort((a, b) => (a.dueDate ?? "9999-12-31").localeCompare(b.dueDate ?? "9999-12-31")), [tasks.data]);
+  const studyTasks = useMemo(() => {
+    const today = localDate();
+    const score = (task: StudyTask) => {
+      const priority = ({ urgent: 48, high: 34, medium: 22, low: 10 } as Record<string, number>)[task.priority] ?? 18;
+      if (!task.dueDate) return priority;
+      const days = Math.round((new Date(task.dueDate + "T12:00:00").getTime() - new Date(today + "T12:00:00").getTime()) / 86400000);
+      const urgency = days < 0 ? Math.min(54, Math.abs(days) * 6) : days === 0 ? 38 : days <= 3 ? 28 : days <= 7 ? 14 : 0;
+      return priority + urgency;
+    };
+    return (tasks.data?.tasks ?? [])
+      .filter((task) => task.status !== "completed" && task.status !== "archived" && (task.category.toLowerCase() === "study" || task.tags?.includes("study")))
+      .sort((a, b) => score(b) - score(a) || (a.dueDate ?? "9999-12-31").localeCompare(b.dueDate ?? "9999-12-31"));
+  }, [tasks.data]);
+  const recommendedTask = studyTasks[0] ?? null;
+  const recommendationReason = (task: StudyTask) => {
+    if (task.dueDate && task.dueDate < localDate()) return t("This task is overdue, so it is prioritized first.");
+    if (task.priority === "urgent" || task.priority === "high") return t("Its priority is high, so it is a strong next focus candidate.");
+    if (task.dueDate === localDate()) return t("It is due today, so it is a good task to focus on now.");
+    if (task.dueDate) return t("It is approaching its due date and should stay on your radar.");
+    return t("It is your highest-priority study task without a nearer deadline.");
+  };
   const currentCard = due.data?.cards?.[0] ?? null;
 
   async function addSubject(event: FormEvent) {
@@ -210,7 +228,13 @@ export default function StudyPage() {
         {tab === "plan" && <div className="grid gap-[var(--gap)] lg:grid-cols-[minmax(0,1fr)_minmax(280px,360px)]">
           <Card className="space-y-4">
             <div className="flex items-center justify-between gap-3"><div><h2 className="font-semibold">{t("Upcoming study tasks")}</h2><p className="mt-1 text-xs text-muted">{t("Study tasks also appear in your main Tasks list.")}</p></div><CalendarDays className="size-5 text-muted" /></div>
-            {studyTasks.some((task) => !!task.dueDate && task.dueDate < localDate()) && <p className="text-xs text-amber-400">{t("You have overdue study tasks. Start with the earliest due date.")}</p>}
+            {recommendedTask && <div className="rounded-xl border border-accent/30 bg-accent/5 p-3">
+              <div className="mb-1 flex items-center justify-between gap-2"><p className="text-xs font-semibold uppercase tracking-wide text-accent">{t("Recommended next")}</p><Badge>{t(recommendedTask.priority)}</Badge></div>
+              <p className="text-sm font-semibold">{recommendedTask.title}</p>
+              <p className="mt-1 text-xs text-muted">{recommendationReason(recommendedTask)}</p>
+              <div className="mt-3"><Link href={recommendedTask.id.startsWith("local-") ? "/focus" : "/focus?task=" + recommendedTask.id} className="glass-btn btn-sm">{t("Start focus")}</Link></div>
+            </div>}
+            {studyTasks.some((task) => !!task.dueDate && task.dueDate < localDate()) && <p className="text-xs text-amber-400">{t("Overdue tasks receive extra priority in your study plan.")}</p>}
             {tasks.loading ? <p className="py-6 text-center text-sm text-muted">{t("Loading…")}</p> : studyTasks.length ? <ul className="space-y-2">{studyTasks.map((task) => <li key={task.id} className="flex items-center gap-3 rounded-xl border border-line bg-card p-3">
               <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-accent/10 text-accent"><BookOpen className="size-4" /></span>
               <div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{task.title}</p><p className="text-xs text-muted">{task.dueDate ?? t("No due date")} · {t(task.status)}</p>{task.dueDate && task.dueDate < localDate() && <Badge tone="red">{t("Overdue")}</Badge>}</div>
