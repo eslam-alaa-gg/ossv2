@@ -11,7 +11,7 @@ import { chartColors } from "@/lib/theme";
 
 type A = {
   year: number; today: string; dailyGoal: number; heatmap: HeatDay[];
-  annual: { activeDays: number; score: number; tasks: number; habits: number; challenges: number; focusMinutes: number; bestDay: { date: string; score: number } | null; goalDays: number };
+  annual: { activeDays: number; score: number; tasks: number; habits: number; challenges: number; focusMinutes: number; learningEntries: number; bestDay: { date: string; score: number } | null; goalDays: number };
   streak: { current: number; longest: number; weekly: number }; today30: { daily: number; weekly: number; monthly: number };
   trend: { date: string; score: number; tasks: number; habits: number; focusMinutes: number; learningEntries: number }[]; weeks: { week: string; score: number; tasks: number; focusMinutes: number }[];
   months: { month: string; score: number; tasks: number; learningEntries: number }[]; habitConsistency: { name: string; done: number; scheduled: number; pct: number }[];
