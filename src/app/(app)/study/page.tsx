@@ -183,7 +183,7 @@ export default function StudyPage() {
     if (!currentCard || reviewing) return;
     setReviewing(true);
     try {
-      const action = await saveAction(`/api/study/flashcards/${currentCard.id}/review`, { rating }, t("Review saved"));
+      const action = await saveAction("/api/study/review", { cardId: currentCard.id, rating }, t("Review saved"));
       if (action === "sent") await Promise.all([cards.reload(), due.reload()]);
       if (action === "queued") {
         const intervalDays = rating === "again" ? 0 : rating === "hard" ? 1 : rating === "good" ? 1 : 4;
