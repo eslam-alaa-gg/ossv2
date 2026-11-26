@@ -29,8 +29,11 @@ export function MusicBridgePanel() {
   const [message, setMessage] = useState("");
   const searchParams = useSearchParams();
   const autoPairTriggered = useRef(false);
+  const loadInFlight = useRef(false);
 
   const load = useCallback(async () => {
+    if (loadInFlight.current) return;
+    loadInFlight.current = true;
     try {
       const [d, n] = await Promise.all([
         api<{ devices: BridgeDevice[] }>("/api/music-bridge/devices"),
@@ -40,13 +43,23 @@ export function MusicBridgePanel() {
       setTrack(n);
     } catch (e) {
       setMessage(e instanceof Error ? e.message : (ar ? "تعذر تحميل البيانات." : "Could not load bridge data."));
+    } finally {
+      loadInFlight.current = false;
     }
   }, [ar]);
 
   useEffect(() => {
-    load();
-    const timer = window.setInterval(load, 3000);
-    return () => window.clearInterval(timer);
+    let timer: ReturnType<typeof window.setInterval> | null = null;
+    const stop = () => { if (timer) window.clearInterval(timer); timer = null; };
+    const start = () => {
+      if (document.visibilityState !== "visible" || timer) return;
+      void load();
+      timer = window.setInterval(() => { if (document.visibilityState === "visible") void load(); }, 10000);
+    };
+    const onVisibility = () => { if (document.visibilityState === "visible") start(); else stop(); };
+    start();
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => { stop(); document.removeEventListener("visibilitychange", onVisibility); };
   }, [load]);
 
   async function pair(platform: "android" | "windows") {
@@ -103,7 +116,7 @@ export function MusicBridgePanel() {
           <span className="grid size-12 place-items-center rounded-2xl bg-card text-accent"><Music2 className="size-6" /></span>
           <div className="min-w-0 flex-1">
             <h2 className="font-semibold">{ar ? "الأغنية الحالية" : "Currently playing"}</h2>
-            <p className="text-xs text-muted">{ar ? "تحديث تلقائي كل 3 ثوانٍ" : "Automatically refreshes every 3 seconds"}</p>
+            <p className="text-xs text-muted">{ar ? "تحديث تلقائي كل 10 ثوانٍ أثناء فتح الصفحة" : "Automatically refreshes every 10 seconds while this tab is visible"}</p>
           </div>
           <Badge tone={track && !track.idle ? "green" : undefined}>{track && !track.idle ? (track.playing ? (ar ? "يعمل الآن" : "Playing") : (ar ? "متوقف مؤقتًا" : "Paused")) : (ar ? "لا توجد أغنية" : "Nothing playing")}</Badge>
         </div>
