@@ -23,7 +23,7 @@ export const GET = handle(async (request) => {
     lapses: flashcards.lapses,
     createdAt: flashcards.createdAt,
   }).from(flashcards)
-    .leftJoin(studySubjects, eq(flashcards.subjectId, studySubjects.id))
+    .leftJoin(studySubjects, and(eq(flashcards.subjectId, studySubjects.id), eq(studySubjects.userId, auth.id)))
     .where(filters)
     .orderBy(asc(flashcards.dueAt));
   return { cards };
