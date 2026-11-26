@@ -156,7 +156,7 @@ html[data-mode="light"] .album-glow { opacity: .22; }
 .card-pad { padding: var(--pad); }
 .card-hover { transition: transform var(--dur) ease, background-color var(--dur) ease, border-color var(--dur) ease; }
 .card-hover:hover { transform: translateY(calc(var(--lift) * -1)); background-color: var(--card-hover); border-color: var(--border-strong); }
-.popover { background: var(--pop); -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); box-shadow: 0 20px 60px rgba(0,0,0,.35); }
+.popover { background: var(--pop); -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(16px); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); box-shadow: 0 20px 60px rgba(0,0,0,.35); }
 
 /* ---------- buttons w/ directional edge light ---------- */
 .glass-btn { --lc: 255,255,255; position: relative; isolation: isolate; display: inline-flex; align-items: center; justify-content: center; gap: .5rem; cursor: pointer;
@@ -233,8 +233,8 @@ html[data-motion="off"] .pointer-light { display: none; }
   border: 1px solid color-mix(in srgb, var(--border-strong) 68%, transparent);
   border-radius: 999px;
   background: color-mix(in srgb, var(--bg) 38%, transparent);
-  -webkit-backdrop-filter: blur(32px) saturate(175%);
-  backdrop-filter: blur(32px) saturate(175%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  backdrop-filter: blur(18px) saturate(150%);
   box-shadow: 0 10px 30px rgba(0,0,0,.13), inset 0 1px 0 rgba(255,255,255,.09);
 }
 .header-icon-btn { transition: background-color var(--dur) ease, border-color var(--dur) ease, transform var(--dur) ease; }
