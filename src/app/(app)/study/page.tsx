@@ -2,10 +2,11 @@
 
 import { BookOpen, Brain, CalendarDays, Check, Clock3, Plus, Sparkles, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useApp } from "@/components/providers";
 import { Badge, Button, Card, EmptyState, Field, PageHeader, Segmented, useUI } from "@/components/ui";
 import { api, useFetch } from "@/lib/client";
+import { queueOfflineAction, readOfflineSnapshot, saveOfflineSnapshot } from "@/lib/offline-db";
 
 type Subject = { id: string; name: string; color: string };
 type Flashcard = { id: string; subjectId: string | null; subjectName: string | null; front: string; back: string; dueAt: string; intervalDays: number; repetitions: number; lapses: number };
@@ -17,7 +18,7 @@ function localDate() {
 }
 
 export default function StudyPage() {
-  const { t, lang } = useApp();
+  const { t, lang, user } = useApp();
   const { run, toast, confirm } = useUI();
   const [tab, setTab] = useState("plan");
   const subjects = useFetch<{ subjects: Subject[] }>("/api/study/subjects");
@@ -35,6 +36,55 @@ export default function StudyPage() {
   const [revealed, setRevealed] = useState(false);
   const [reviewing, setReviewing] = useState(false);
 
+  useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
+    void (async () => {
+      if (navigator.onLine) return;
+      const [cachedSubjects, cachedCards, cachedDue, cachedTasks] = await Promise.all([
+        readOfflineSnapshot<{ subjects: Subject[] }>(user.id, "study-subjects"),
+        readOfflineSnapshot<{ cards: Flashcard[] }>(user.id, "study-flashcards"),
+        readOfflineSnapshot<{ cards: Flashcard[] }>(user.id, "study-due"),
+        readOfflineSnapshot<{ tasks: StudyTask[] }>(user.id, "study-tasks"),
+      ]);
+      if (cancelled) return;
+      if (!subjects.data && cachedSubjects) subjects.setData(cachedSubjects);
+      if (!cards.data && cachedCards) cards.setData(cachedCards);
+      if (!due.data && cachedDue) due.setData(cachedDue);
+      if (!tasks.data && cachedTasks) tasks.setData(cachedTasks);
+    })();
+    const refreshAfterSync = () => { void Promise.all([subjects.reload(), cards.reload(), due.reload(), tasks.reload()]); };
+    window.addEventListener("ukiyo:offline-sync", refreshAfterSync);
+    return () => { cancelled = true; window.removeEventListener("ukiyo:offline-sync", refreshAfterSync); };
+  }, [user?.id]);
+
+  useEffect(() => { if (user?.id && subjects.data) void saveOfflineSnapshot(user.id, "study-subjects", subjects.data); }, [user?.id, subjects.data]);
+  useEffect(() => { if (user?.id && cards.data) void saveOfflineSnapshot(user.id, "study-flashcards", cards.data); }, [user?.id, cards.data]);
+  useEffect(() => { if (user?.id && due.data) void saveOfflineSnapshot(user.id, "study-due", due.data); }, [user?.id, due.data]);
+  useEffect(() => { if (user?.id && tasks.data) void saveOfflineSnapshot(user.id, "study-tasks", tasks.data); }, [user?.id, tasks.data]);
+
+  async function saveAction(path: string, body: Record<string, unknown> | undefined, success: string, method: "POST" | "DELETE" = "POST"): Promise<"queued" | "sent" | null> {
+    if (!user?.id) return null;
+    if (!navigator.onLine) {
+      const queued = await queueOfflineAction(user.id, path, method, body);
+      if (!queued) { toast("info", t("Offline save is unavailable on this device.")); return null; }
+      toast("info", t("Saved offline. It will sync when you're online."));
+      return "queued";
+    }
+    try {
+      await api(path, { method, ...(body ? { body } : {}) });
+      toast("success", success);
+      return "sent";
+    } catch (error) {
+      if (!navigator.onLine) {
+        const queued = await queueOfflineAction(user.id, path, method, body);
+        if (queued) { toast("info", t("Saved offline. It will sync when you're online.")); return "queued"; }
+      }
+      toast("info", error instanceof Error ? error.message : t("Something went wrong."));
+      return null;
+    }
+  }
+
   const studyTasks = useMemo(() => (tasks.data?.tasks ?? [])
     .filter((task) => task.category.toLowerCase() === "study" || task.tags?.includes("study"))
     .sort((a, b) => a.dueDate.localeCompare(b.dueDate)), [tasks.data]);
@@ -43,21 +93,40 @@ export default function StudyPage() {
   async function addSubject(event: FormEvent) {
     event.preventDefault();
     if (!subjectName.trim()) return;
-    const result = await run(() => api("/api/study/subjects", { body: { name: subjectName.trim(), color: subjectColor } }), t("Subject added"));
-    if (result !== undefined) { setSubjectName(""); await subjects.reload(); }
+    const name = subjectName.trim();
+    const action = await saveAction("/api/study/subjects", { name, color: subjectColor }, t("Subject added"));
+    if (action === "sent") await subjects.reload();
+    if (action === "queued") {
+      const localSubject = { id: `local-${crypto.randomUUID()}`, name, color: subjectColor };
+      subjects.setData({ subjects: [...(subjects.data?.subjects ?? []), localSubject] });
+    }
+    if (action) setSubjectName("");
   }
 
   async function addCard(event: FormEvent) {
     event.preventDefault();
     if (!front.trim() || !back.trim()) return;
-    const result = await run(() => api("/api/study/flashcards", { body: { front: front.trim(), back: back.trim(), subjectId: subjectId || null } }), t("Flashcard added"));
-    if (result !== undefined) { setFront(""); setBack(""); await Promise.all([cards.reload(), due.reload()]); }
+    const selectedSubject = subjects.data?.subjects.find((subject) => subject.id === subjectId);
+    const safeSubjectId = subjectId.startsWith("local-") ? null : subjectId || null;
+    const cardFront = front.trim();
+    const cardBack = back.trim();
+    const action = await saveAction("/api/study/flashcards", { front: cardFront, back: cardBack, subjectId: safeSubjectId }, t("Flashcard added"));
+    if (action === "sent") await Promise.all([cards.reload(), due.reload()]);
+    if (action === "queued") {
+      const localCard: Flashcard = { id: `local-${crypto.randomUUID()}`, subjectId: safeSubjectId, subjectName: selectedSubject?.name ?? null, front: cardFront, back: cardBack, dueAt: new Date().toISOString(), intervalDays: 0, repetitions: 0, lapses: 0 };
+      cards.setData({ cards: [localCard, ...(cards.data?.cards ?? [])] });
+      due.setData({ cards: [localCard, ...(due.data?.cards ?? [])] });
+    }
+    if (action) { setFront(""); setBack(""); }
   }
 
   async function deleteCard(card: Flashcard) {
     if (!(await confirm(t("Delete this flashcard?"), t("Delete")))) return;
-    if (await run(() => api(`/api/study/flashcards/${card.id}`, { method: "DELETE" }), t("Flashcard deleted"))) {
-      await Promise.all([cards.reload(), due.reload()]);
+    const action = await saveAction(`/api/study/flashcards/${card.id}`, undefined, t("Flashcard deleted"), "DELETE");
+    if (action === "sent") await Promise.all([cards.reload(), due.reload()]);
+    if (action === "queued") {
+      cards.setData({ cards: (cards.data?.cards ?? []).filter((item) => item.id !== card.id) });
+      due.setData({ cards: (due.data?.cards ?? []).filter((item) => item.id !== card.id) });
     }
   }
 
@@ -65,7 +134,7 @@ export default function StudyPage() {
     event.preventDefault();
     if (!taskTitle.trim() || !taskDate) return;
     const subject = subjects.data?.subjects.find((item) => item.id === taskSubject);
-    const result = await run(() => api("/api/tasks", { body: {
+    const body = {
       title: taskTitle.trim(),
       description: subject ? `Study subject: ${subject.name}` : "",
       category: "Study",
@@ -78,19 +147,30 @@ export default function StudyPage() {
       recurrence: "none",
       goalId: null,
       milestoneId: null,
-    } }), t("Study task planned"));
-    if (result !== undefined) { setTaskTitle(""); await tasks.reload(); }
+    };
+    const action = await saveAction("/api/tasks", body, t("Study task planned"));
+    if (action === "sent") await tasks.reload();
+    if (action === "queued") {
+      const localTask: StudyTask = { id: `local-${crypto.randomUUID()}`, title: body.title, description: body.description, category: "Study", priority: "medium", status: "todo", dueDate: taskDate, tags: body.tags };
+      tasks.setData({ tasks: [localTask, ...(tasks.data?.tasks ?? [])] });
+    }
+    if (action) setTaskTitle("");
   }
 
   async function review(rating: "again" | "hard" | "good" | "easy") {
     if (!currentCard || reviewing) return;
     setReviewing(true);
-    const result = await run(() => api(`/api/study/flashcards/${currentCard.id}/review`, { body: { rating } }));
-    if (result !== undefined) {
-      setRevealed(false);
-      await Promise.all([cards.reload(), due.reload()]);
-    }
-    setReviewing(false);
+    try {
+      const action = await saveAction(`/api/study/flashcards/${currentCard.id}/review`, { rating }, t("Review saved"));
+      if (action === "sent") await Promise.all([cards.reload(), due.reload()]);
+      if (action === "queued") {
+        const intervalDays = rating === "again" ? 0 : rating === "hard" ? 1 : rating === "good" ? 1 : 4;
+        const dueAt = new Date(Date.now() + (rating === "again" ? 10 * 60 * 1000 : intervalDays * 86400000)).toISOString();
+        cards.setData({ cards: (cards.data?.cards ?? []).map((card) => card.id === currentCard.id ? { ...card, dueAt, intervalDays, repetitions: rating === "again" ? 0 : card.repetitions + 1 } : card) });
+        due.setData({ cards: (due.data?.cards ?? []).filter((card) => card.id !== currentCard.id) });
+      }
+      if (action) setRevealed(false);
+    } finally { setReviewing(false); }
   }
 
   const tabs = [
