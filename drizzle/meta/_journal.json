@@ -57,6 +57,13 @@
       "when": 1795690800000,
       "tag": "0007_study_learning",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1795728000000,
+      "tag": "0008_daily_study_suggestions",
+      "breakpoints": true
     }
   ]
 }
