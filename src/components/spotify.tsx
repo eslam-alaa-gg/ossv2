@@ -28,7 +28,8 @@ export function SpotifyProvider({ children }: { children: ReactNode }) {
   const { prefs } = useApp();
   const [status, setStatus] = useState<SpStatus | null>(null);
   const [loadingStatus, setLoadingStatus] = useState(true);
-  const [np, setNp] = useState<NowPlaying | null>(null);
+  const [spotifyNp, setSpotifyNp] = useState<NowPlaying | null>(null);
+  const [bridgeNp, setBridgeNp] = useState<NowPlaying | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [errorCode, setErrorCode] = useState<string | null>(null);
   const boost = useRef(false);
@@ -51,7 +52,7 @@ export function SpotifyProvider({ children }: { children: ReactNode }) {
   const refresh = useCallback(async () => {
     try {
       const d = await api<NowPlaying>("/api/spotify/now-playing");
-      setNp(d);
+      setSpotifyNp(d);
       setError(null);
       setErrorCode(null);
       return;
@@ -93,6 +94,73 @@ export function SpotifyProvider({ children }: { children: ReactNode }) {
       document.removeEventListener("visibilitychange", vis);
     };
   }, [connected, refresh, prefs.spotify.autoRefresh]);
+
+  // Read the paired-device stream independently of Spotify Web API auth.
+  // Spotify remains the preferred source when it is actively playing.
+  useEffect(() => {
+    let stopped = false;
+    const loadBridge = async () => {
+      try {
+        const d = await api<{
+          idle: boolean;
+          playing?: boolean;
+          track?: { title: string; artist: string; album: string; artwork: string | null; url?: string | null; appName?: string };
+          progressMs?: number;
+          durationMs?: number;
+          device?: { id: string; name: string; platform: string };
+          fetchedAt?: number;
+        }>("/api/music-bridge/now-playing");
+        if (stopped) return;
+        if (d.idle || !d.track?.title) {
+          setBridgeNp(null);
+          return;
+        }
+        const artistNames = (d.track.artist || "").split(/\\s*,\\s*/).filter(Boolean);
+        const mapped: NowPlaying = {
+          idle: false,
+          playing: !!d.playing,
+          track: {
+            id: `bridge-${d.device?.id ?? "device"}-${d.track.title}`,
+            title: d.track.title,
+            artists: artistNames.map((name) => ({ id: null, name })),
+            album: {
+              id: null,
+              name: d.track.album || "",
+              releaseDate: null,
+              totalTracks: null,
+              image: d.track.artwork,
+              url: null,
+            },
+            durationMs: d.durationMs ?? 0,
+            url: d.track.url ?? null,
+            type: "track",
+          },
+          progressMs: d.progressMs ?? 0,
+          shuffle: false,
+          repeat: "off",
+          device: d.device ? { id: d.device.id, name: d.device.name, type: d.device.platform } : null,
+          disallows: {},
+          fetchedAt: d.fetchedAt ?? Date.now(),
+          source: "device-bridge",
+        } as NowPlaying;
+        setBridgeNp(mapped);
+      } catch {
+        // Keep the dashboard resilient when the bridge is temporarily unavailable.
+      }
+    };
+    void loadBridge();
+    const interval = window.setInterval(loadBridge, 3000);
+    return () => {
+      stopped = true;
+      window.clearInterval(interval);
+    };
+  }, []);
+
+  const np = useMemo<NowPlaying | null>(() => {
+    if (spotifyNp && !spotifyNp.idle && spotifyNp.playing) return spotifyNp;
+    if (bridgeNp && !bridgeNp.idle) return bridgeNp;
+    return spotifyNp ?? bridgeNp;
+  }, [spotifyNp, bridgeNp]);
 
   const setBoost = useCallback((b: boolean) => {
     boost.current = b;
@@ -185,7 +253,7 @@ export function NowPlayingWidget() {
   const { status, np, error, errorCode, loadingStatus, refresh } = useSpotify();
   const progress = useProgress(np);
   if (loadingStatus) return <Skeleton className="h-[148px]" />;
-  if (!status?.configured || !status.connected) {
+  if ((!status?.configured || !status.connected) && (!np || np.idle)) {
     return (
       <Card className="flex items-center gap-4">
         <div className="grid size-14 place-items-center rounded-2xl bg-card text-accent"><Music2 className="size-6" /></div>
@@ -197,7 +265,7 @@ export function NowPlayingWidget() {
       </Card>
     );
   }
-  const t = np && !np.idle && np.playing ? np.track : null;
+  const t = np && !np.idle ? np.track : null;
   return (
     <Card className="relative overflow-hidden">
       {error && errorCode !== "rate_limited" && <p className="mb-2 text-xs text-amber-400" role="status">{error} <button className="underline" onClick={() => refresh().catch(() => {})}>{tr("Retry")}</button></p>}
