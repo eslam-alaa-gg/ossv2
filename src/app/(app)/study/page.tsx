@@ -108,9 +108,10 @@ export default function StudyPage() {
     const today = localDate();
     const score = (task: StudyTask) => {
       const priority = ({ urgent: 48, high: 34, medium: 22, low: 10 } as Record<string, number>)[task.priority] ?? 18;
-      if (!task.dueDate) return priority;
-      const days = Math.round((new Date(task.dueDate + "T12:00:00").getTime() - new Date(today + "T12:00:00").getTime()) / 86400000);
-      const urgency = days < 0 ? Math.min(54, Math.abs(days) * 6) : days === 0 ? 38 : days <= 3 ? 28 : days <= 7 ? 14 : 0;
+      const days = task.dueDate
+        ? Math.round((new Date(task.dueDate + "T12:00:00").getTime() - new Date(today + "T12:00:00").getTime()) / 86400000)
+        : null;
+      const urgency = days === null ? 0 : days < 0 ? Math.min(54, Math.abs(days) * 6) : days === 0 ? 38 : days <= 3 ? 28 : days <= 7 ? 14 : 0;
       return priority + urgency;
     };
     return (tasks.data?.tasks ?? [])
