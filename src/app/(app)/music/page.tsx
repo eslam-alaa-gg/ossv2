@@ -7,7 +7,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useApp } from "@/components/providers";
 import { MusicBridgePanel } from "@/components/music-bridge";
 import { OpenInSpotify, fmtMs, useProgress, useSpotify, type NPTrack } from "@/components/spotify";
-import { Badge, Button, Card, EmptyState, Field, PageHeader, Skeleton, Switch, useUI } from "@/components/ui";
+import { Badge, Button, Card, EmptyState, Field, PageHeader, Skeleton, Switch, cn, useUI } from "@/components/ui";
 import { api, useFetch } from "@/lib/client";
 
 const ERRORS: Record<string, string> = {
