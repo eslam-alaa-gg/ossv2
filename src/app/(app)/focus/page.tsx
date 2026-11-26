@@ -78,7 +78,7 @@ function FocusNowPlaying({ immersive = false }: { immersive?: boolean }) {
     if (!open || track) return;
     let stopped = false;
     let inFlight = false;
-    let timer: ReturnType<typeof window.setInterval> | null = null;
+    let timer: number | null = null;
     const load = async () => {
       if (stopped || inFlight || document.visibilityState !== "visible") return;
       inFlight = true;
@@ -160,6 +160,7 @@ export default function FocusPage() {
   const [sid, setSid] = useState<string | null>(null);
   const [planned, setPlanned] = useState(25 * 60);
   const [zen, setZen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [sound, setSound] = useState(prefs.focus.sound);
   const [volume, setVolume] = useState(prefs.focus.volume);
   const [audioOn, setAudioOn] = useState(false);
