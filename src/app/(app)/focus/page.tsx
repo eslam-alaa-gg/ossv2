@@ -380,14 +380,14 @@ export default function FocusPage() {
   );
 
   if (zen) return (
-    <div className="fixed inset-0 z-[90] flex min-h-[100dvh] w-screen flex-col items-center justify-center overflow-hidden p-3 sm:p-6">
+    <div className="fixed inset-0 z-[90] flex min-h-[100dvh] w-screen flex-col items-center justify-start overflow-y-auto overscroll-contain p-3 pb-[max(5rem,env(safe-area-inset-bottom))] sm:justify-center sm:p-6">
       {backgroundImage ? (
         <div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: `url(${backgroundImage})`, backgroundSize: "cover", backgroundPosition: "center center" }} aria-hidden />
       ) : backgroundScene !== "none" ? (
         <div className={`focus-wallpaper focus-wallpaper-${backgroundScene}`} aria-hidden />
       ) : <div className="absolute inset-0 app-glow" />}
       <div className="absolute inset-0 bg-black/35" aria-hidden />
-      <div className="relative z-10 flex w-full max-w-5xl flex-col items-center gap-5">
+      <div className="relative z-10 flex w-full max-w-5xl flex-col items-center gap-5 py-4 sm:py-0">
         <div className="flex w-full flex-wrap items-center justify-center gap-3 rounded-2xl border border-white/10 bg-black/25 p-3 backdrop-blur-xl">
           <select className="input w-auto" value={taskId} onChange={(e) => setTaskId(e.target.value)} disabled={phase !== "idle"} aria-label={t("Focus on a task (optional)")}><option value="">{t("No task — general focus")}</option>{data?.tasks.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}</select>
           <Segmented value={mode} onChange={pickMode} label={t("Focus mode")} options={MODES.map((m) => ({ value: m.value, label: t(m.label) }))} />
