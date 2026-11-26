@@ -28,13 +28,14 @@ export default function DashboardPage() {
   const { data, error, loading, reload } = useFetch<Dash>("/api/dashboard");
   const [custom, setCustom] = useState(false);
   const [dragging, setDragging] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState<string | null>(null);
   const w = prefs.dashboard.widgets;
   const order = prefs.dashboard.order;
   const sizes = prefs.dashboard.sizes;
   const saveDashboard = (nextOrder = order, nextSizes = sizes, nextWidgets = w) => run(() => savePrefs({ dashboard: { widgets: nextWidgets, order: nextOrder, sizes: nextSizes } }), t("Dashboard layout saved."));
   const moveWidget = (key: string, delta: number) => { const next = [...order]; const from = next.indexOf(key); const to = Math.max(0, Math.min(next.length - 1, from + delta)); if (from < 0 || from === to) return; next.splice(from, 1); next.splice(to, 0, key); void saveDashboard(next); };
-  const dropWidget = (target: string) => { if (!dragging || dragging === target) return; const next = [...order]; const from = next.indexOf(dragging); const to = next.indexOf(target); if (from < 0 || to < 0) return; next.splice(from, 1); next.splice(to, 0, dragging); setDragging(null); void saveDashboard(next); };
-  const widgetProps = (key: string) => ({ className: "dashboard-widget dashboard-widget-" + key + " dashboard-size-" + (sizes[key] ?? "standard") + (key === "challenge" ? " flex flex-col" : ""), draggable: true, onDragStart: (event: DragEvent<HTMLDivElement>) => { setDragging(key); event.dataTransfer.effectAllowed = "move"; event.dataTransfer.setData("text/plain", key); }, onDragOver: (event: DragEvent<HTMLDivElement>) => event.preventDefault(), onDrop: (event: DragEvent<HTMLDivElement>) => { event.preventDefault(); dropWidget(key); }, onDragEnd: () => setDragging(null) });
+  const dropWidget = (target: string) => { if (!dragging || dragging === target) { setDragging(null); setDragOver(null); return; } const next = [...order]; const from = next.indexOf(dragging); const to = next.indexOf(target); if (from < 0 || to < 0) { setDragging(null); setDragOver(null); return; } next.splice(from, 1); next.splice(to, 0, dragging); setDragging(null); setDragOver(null); void saveDashboard(next); };
+  const widgetProps = (key: string) => ({ className: "dashboard-widget dashboard-widget-" + key + " dashboard-size-" + (sizes[key] ?? "standard") + (key === "challenge" ? " flex flex-col" : "") + (dragging === key ? " dashboard-widget-dragging" : "") + (dragOver === key && dragging !== key ? " dashboard-widget-drop-target" : ""), draggable: true, onDragStart: (event: DragEvent<HTMLDivElement>) => { setDragging(key); setDragOver(null); event.dataTransfer.effectAllowed = "move"; event.dataTransfer.setData("text/plain", key); }, onDragOver: (event: DragEvent<HTMLDivElement>) => { event.preventDefault(); if (dragging && dragging !== key) setDragOver(key); }, onDragLeave: () => setDragOver((current) => current === key ? null : current), onDrop: (event: DragEvent<HTMLDivElement>) => { event.preventDefault(); dropWidget(key); }, onDragEnd: () => { setDragging(null); setDragOver(null); } });
   const show = (k: string) => w[k] !== false;
   const hour = hourIn(user?.timezone);
   const greet = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
