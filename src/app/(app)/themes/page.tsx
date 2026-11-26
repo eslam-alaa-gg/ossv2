@@ -111,7 +111,7 @@ export default function ThemesPage() {
         <Button variant="primary" disabled={!hasDraft} onClick={async () => { const saved = await run(() => savePrefs({ theme }), t("Theme applied and saved")); if (saved && theme.font === "custom") window.location.reload(); }}><Check className="size-4" /> {t("Apply Theme")}</Button>
       </>} />
       {hasDraft && <p role="status" className="mb-4 rounded-xl border border-amber-400/30 bg-amber-500/10 px-4 py-2 text-sm text-amber-300">{t("Previewing unsaved changes.")}</p>}
-      {customFont && <style>{`@font-face{font-family:"UkiyoCustom";src:url("/api/me/font");font-style:normal;font-weight:100 900;font-display:swap;}`}</style>}
+      {customFont && <style>{`@font-face{font-family:"UkiyoCustom";src:url("/api/me/font");font-style:normal;font-weight:400;font-display:swap;}`}</style>}
       <div className="grid gap-[var(--gap)] lg:grid-cols-[1fr_380px]">
         <div className="min-w-0 space-y-4">
           <Segmented value={tab} onChange={setTab} label={t("Theme sections")} options={[{ value: "presets", label: t("Presets") }, { value: "color", label: t("Color") }, { value: "glass", label: t("Glass") }, { value: "background", label: t("Background") }, { value: "gradients", label: t("Gradients") }, { value: "fonts", label: t("Fonts") }, { value: "interface", label: t("Interface") }, { value: "saved", label: t("My themes") }]} />
