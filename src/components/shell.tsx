@@ -8,6 +8,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { api, useFetch } from "@/lib/client";
+import { clearOfflineData, isolateOfflineUser, syncOfflineQueue } from "@/lib/offline-db";
 import { Avatar } from "./avatar";
 import { HabitIcon } from "./habit-icon";
 import { useApp } from "./providers";
@@ -34,6 +35,7 @@ export const NAV = [
 
 export function useSignOut() {
   return useCallback(async () => {
+    await clearOfflineData();
     await api("/api/auth/logout", { method: "POST" }).catch(() => {});
     window.location.href = "/login";
   }, []);
@@ -417,13 +419,22 @@ function HabitQuickPanel() {
 
 export function AppShell({ children }: { children: ReactNode }) {
   const path = usePathname();
-  const { t, lang, patchUser } = useApp();
+  const { t, lang, patchUser, user } = useApp();
   const [collapsed, setCollapsed] = useState(false);
   const [drawer, setDrawer] = useState(false);
   const [cmd, setCmd] = useState(false);
   useEffect(() => { setCollapsed(localStorage.getItem("ukiyo.sidebar") === "1"); }, []);
   const toggle = (b: boolean) => { setCollapsed(b); localStorage.setItem("ukiyo.sidebar", b ? "1" : "0"); };
   useEffect(() => setDrawer(false), [path]);
+  useEffect(() => {
+    const userId = user?.id ?? null;
+    void isolateOfflineUser(userId);
+    if (!userId) return;
+    const sync = () => { void syncOfflineQueue(userId).then(() => window.dispatchEvent(new Event("ukiyo:offline-sync"))); };
+    if (navigator.onLine) sync();
+    window.addEventListener("online", sync);
+    return () => window.removeEventListener("online", sync);
+  }, [user?.id]);
   useEffect(() => {
     const h = (e: KeyboardEvent) => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); setCmd((c) => !c); } };
     document.addEventListener("keydown", h);
