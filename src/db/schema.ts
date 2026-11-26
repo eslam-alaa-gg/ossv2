@@ -65,6 +65,16 @@ export const focusBackgrounds = ossv2.table("focus_backgrounds", {
   updatedAt: ts("updated_at").notNull().defaultNow(),
 });
 
+export const customFonts = ossv2.table("custom_fonts", {
+  userId: uuid("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  mime: text("mime").notNull(),
+  data: bytea("data").notNull(),
+  updatedAt: ts("updated_at").notNull().defaultNow(),
+});
+
 export const sessions = ossv2.table(
   "sessions",
   {
