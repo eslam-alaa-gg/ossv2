@@ -81,8 +81,9 @@ await test("A creates task, note, goal, milestone, habit", async () => {
   noteA = (await A.req("POST", "/api/notes", { title: "Private note A", content: "top secret" })).json.note;
   goalA = (await A.req("POST", "/api/goals", { title: "Goal A" })).json.goal;
   msA = (await A.req("POST", `/api/goals/${goalA.id}/milestones`, { title: "MS A" })).json.milestone;
-  habitA = (await A.req("POST", "/api/habits", { name: "Habit A" })).json.habit;
+  habitA = (await A.req("POST", "/api/habits", { name: "Habit A", reminderTime: "08:15" })).json.habit;
   assert.ok(taskA?.id && noteA?.id && goalA?.id && msA?.id && habitA?.id);
+  assert.equal(habitA.reminderTime, "08:15", "valid reminder times are accepted");
 });
 await test("B cannot list A's records", async () => {
   const t = (await B.req("GET", "/api/tasks")).json.tasks, n = (await B.req("GET", "/api/notes")).json.notes, g = (await B.req("GET", "/api/goals")).json.goals, h = (await B.req("GET", "/api/habits")).json.habits;
@@ -242,6 +243,7 @@ await test("daily study suggestions rank study work and persist accept/dismiss d
     priority: "high",
     status: "todo",
     dueDate: initial.json.date,
+    dueTime: "09:30",
     tags: ["study"],
   });
   assert.equal(taskResponse.status, 200, taskResponse.text);
