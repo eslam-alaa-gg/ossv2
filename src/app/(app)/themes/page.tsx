@@ -8,7 +8,7 @@ import { ACCENT_PALETTE, DEFAULT_THEME, GRADIENT_PRESETS, PRESETS, TARGET_KEYS, 
 
 const TARGET_LABEL: Record<TargetKey, string> = { app: "App background", dashboard: "Dashboard hero", cards: "Cards (subtle tint)", buttons: "Primary buttons", accent: "Accent elements & logo text", progress: "Progress bars", charts: "Charts", nav: "Navigation highlight", profile: "Profile avatar ring" };
 const FONTS = [["sniglet", "Sniglet"], ["inter", "Inter — Ukiyo"], ["kavoon", "Kavoon"], ["merienda", "Merienda"], ["shantell", "Shantell Sans"], ["plex", "IBM Plex Sans"], ["cairo", "Cairo"], ["manrope", "Manrope"], ["serif", "Source Serif 4"], ["system", "System UI"]] as const;
-const FONT_CSS: Record<string, string> = { sniglet: "'Sniglet',cursive", inter: "'Inter',sans-serif", kavoon: "'Kavoon',serif", merienda: "'Merienda',cursive", shantell: "'Shantell Sans',cursive", plex: "'IBM Plex Sans',sans-serif", cairo: "'Cairo',sans-serif", manrope: "'Manrope',sans-serif", serif: "'Source Serif 4',serif", system: "system-ui,sans-serif" };
+const FONT_CSS: Record<string, string> = { sniglet: "'Sniglet',cursive", inter: "'Inter',sans-serif", kavoon: "'Kavoon',serif", merienda: "'Merienda',cursive", shantell: "'Shantell Sans',cursive", plex: "'IBM Plex Sans',sans-serif", cairo: "'Cairo',sans-serif", manrope: "'Manrope',sans-serif", serif: "'Source Serif 4',serif", system: "system-ui,sans-serif", custom: "'UkiyoCustom',sans-serif" };
 
 function Slider({ label, value, min = 0, max = 100, unit = "", onChange, hint }: { label: string; value: number; min?: number; max?: number; unit?: string; onChange: (n: number) => void; hint?: string }) {
   const { t } = useApp();
@@ -259,7 +259,7 @@ export default function ThemesPage() {
         <div className="lg:sticky lg:top-20 lg:self-start">
           <h2 className="mb-3 text-sm font-medium text-muted">{t("Live preview")}</h2>
           <Preview theme={theme} />
-          <div className="mt-4 flex gap-2"><Button variant="primary" className="flex-1" disabled={!hasDraft} onClick={() => run(() => savePrefs({ theme }), "Theme applied and saved")}>{t("Apply Theme")}</Button></div>
+          <div className="mt-4 flex gap-2"><Button variant="primary" className="flex-1" disabled={!hasDraft} onClick={async () => { const saved = await run(() => savePrefs({ theme }), t("Theme applied and saved")); if (saved && theme.font === "custom") window.location.reload(); }}>{t("Apply Theme")}</Button></div>
         </div>
       </div>
     </>
