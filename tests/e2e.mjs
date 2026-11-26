@@ -344,6 +344,41 @@ await test("Focus background and custom font uploads are validated and private p
   assert.equal((await A.req("DELETE", "/api/me/font", {})).status, 200);
 });
 
+
+await test("Music Detection pairing, now-playing updates and device revocation are isolated", async () => {
+  const paired = await A.req("POST", "/api/music-bridge/pair", { platform: "android", deviceName: "Android Test Device" });
+  assert.equal(paired.status, 200, paired.text);
+  assert.ok(paired.json.device?.id && paired.json.token);
+  const deviceId = paired.json.device.id;
+  const token = paired.json.token;
+  assert.equal((await B.req("GET", "/api/music-bridge/devices")).json.devices.length, 0);
+
+  const pushed = await fetch(BASE + "/api/music-bridge/push", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      title: "Bridge test track", artist: "Test artist", album: "Test album",
+      appName: "Test player", isPlaying: true, positionMs: 12000, durationMs: 180000,
+    }),
+  });
+  assert.equal(pushed.status, 200, await pushed.text());
+  const now = await A.req("GET", "/api/music-bridge/now-playing");
+  assert.equal(now.json.idle, false);
+  assert.equal(now.json.track.title, "Bridge test track");
+  assert.equal(now.json.track.artist, "Test artist");
+  assert.equal(now.json.progressMs, 12000);
+  assert.equal((await B.req("GET", "/api/music-bridge/now-playing")).json.idle, true);
+
+  assert.equal((await A.req("POST", "/api/music-bridge/revoke", { deviceId })).status, 200);
+  const revoked = await fetch(BASE + "/api/music-bridge/push", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ title: "Should be rejected" }),
+  });
+  assert.equal(revoked.status, 401);
+  assert.equal((await A.req("GET", "/api/music-bridge/devices")).json.devices.length, 0);
+});
+
 /* ---------------- demo ---------------- */
 await test("demo login creates authenticated, seeded, isolated session", async () => {
   const r = await D.req("POST", "/api/auth/demo", { timezone: "UTC" });
