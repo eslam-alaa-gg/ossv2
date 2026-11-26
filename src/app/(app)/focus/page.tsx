@@ -1,6 +1,6 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
-import { ImagePlus, Maximize2, Minimize2, Music2, Pause, Play, RotateCcw, SkipBack, SkipForward, Square, Trash2, Volume2, VolumeX } from "lucide-react";
+import { ImagePlus, Keyboard, Maximize2, Minimize2, Music2, Pause, Play, RotateCcw, SkipBack, SkipForward, Square, Trash2, Volume2, VolumeX } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useApp } from "@/components/providers";
 import { PriorityBadge, type Task } from "@/components/task-form";
@@ -60,6 +60,7 @@ function FocusNowPlaying({ immersive = false }: { immersive?: boolean }) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [bridge, setBridge] = useState<BridgeNowPlaying | null>(null);
   const spotifyNowPlaying = np && !np.idle ? np : null;
   const track = spotifyNowPlaying?.track ?? null;
@@ -350,9 +351,25 @@ export default function FocusPage() {
     if (!result) return;
     endAt.current = Date.now() + remaining * 1000; setPhase("running"); reload();
   };
-  async function end(reset = false) {
-    if (sid) await run(() => api(`/api/focus/${sid}`, { body: { action: "end", activeSeconds: Math.max(0, planned - remaining) } }), reset ? undefined : t("Session ended — time so far was recorded"));
+  async function end(reset = false): Promise<boolean> {
+    if (sid) {
+      const result = await run(() => api(`/api/focus/${sid}`, { body: { action: "end", activeSeconds: Math.max(0, planned - remaining) } }), reset ? undefined : t("Session ended — time so far was recorded"));
+      if (!result) return false;
+    }
     setPhase("idle"); setSid(null); setRemaining(minutes * 60); setPlanned(minutes * 60); reload();
+    return true;
+  }
+
+  async function skipPhase() {
+    if (phase === "idle" || !(await end(true))) return;
+    const nextMode: Mode = mode === "focus" || mode === "custom" ? "short_break" : "focus";
+    const nextMinutes = MODES.find((item) => item.value === nextMode)!.min;
+    setMode(nextMode); setMinutes(nextMinutes); setRemaining(nextMinutes * 60); setPlanned(nextMinutes * 60);
+  }
+
+  async function exitFocus() {
+    if (phase !== "idle" && !(await end(false))) return;
+    if (zen) await toggleZen();
   }
   async function toggleZen() {
     if (!zen) {
@@ -369,11 +386,11 @@ export default function FocusPage() {
   }
 
   const keyboardActions = useRef({
-    phase, sound, zen, start: () => {}, pause: () => {}, resume: () => {}, toggleZen: () => {},
+    phase, sound, zen, start: () => {}, pause: () => {}, resume: () => {}, skipPhase: () => {}, exitFocus: () => {}, toggleZen: () => {},
   });
   useEffect(() => {
     keyboardActions.current = {
-      phase, sound, zen, start: () => { void start(); }, pause, resume, toggleZen: () => { void toggleZen(); },
+      phase, sound, zen, start: () => { void start(); }, pause, resume, skipPhase: () => { void skipPhase(); }, exitFocus: () => { void exitFocus(); }, toggleZen: () => { void toggleZen(); },
     };
   });
   useEffect(() => {
@@ -387,6 +404,10 @@ export default function FocusPage() {
         if (actions.phase === "idle") actions.start();
         else if (actions.phase === "running") actions.pause();
         else actions.resume();
+      } else if (event.key.toLowerCase() === "s") {
+        actions.skipPhase();
+      } else if (event.key.toLowerCase() === "e") {
+        actions.exitFocus();
       } else if (event.key.toLowerCase() === "m" && actions.sound !== "none") {
         setAudioOn((value) => !value);
       } else if (event.key.toLowerCase() === "f" || (event.key === "Escape" && actions.zen)) {
@@ -446,7 +467,20 @@ export default function FocusPage() {
         <Button variant="ghost" size="icon" className="h-12 w-12" onClick={toggleZen} aria-label={zen ? t("Exit fullscreen focus") : t("Fullscreen focus mode")}>{zen ? <Minimize2 className="size-5" /> : <Maximize2 className="size-5" />}</Button>
       </div>
       {phase !== "idle" && <p className="mt-3 text-xs text-faint">{t("Rewards are only granted when the full duration has elapsed on the server.")}</p>}
-      <p className="mt-3 text-[11px] text-faint">{t("Shortcuts")}: <kbd className="kbd">Space</kbd> {t("Start / pause")} · <kbd className="kbd">M</kbd> {t("Ambient sound")} · <kbd className="kbd">F</kbd> {t("Immersive mode")} · <kbd className="kbd">Esc</kbd> {t("Exit immersive mode")}</p>
+      <div className="relative mt-3 flex justify-center">
+        <Button variant="ghost" size="sm" onClick={() => setShortcutsOpen((value) => !value)} aria-expanded={shortcutsOpen} aria-label={t("Keyboard shortcuts")}><Keyboard className="size-4" /> {t("Keyboard shortcuts")}</Button>
+        {shortcutsOpen && <div role="dialog" aria-label={t("Keyboard shortcuts")} className="absolute bottom-full z-30 mb-2 w-[min(90vw,300px)] rounded-xl border border-line bg-pop p-3 text-xs shadow-xl">
+          <div className="flex items-center justify-between"><p className="font-semibold">{t("Keyboard shortcuts")}</p><button type="button" onClick={() => setShortcutsOpen(false)} aria-label={t("Close")} className="rounded-md p-1 hover:bg-card">×</button></div>
+          <ul className="mt-2 space-y-2">
+            <li className="flex justify-between gap-3"><span><kbd className="kbd">Space</kbd></span><span>{t("Start / pause")}</span></li>
+            <li className="flex justify-between gap-3"><span><kbd className="kbd">F</kbd></span><span>{t("Immersive mode")}</span></li>
+            <li className="flex justify-between gap-3"><span><kbd className="kbd">S</kbd></span><span>{t("Skip phase")}</span></li>
+            <li className="flex justify-between gap-3"><span><kbd className="kbd">M</kbd></span><span>{t("Mute / unmute ambient sound")}</span></li>
+            <li className="flex justify-between gap-3"><span><kbd className="kbd">E</kbd></span><span>{t("End session and exit")}</span></li>
+            <li className="flex justify-between gap-3"><span><kbd className="kbd">Esc</kbd></span><span>{t("Exit immersive mode")}</span></li>
+          </ul>
+        </div>}
+      </div>
     </div>
   );
 
