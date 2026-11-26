@@ -67,6 +67,7 @@ const ar: Record<string, string> = {
   "Upcoming study tasks": "مهام المذاكرة القادمة",
   "Study tasks also appear in your main Tasks list.": "مهام المذاكرة بتظهر كمان في قائمة المهام الرئيسية.",
   "No study tasks yet": "مفيش مهام مذاكرة لسه",
+  "You have overdue study tasks. Start with the earliest due date.": "عندك مهام مذاكرة متأخرة. ابدأ بالمهمة الأقرب في موعدها.",
   "Add a study task to build your plan.": "أضف مهمة مذاكرة عشان تبني خطتك.",
   "Plan a study task": "خطط لمهمة مذاكرة",
   "Task title": "عنوان المهمة",
