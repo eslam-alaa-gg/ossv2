@@ -1,6 +1,6 @@
 import { and, eq, gte } from "drizzle-orm";
 import { db } from "@/db";
-import { goalMilestones, goals, habitLogs, habits } from "@/db/schema";
+import { goalMilestones, goals, habitLogs, habits, learningEntries } from "@/db/schema";
 import { addDays, diffDays, dow, todayIn, weekStart } from "@/lib/dates";
 import { handle } from "@/lib/server/api";
 import { requireUser } from "@/lib/server/auth";
@@ -18,6 +18,12 @@ export const GET = handle(async (req) => {
   const goal = a.user.dailyGoal;
   const yearAct = await activityByDay(a.id, a.tz, `${year}-01-01`, `${year}-12-31`, goal);
   const recent = await activityByDay(a.id, a.tz, addDays(today, -400), today, goal);
+  const [learningYearRows, learningRecentRows] = await Promise.all([
+    db.select({ date: learningEntries.date }).from(learningEntries).where(and(eq(learningEntries.userId, a.id), gte(learningEntries.date, `${year}-01-01`), lte(learningEntries.date, `${year}-12-31`))),
+    db.select({ date: learningEntries.date }).from(learningEntries).where(and(eq(learningEntries.userId, a.id), gte(learningEntries.date, addDays(today, -29)), lte(learningEntries.date, today))),
+  ]);
+  const learningByDay = new Map<string, number>();
+  for (const entry of learningRecentRows) learningByDay.set(String(entry.date), (learningByDay.get(String(entry.date)) ?? 0) + 1);
   const get = (d: string) => recent[d] ?? emptyDay(d);
   const activeAll = Object.values(recent).filter((d) => d.score > 0).map((d) => d.date);
   const streak = computeStreaks(activeAll, today);
@@ -26,7 +32,7 @@ export const GET = handle(async (req) => {
   const best = [...yr].sort((x, z) => z.score - x.score)[0];
   const trend = Array.from({ length: 30 }, (_, i) => {
     const d = addDays(today, i - 29);
-    return { date: d, score: get(d).score, tasks: get(d).tasks, habits: get(d).habits, focusMinutes: get(d).focusMinutes };
+    return { date: d, score: get(d).score, tasks: get(d).tasks, habits: get(d).habits, focusMinutes: get(d).focusMinutes, learningEntries: learningByDay.get(d) ?? 0 };
   });
   const ws = weekStart(today);
   const weeks = Array.from({ length: 12 }, (_, i) => {
@@ -38,7 +44,7 @@ export const GET = handle(async (req) => {
   const months = Array.from({ length: 12 }, (_, m) => {
     const p = `${year}-${String(m + 1).padStart(2, "0")}`;
     const days = yr.filter((d) => d.date.startsWith(p));
-    return { month: p, score: days.reduce((s, d) => s + d.score, 0), tasks: days.reduce((s, d) => s + d.tasks, 0) };
+    return { month: p, score: days.reduce((s, d) => s + d.score, 0), tasks: days.reduce((s, d) => s + d.tasks, 0), learningEntries: learningYearRows.filter((entry) => String(entry.date).startsWith(p)).length };
   });
   const hs = await db.select().from(habits).where(and(eq(habits.userId, a.id), eq(habits.archived, false)));
   const logs = await db.select().from(habitLogs).where(and(eq(habitLogs.userId, a.id), eq(habitLogs.completed, true), gte(habitLogs.date, addDays(today, -29))));
@@ -77,7 +83,7 @@ export const GET = handle(async (req) => {
     dailyGoal: goal,
     scoring: SCORE,
     heatmap: yr.map((d) => ({ date: d.date, score: d.score, level: d.level, tasks: d.tasks, habits: d.habits, challenges: d.challenges, focus: d.focus, focusMinutes: d.focusMinutes, milestones: d.milestones })),
-    annual: { activeDays: yr.filter((d) => d.score > 0).length, score: sum("score"), tasks: sum("tasks"), habits: sum("habits"), challenges: sum("challenges"), focusMinutes: sum("focusMinutes"), bestDay: best && best.score > 0 ? { date: best.date, score: best.score } : null, goalDays: yr.filter((d) => d.level === 4).length },
+    annual: { activeDays: yr.filter((d) => d.score > 0).length, score: sum("score"), tasks: sum("tasks"), habits: sum("habits"), challenges: sum("challenges"), focusMinutes: sum("focusMinutes"), learningEntries: learningYearRows.length, bestDay: best && best.score > 0 ? { date: best.date, score: best.score } : null, goalDays: yr.filter((d) => d.level === 4).length },
     streak: { ...streak, weekly: weeklyStreak(activeAll, today) },
     today30: { daily: get(today).score, weekly: weeks[11].score, monthly: trend.reduce((s, d) => s + d.score, 0) },
     trend,
