@@ -1,12 +1,11 @@
 "use client";
-import { ImagePlus, Maximize2, Minimize2, Pause, Play, RotateCcw, Square, Trash2, Volume2, VolumeX } from "lucide-react";
+import { ImagePlus, Maximize2, Minimize2, Music2, Pause, Play, RotateCcw, Square, Trash2, Volume2, VolumeX } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useApp } from "@/components/providers";
 import { PriorityBadge, type Task } from "@/components/task-form";
 import { Badge, Button, Card, EmptyState, Field, PageHeader, Segmented, cn, useUI } from "@/components/ui";
 import { api, minutesLabel, useFetch } from "@/lib/client";
 import { SOUNDS, startAmbient, type AmbientHandle } from "@/lib/ambient";
-import { Music2 } from "lucide-react";
 import { useSpotify } from "@/components/spotify";
 
 type Session = { id: string; mode: string; plannedSeconds: number; actualSeconds: number; status: string; startedAt: string; taskTitle?: string | null };
