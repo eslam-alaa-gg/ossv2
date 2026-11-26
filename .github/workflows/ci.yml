@@ -9,6 +9,24 @@ on:
 jobs:
   typecheck:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci -d ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://ci:ci@127.0.0.1:5432/ci
+      APP_SECRET: ci-only-secret-with-at-least-thirty-two-characters
+      NEXT_TELEMETRY_DISABLED: "1"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -18,6 +36,21 @@ jobs:
       - run: npm run typecheck
       - run: npm run lint
       - run: npm run build
-        env:
-          DATABASE_URL: postgresql://ci:ci@127.0.0.1:5432/ci
-          NEXT_TELEMETRY_DISABLED: "1"
+      - name: Apply database migrations
+        run: npx drizzle-kit migrate
+      - name: Start application
+        run: |
+          npm run start > /tmp/ukiyo-next.log 2>&1 &
+          echo $! > /tmp/ukiyo-next.pid
+      - name: Wait for application health
+        run: |
+          for attempt in {1..40}; do
+            if curl --fail --silent http://127.0.0.1:3000/api/health; then
+              exit 0
+            fi
+            sleep 2
+          done
+          cat /tmp/ukiyo-next.log
+          exit 1
+      - name: Run API end-to-end tests
+        run: node tests/e2e.mjs
