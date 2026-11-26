@@ -81,7 +81,7 @@ export function MusicBridgePanel() {
   useEffect(() => {
     if (searchParams.get("pair") !== "android" || autoPairTriggered.current) return;
     autoPairTriggered.current = true;
-    window.history.replaceState({}, "", "/music-bridge");
+    window.history.replaceState({}, "", "/music?tab=detection");
     void pair("android");
   }, [searchParams]);
 
