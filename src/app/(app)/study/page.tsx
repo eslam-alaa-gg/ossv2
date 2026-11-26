@@ -2,6 +2,7 @@
 
 import { BookOpen, Brain, CalendarDays, Clock3, Plus, Sparkles, Trash2 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useApp } from "@/components/providers";
 import { Badge, Button, Card, EmptyState, Field, PageHeader, Segmented, useUI } from "@/components/ui";
@@ -23,6 +24,7 @@ function localDate() {
 export default function StudyPage() {
   const { t, lang, user } = useApp();
   const { toast, confirm } = useUI();
+  const router = useRouter();
   const [tab, setTab] = useState("plan");
   const subjects = useFetch<{ subjects: Subject[] }>("/api/study/subjects");
   const cards = useFetch<{ cards: Flashcard[] }>("/api/study/flashcards");
@@ -126,7 +128,7 @@ export default function StudyPage() {
       });
       if (status === "accepted") {
         if (suggestion.kind === "task" && suggestion.taskId) {
-          window.location.href = "/focus?task=" + encodeURIComponent(suggestion.taskId);
+          router.push("/focus?task=" + encodeURIComponent(suggestion.taskId));
         } else if (suggestion.kind === "review") {
           setReviewSubjectId(suggestion.subjectId ?? "");
           setTab("review");
