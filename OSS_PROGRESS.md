@@ -464,3 +464,86 @@ Implementation commits:
 CI: [#45988972752](https://github.com/eslam-alaa-gg/ossv2/actions/runs/45988972752) — **completed successfully**. All workflow steps passed, including typecheck, lint, production build, database migrations, application health and **38/38 API E2E tests**. Earlier failed runs were superseded by the corrected successful run.
 
 No merge, rebase, reset, force-push, preview deployment or production deployment was performed.
+
+
+---
+
+# Phase 06 — Music Hub & Spotify
+
+Phase status: **IMPLEMENTED — source hardening and API regression assertions committed; final CI and native/live-account verification pending**
+
+Implementation branch: `fix/ukiyo-habits-heatmap-focus`
+
+## Existing music functionality preserved
+
+The existing Music Hub remains in place with its three sections:
+- Spotify: connection status, now-playing metadata, recent tracks, artist/album details, device listing/transfer, Premium playback controls, dynamic album ambience and preferences.
+- YouTube Music: search/open workflow, including the compact player/search panel inside Focus.
+- Music Detection: paired Android/Windows metadata bridge, device listing, now-playing and revocation.
+
+The Spotify provider remains mounted at the application shell level. Focus now reuses the existing provider and `NowPlayingWidget` to show Spotify's current track inside its Music panel, alongside the existing YouTube Music player. No second music player or parallel preferences store was introduced.
+
+## Security and reliability findings addressed
+
+1. **OAuth and callback**
+   - Existing PKCE uses a random verifier, SHA-256 challenge, random state and a short-lived HttpOnly/SameSite=Lax cookie.
+   - The cookie is bound to the authenticated user ID; callback state comparison uses constant-time comparison after a length check.
+   - Callback token-exchange network errors and token-persistence errors now return clear Music Hub error states instead of an unhandled generic failure.
+   - Secure-cookie detection now correctly reads the first value of a comma-separated forwarded-protocol header.
+
+2. **Spotify token storage**
+   - Access and refresh tokens remain encrypted at rest using AES-256-GCM; the encryption key is derived from the server-only APP_SECRET, which must be at least 32 characters.
+   - Tokens are not returned by status/device/profile APIs and are sent to Spotify only from server-side code.
+   - No secrets or token values were added to source control or this report.
+
+3. **Refresh-token rotation concurrency**
+   - Previously, simultaneous requests could observe the same expired refresh token and race through refresh-token rotation.
+   - Refresh now acquires a per-user PostgreSQL transaction advisory lock, re-reads the connection row under `SELECT ... FOR UPDATE`, checks expiry again, and persists the rotated access/refresh tokens in the same transaction.
+   - Invalid/revoked refresh credentials (HTTP 400/401) remove the unusable connection; transient provider/network failures retain the stored connection and return a retryable error.
+   - Expired-connection and rate-limit errors now carry explicit codes consumed by the client UI.
+
+4. **Playback and unavailable devices**
+   - Existing play/pause/next/previous/seek and transfer controls are preserved.
+   - UI gates playback controls by the Spotify Premium profile and does not offer restricted devices as playable targets.
+   - Server-side Demo Mode restrictions remain in place.
+   - Spotify 401, 429 and other provider errors are surfaced as actionable/retryable messages; no playback success is inferred from a rendered control.
+
+5. **OSSv2 device-token workflow**
+   - Pairing creates a cryptographically random one-time bearer token; only its SHA-256 hash is stored in the database.
+   - The raw token is returned only in the pairing response and held in the Music Detection page state for copying; device-list responses expose neither the token nor its hash.
+   - Device pushes require the bearer token, are rate-limited, and are scoped to the paired device's owning account. Revocation deletes the pairing, after which the old token is rejected.
+   - A confirmed native-client weakness was fixed: Android previously persisted the bearer token in plaintext SharedPreferences. Android now encrypts the URL and token using AES-256-GCM with a non-exportable Android Keystore key, masks the token field, migrates and clears the old plaintext preferences, and refuses non-HTTPS server URLs.
+   - The Windows helper now rejects non-HTTPS URLs and reads the token from process-scoped environment variables rather than a committed config file.
+
+6. **Music preferences and Focus**
+   - Dynamic Album Ambience and Spotify auto-refresh continue using the existing persisted `prefs.spotify` settings.
+   - Focus's Music panel now shows Spotify now-playing information through the existing shared provider and retains the existing YouTube Music player.
+   - Focus continues to use the shared Spotify album ambience; no new token or preference store was created.
+
+## Regression coverage
+
+- Existing Spotify E2E coverage verifies authenticated status access, disconnected-state behavior, rejection of untrusted artwork hosts and callback state mismatch.
+- The disconnected now-playing assertion now also verifies the explicit `expired` error code used by the reconnect UI.
+- Existing Music Detection E2E coverage exercises pair → authenticated metadata push → now-playing retrieval → account isolation → revoke → rejection of the revoked token.
+- Added assertions that the device token is not exposed in the device-list response and that an invalid bearer token is rejected.
+- These tests exercise the OSSv2 API contract; they do not simulate Spotify's real OAuth/token endpoints or prove real Spotify playback.
+
+## Verification boundaries
+
+- [x] Existing Music Hub, Spotify routes/provider, token helper, DB schema, Music Bridge API/UI, native source and Focus integration inspected.
+- [x] OAuth PKCE/state/user-binding and encrypted server-side token storage verified from source.
+- [x] Refresh-token concurrency serialization and retryable failure behavior implemented.
+- [x] Explicit expired/rate-limit error codes wired to client handling.
+- [x] Android device token protected with Android Keystore; legacy plaintext preferences cleared.
+- [x] Android and Windows native clients require HTTPS before sending bearer tokens.
+- [x] Focus Music panel now includes Spotify now-playing alongside YouTube Music.
+- [x] E2E assertions added for private device-token responses, invalid bearer rejection and expired-connection classification.
+- [ ] Final CI on the Phase 06 head: pending.
+- [ ] Android Gradle build/APK install and real notification-listener permission test: not run in this remote GitHub-only session.
+- [ ] Windows .NET build and real Spotify media-session test: not run.
+- [ ] Live Spotify OAuth authorization, refresh against Spotify, Premium playback, transfer, unavailable-device and rate-limit scenarios: not run; no real authorized Spotify account/device was available.
+- [ ] Browser verification of Music Hub, Focus panel, Arabic/RTL and mobile states: not run.
+
+**Important:** Spotify playback is **not claimed as verified**. The code paths and API contracts were audited, but only a real authorized Spotify account plus an available Spotify device can establish actual playback behavior. The native bridge projects are source code and are not packaged installers in this repository snapshot.
+
+No merge, rebase, reset, force-push, preview deployment or production deployment was performed.
