@@ -216,7 +216,7 @@ export function YouTubeMusicPlayer({ compact = false, searchOpen = true, mixerOp
     setCurrentTime(value);
   };
   const changeVolume = (value: number) => { const next = Math.max(0, Math.min(100, value)); volumeRef.current = next; mutedRef.current = next === 0; setVolume(next); setMuted(next === 0); if (player.current) { player.current.setVolume(next); if (next > 0) player.current.unMute(); else player.current.mute(); } };
-  const toggleMute = () => { if (!player.current) { setMuted(value => !value); return; } if (muted || player.current.isMuted()) { player.current.unMute(); player.current.setVolume(Math.max(1, volume)); mutedRef.current = false; setMuted(false); } else { player.current.mute(); mutedRef.current = true; setMuted(true); } };
+  const toggleMute = () => { if (!player.current) { mutedRef.current = !mutedRef.current; setMuted(mutedRef.current); return; } if (muted || player.current.isMuted()) { player.current.unMute(); player.current.setVolume(Math.max(1, volume)); mutedRef.current = false; setMuted(false); } else { player.current.mute(); mutedRef.current = true; setMuted(true); } };
   const formatTime = (value: number) => `${Math.floor(value / 60)}:${String(Math.floor(value % 60)).padStart(2, "0")}`;
   const togglePlayback = () => {
     if (!playerReady || !player.current) return;
