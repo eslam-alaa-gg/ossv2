@@ -193,12 +193,13 @@ Never copy real secrets into this report, source control, logs or chat.
 
 # Phase 02 — Core Functionality & Integration
 
-Phase status: **IN PROGRESS — focused fix implemented; CI verification pending**
+Phase status: **IN PROGRESS — focused fix implemented; latest CI verification pending**
 Implementation branch: `fix/ukiyo-habits-heatmap-focus`
 Phase 02 commits:
 - `4ece21c6ad7aa58bc6e9347640353d6cb6476969` — atomic, serialized Focus session replacement.
 - `03e83d4c4fbc29f130083dd5c35011c191cf5ff9` — client-side duplicate-start guard.
-- `ceb9ad705b4bdef9a4133a22b0cac8c3e360ddb8` — concurrent-start regression test.
+- `ceb9ad705b4bdef9a4133a22b0cac8c3e360ddb8` — initial concurrent-start regression test.
+- `7a7a9b022927bd4008da6f0704496e08d1c1939d` — strengthened regression assertion to verify the superseded session rejects further state transitions.
 
 ## Confirmed issue fixed
 
@@ -210,7 +211,7 @@ Phase 02 commits:
 1. Wrapped previous-session closure and new-session insertion in one Drizzle database transaction.
 2. Added a per-user PostgreSQL transaction advisory lock before modifying active sessions, serializing simultaneous start requests for the same user.
 3. Added a client-side `starting` ref guard and `finally` cleanup to prevent repeated click/keyboard submissions in the same page instance.
-4. Added an API E2E regression case that sends two Focus start requests concurrently, checks that the API returns successfully and that exactly one current active session is exposed, then ends that session.
+4. Added an API E2E regression case that sends two Focus start requests concurrently, checks that the API returns successfully, identifies the active session, and verifies the superseded session rejects an end transition (409), then ends the active session.
 
 **Files changed:**
 - `src/app/api/focus/route.ts`
@@ -223,7 +224,7 @@ Phase 02 commits:
 - [x] API change committed to target branch.
 - [x] Client duplicate-start guard committed.
 - [x] Concurrent-start regression test added.
-- [x] GitHub Actions Typecheck workflow automatically started for final Phase 02 commit `ceb9ad705b4bdef9a4133a22b0cac8c3e360ddb8`.
+- [x] GitHub Actions Typecheck workflow automatically started for the implementation commits; a final run is triggered by the strengthened regression test commit `7a7a9b022927bd4008da6f0704496e08d1c1939d`.
 - [ ] TypeScript check — pending workflow.
 - [ ] ESLint — pending workflow.
 - [ ] Production build — pending workflow.
@@ -231,7 +232,7 @@ Phase 02 commits:
 - [ ] Full API E2E suite including new concurrency test — pending workflow.
 - [ ] Browser-level workflows — not covered by current CI; no browser automation framework is configured in this branch.
 
-CI run: [GitHub Actions run #271](https://github.com/eslam-alaa-gg/ossv2/actions/runs/45927860744)
+CI runs: [run #271](https://github.com/eslam-alaa-gg/ossv2/actions/runs/45927860744) (earlier regression-test revision); [latest workflow runs](https://github.com/eslam-alaa-gg/ossv2/actions?query=branch%3Afix%2Fukiyo-habits-heatmap-focus) (includes the strengthened test revision).
 
 No CI pass/fail result is claimed until the run completes. No local browser/device testing was performed. No unrelated frontend/API/database behavior was changed. No merge or deployment was performed.
 
