@@ -84,8 +84,10 @@ export function YouTubeMusicPlayer({ compact = false, onTrackChange, spotifyPlay
   const player = useRef<YTPlayer | null>(null);
   const resultsRef = useRef(results);
   const selectedRef = useRef(selected);
-  resultsRef.current = results;
-  selectedRef.current = selected;
+  useEffect(() => {
+    resultsRef.current = results;
+    selectedRef.current = selected;
+  }, [results, selected]);
 
   useEffect(() => {
     try {
