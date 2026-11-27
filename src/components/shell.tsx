@@ -318,6 +318,11 @@ function HabitQuickPanel() {
 
   useEffect(() => { void load(); }, [load]);
   useEffect(() => {
+    const refresh = () => { void load(); };
+    window.addEventListener("ukiyo:habit-progress-updated", refresh);
+    return () => window.removeEventListener("ukiyo:habit-progress-updated", refresh);
+  }, [load]);
+  useEffect(() => {
     if (!open) return;
     if (!tracker) void load();
     const outside = (event: PointerEvent) => { if (!ref.current?.contains(event.target as Node)) setOpen(false); };
@@ -331,7 +336,7 @@ function HabitQuickPanel() {
     setBusy(true);
     try {
       const result = await run(fn, success);
-      if (result !== undefined) await load();
+      if (result !== undefined) window.dispatchEvent(new Event("ukiyo:habit-progress-updated"));
       return result;
     } finally {
       setBusy(false);
