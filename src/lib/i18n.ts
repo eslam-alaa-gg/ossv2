@@ -51,6 +51,7 @@ const ar: Record<string, string> = {
   "Search and choose songs from inside Ukiyo.": "ابحث عن الأغاني واخترها من داخل Ukiyo.",
   "Search and open music from the official YouTube Music service.": "ابحث عن الموسيقى وافتحها من خدمة YouTube Music الرسمية.",
   "Search tracks, artists or albums and open the results in YouTube Music. Playback stays in the official YouTube Music app or website.": "ابحث عن الأغاني أو الفنانين أو الألبومات وافتح النتائج في YouTube Music. التشغيل بيكون من التطبيق أو الموقع الرسمي.",
+  "Search music": "ابحث عن الموسيقى",
   "Search YouTube Music": "ابحث في YouTube Music",
   "Search on YouTube Music": "البحث على YouTube Music",
   "Open YouTube Music": "فتح YouTube Music",
