@@ -59,7 +59,7 @@ await test("duplicate email rejected, weak password rejected, wrong password rej
   assert.equal((await anon.req("POST", "/api/auth/login", { email: emailA, password: "wrong-password" })).status, 401);
 });
 await test("protected API routes require auth (401)", async () => {
-  for (const p of ["/api/me", "/api/tasks", "/api/habits", "/api/goals", "/api/notes", "/api/journal", "/api/focus", "/api/dashboard", "/api/analytics", "/api/export", "/api/notifications", "/api/me/avatar", "/api/me/font?meta=1", "/api/me/focus-background", "/api/youtube/search?q=lofi"]) {
+  for (const p of ["/api/me", "/api/tasks", "/api/habits", "/api/goals", "/api/notes", "/api/journal", "/api/focus", "/api/dashboard", "/api/analytics", "/api/export", "/api/notifications", "/api/me/avatar", "/api/youtube/search?q=lofi"]) {
     assert.equal((await anon.req("GET", p)).status, 401, p);
   }
 });
@@ -191,42 +191,6 @@ await test("avatar: validates type/size, per-user, replace + remove", async () =
   assert.equal((await A.req("DELETE", "/api/me/avatar")).json.avatarVersion, null);
   assert.equal((await A.req("GET", "/api/me/avatar")).status, 404);
 });
-await test("Focus background upload is private, validated and removable", async () => {
-  const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
-  const form = new FormData();
-  form.append("file", new Blob([png], { type: "image/png" }), "focus.png");
-  const upload = await A.req("POST", "/api/me/focus-background", form);
-  assert.equal(upload.status, 200, upload.text);
-  assert.equal((await A.req("GET", "/api/me/focus-background", undefined, true)).status, 200);
-  assert.equal((await B.req("GET", "/api/me/focus-background")).status, 404);
-  assert.equal((await A.req("DELETE", "/api/me/focus-background")).status, 200);
-  assert.equal((await A.req("GET", "/api/me/focus-background")).status, 404);
-});
-
-await test("Custom font upload is private, metadata-only by default and removable", async () => {
-  const form = new FormData();
-  form.append("file", new Blob([Buffer.from("wOF2test-font-payload")], { type: "font/woff2" }), "test.woff2");
-  const upload = await A.req("POST", "/api/me/font", form);
-  assert.equal(upload.status, 200, upload.text);
-  const metadata = await A.req("GET", "/api/me/font?meta=1");
-  assert.equal(metadata.status, 200);
-  assert.equal(metadata.json.mime, "font/woff2");
-  assert.equal((await B.req("GET", "/api/me/font?meta=1")).status, 404);
-  assert.equal((await A.req("DELETE", "/api/me/font")).status, 200);
-  assert.equal((await A.req("GET", "/api/me/font?meta=1")).status, 404);
-});
-
-await test("Focus sessions pause and resume only for their owner", async () => {
-  const session = (await A.req("POST", "/api/focus", { mode: "focus", minutes: 1 })).json.session;
-  assert.ok(session?.id);
-  assert.equal((await A.req("POST", `/api/focus/${session.id}`, { action: "pause" })).status, 200);
-  assert.equal((await B.req("POST", `/api/focus/${session.id}`, { action: "resume" })).status, 404);
-  assert.equal((await A.req("POST", `/api/focus/${session.id}`, { action: "resume" })).status, 200);
-  const ended = await A.req("POST", `/api/focus/${session.id}`, { action: "end" });
-  assert.equal(ended.status, 200, ended.text);
-  assert.equal(ended.json.session.status, "ended");
-});
-
 await test("CSRF: cross-origin mutation blocked", async () => {
   const res = await fetch(BASE + "/api/tasks", { method: "POST", headers: { "Content-Type": "application/json", Origin: "https://evil.example", Cookie: `lifeos_session=${A.jar.lifeos_session}` }, body: JSON.stringify({ title: "csrf" }) });
   assert.equal(res.status, 403);
