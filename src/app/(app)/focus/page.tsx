@@ -156,7 +156,7 @@ export default function FocusPage() {
   }, [data, phase]);
 
   const complete = useCallback(async (id: string) => {
-    if (finishing.current) return;
+    if (finishing.current || transitioning.current) return;
     finishing.current = true;
     const r = await run(() => api<{ xp: number; unlocked: string[] }>(`/api/focus/${id}`, { body: { action: "complete" } }));
     if (!r) { finishing.current = false; return; }
