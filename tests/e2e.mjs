@@ -85,6 +85,24 @@ await test("A creates task, note, goal, milestone, habit", async () => {
   assert.ok(taskA?.id && noteA?.id && goalA?.id && msA?.id && habitA?.id);
   assert.equal(habitA.reminderTime, "08:15", "valid reminder times are accepted");
 });
+await test("habit targets can be edited and historical daily progress persists", async () => {
+  const created = await A.req("POST", "/api/habits", { name: "Historical target test", target: 1 });
+  assert.equal(created.status, 200, created.text);
+  const id = created.json.habit.id;
+  const edited = await A.req("PATCH", `/api/habits/${id}`, { target: 2, unit: "pages" });
+  assert.equal(edited.status, 200, edited.text);
+  assert.equal(edited.json.habit.target, 2);
+  const today = (await A.req("GET", "/api/habits")).json.today;
+  const yesterday = new Date(Date.parse(today + "T00:00:00.000Z") - 86400000).toISOString().slice(0, 10);
+  assert.equal((await A.req("POST", `/api/habits/${id}/log`, { date: yesterday, amount: 1 })).status, 200);
+  assert.equal((await A.req("POST", `/api/habits/${id}/log`, { date: "2026-02-31", amount: 2 })).status, 400);
+  assert.equal((await A.req("POST", `/api/habits/${id}/log`, { date: yesterday, amount: 2 })).status, 200);
+  const refreshed = (await A.req("GET", "/api/habits")).json.habits.find((habit) => habit.id === id);
+  assert.equal(refreshed.target, 2);
+  assert.equal(refreshed.todayAmount, 0);
+  assert.ok(refreshed.history.includes(yesterday), "completed historical day remains visible after a fresh GET");
+  assert.equal(refreshed.total, 1);
+});
 await test("B cannot list A's records", async () => {
   const t = (await B.req("GET", "/api/tasks")).json.tasks, n = (await B.req("GET", "/api/notes")).json.notes, g = (await B.req("GET", "/api/goals")).json.goals, h = (await B.req("GET", "/api/habits")).json.habits;
   assert.equal(t.length + n.length + g.length + h.length, 0);
@@ -311,6 +329,7 @@ await test("daily study suggestions rank study work and persist accept/dismiss d
 
 
 await test("water, reading and learning trackers persist per user and update linked habit progress", async () => {
+  const beforeHeatmap = (await A.req("GET", "/api/analytics")).json;
   const waterHabit = (await A.req("POST", "/api/habits", { name: "Water tracker test", kind: "water", target: 2000 })).json.habit;
   const readingHabit = (await A.req("POST", "/api/habits", { name: "Reading tracker test", kind: "reading", target: 15 })).json.habit;
   const learningHabit = (await A.req("POST", "/api/habits", { name: "Learning tracker test", kind: "learning", target: 2 })).json.habit;
@@ -325,6 +344,13 @@ await test("water, reading and learning trackers persist per user and update lin
   assert.equal(tracker.water.total, 500);
   assert.equal(tracker.reading.todayPages, 5);
   assert.equal(tracker.learning.todayCount, 1);
+  const afterHeatmap = (await A.req("GET", "/api/analytics")).json;
+  const beforeDay = beforeHeatmap.heatmap.find((day) => day.date === beforeHeatmap.today);
+  const afterDay = afterHeatmap.heatmap.find((day) => day.date === afterHeatmap.today);
+  assert.equal(afterDay.habits - beforeDay.habits, 3, "water, reading and learning each contribute once even below their targets");
+  const expectedLevel = afterDay.score >= afterHeatmap.dailyGoal ? 4 : afterDay.score >= afterHeatmap.dailyGoal * (2 / 3) ? 3 : afterDay.score >= afterHeatmap.dailyGoal / 3 ? 2 : afterDay.score > 0 ? 1 : 0;
+  assert.equal(afterDay.level, expectedLevel, "heatmap intensity follows the documented five-level thresholds");
+
   const mine = (await A.req("GET", "/api/habits")).json.habits;
   assert.equal(mine.find((h) => h.id === waterHabit.id).todayAmount, 500);
   assert.equal(mine.find((h) => h.id === readingHabit.id).todayAmount, 5);
