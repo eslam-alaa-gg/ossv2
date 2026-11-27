@@ -148,9 +148,12 @@ await test("focus: concurrent starts leave exactly one active session", async ()
     A.req("POST", "/api/focus", { mode: "custom", minutes: 30 }),
   ]);
   assert.ok(starts.every((response) => response.status === 200), starts.map((response) => response.text).join("\\n"));
+  const ids = starts.map((response) => response.json.session.id);
   const current = await A.req("GET", "/api/focus");
-  assert.ok(current.json.running?.id, "one active session is returned");
-  assert.ok(["focus", "custom"].includes(current.json.running.mode));
+  assert.ok(ids.includes(current.json.running?.id), "the active session matches one of the concurrent starts");
+  const staleId = ids.find((id) => id !== current.json.running.id);
+  assert.ok(staleId, "both start requests created distinct session records");
+  assert.equal((await A.req("POST", `/api/focus/${staleId}`, { action: "end" })).status, 409, "the superseded session must already be closed");
   const ended = await A.req("POST", `/api/focus/${current.json.running.id}`, { action: "end" });
   assert.equal(ended.status, 200);
 });
