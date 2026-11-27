@@ -93,9 +93,10 @@ export default function FocusPage() {
   const soundPanelRef = useRef<HTMLDivElement>(null);
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
   const [backgroundScene, setBackgroundScene] = useState<FocusWallpaper>(prefs.focus.background);
+  const [backgroundOverlay, setBackgroundOverlay] = useState(prefs.focus.overlay);
   const [wallpaperVideoFailed, setWallpaperVideoFailed] = useState(false);
   const [timerStyle, setTimerStyle] = useState<TimerStyle>(prefs.focus.timerStyle);
-  useEffect(() => { setBackgroundScene(prefs.focus.background); setTimerStyle(prefs.focus.timerStyle); setWallpaperVideoFailed(false); }, [prefs.focus.background, prefs.focus.timerStyle]);
+  useEffect(() => { setBackgroundScene(prefs.focus.background); setTimerStyle(prefs.focus.timerStyle); setBackgroundOverlay(prefs.focus.overlay); setWallpaperVideoFailed(false); }, [prefs.focus.background, prefs.focus.timerStyle, prefs.focus.overlay]);
   const [imageMessage, setImageMessage] = useState("");
   const endAt = useRef(0);
   const amb = useRef<AmbientHandle | null>(null);
@@ -189,6 +190,7 @@ export default function FocusPage() {
   }, [audioOn, sound]);
   useEffect(() => { amb.current?.setVolume(volume); }, [volume]);
   useEffect(() => { const h = setTimeout(() => { if (sound !== prefs.focus.sound || volume !== prefs.focus.volume) savePrefs({ focus: { ...prefs.focus, sound, volume } }).catch(() => {}); }, 800); return () => clearTimeout(h); }, [sound, volume]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { const h = setTimeout(() => { if (backgroundOverlay !== prefs.focus.overlay) savePrefs({ focus: { ...prefs.focus, overlay: backgroundOverlay } }).catch(() => {}); }, 500); return () => clearTimeout(h); }, [backgroundOverlay]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { const h = () => { if (!document.fullscreenElement) setZen(false); }; document.addEventListener("fullscreenchange", h); return () => document.removeEventListener("fullscreenchange", h); }, []);
   useEffect(() => {
     if (!soundOpen) return;
@@ -256,7 +258,7 @@ export default function FocusPage() {
   async function selectTimerStyle(style: TimerStyle) {
     setTimerStyle(style);
     try {
-      await savePrefs({ focus: { ...prefs.focus, background: backgroundScene, timerStyle: style } });
+      await savePrefs({ focus: { ...prefs.focus, background: backgroundScene, timerStyle: style, overlay: backgroundOverlay } });
     } catch {
       setImageMessage(t("Could not save the timer style. Please try again."));
     }
@@ -266,7 +268,7 @@ export default function FocusPage() {
     setBackgroundScene(id);
     setWallpaperVideoFailed(false);
     try {
-      await savePrefs({ focus: { ...prefs.focus, background: id, timerStyle } });
+      await savePrefs({ focus: { ...prefs.focus, background: id, timerStyle, overlay: backgroundOverlay } });
     } catch {
       setImageMessage(t("Could not save the wallpaper selection. Please try again."));
     }
@@ -469,7 +471,7 @@ export default function FocusPage() {
       ) : backgroundScene !== "none" ? (
         <FocusWallpaperLayer scene={backgroundScene} failed={wallpaperVideoFailed || !!prefs.theme.reducedMotion} onError={() => setWallpaperVideoFailed(true)} />
       ) : <div className="absolute inset-0 app-glow" />}
-      <div className="absolute inset-0 bg-black/35" aria-hidden />
+      <div className="absolute inset-0" style={{ backgroundColor: `rgba(0,0,0,${backgroundOverlay / 100})` }} aria-hidden />
       <div className="relative z-10 flex w-full max-w-5xl flex-col items-center gap-5 py-4 sm:py-0">
         <div className="flex w-full flex-wrap items-center justify-center gap-3 rounded-2xl border border-white/10 bg-black/25 p-3 backdrop-blur-xl">
           <select className="input w-auto" value={taskId} onChange={(e) => setTaskId(e.target.value)} disabled={phase !== "idle"} aria-label={t("Focus on a task (optional)")}><option value="">{t("No task — general focus")}</option>{data?.tasks.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}</select>
@@ -518,6 +520,11 @@ export default function FocusPage() {
             {backgroundOpen && <div role="dialog" aria-label={t("Focus background")} className="absolute end-0 top-[calc(100%+10px)] z-50 max-h-[min(78vh,620px)] w-[min(92vw,360px)] overflow-y-auto rounded-2xl border border-white/15 bg-[#11131b]/92 p-3 text-white shadow-2xl backdrop-blur-2xl">
               <div className="mb-3 flex items-center justify-between"><p className="text-sm font-semibold">{t("Focus background")}</p><button type="button" onClick={() => setBackgroundOpen(false)} aria-label={t("Close")} className="rounded-lg p-1 text-white/60 hover:bg-white/10">×</button></div>
               <p className="mb-2 text-[11px] text-white/55">{t("Choose one of five looping video wallpapers. Your selection is saved to your account.")}</p>
+              <label className="mb-3 block rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-white/75">
+                <span className="mb-2 flex items-center justify-between gap-2"><span>{t("Readability overlay")}</span><span className="tabular-nums">{backgroundOverlay}%</span></span>
+                <input type="range" min={0} max={80} step={5} value={backgroundOverlay} onChange={(event) => setBackgroundOverlay(Number(event.target.value))} aria-label={t("Readability overlay")} className="w-full" />
+                <span className="mt-1 block text-[10px] text-white/45">{t("Increase the shade behind the timer and controls for clearer text.")}</span>
+              </label>
               <div className="grid grid-cols-2 gap-2">
                 {WALLPAPERS.map((wallpaper) => <button key={wallpaper.id} type="button" onClick={() => void selectWallpaper(wallpaper.id)} aria-pressed={backgroundScene === wallpaper.id} className={cn("group overflow-hidden rounded-xl border text-start transition", backgroundScene === wallpaper.id ? "border-white/80 ring-1 ring-white/40" : "border-white/10 hover:border-white/30")}><div className={`focus-wallpaper-preview focus-wallpaper-${wallpaper.id}`} /><span className="block px-2.5 py-2 text-xs font-medium">{t(wallpaper.label)}</span></button>)}
                 <button type="button" onClick={() => void selectWallpaper("none")} aria-pressed={backgroundScene === "none"} className={cn("flex min-h-[86px] flex-col items-center justify-center gap-1 rounded-xl border text-xs", backgroundScene === "none" ? "border-white/80 ring-1 ring-white/40" : "border-white/10 hover:border-white/30")}><span className="text-lg">◌</span>{t("No wallpaper")}</button>
@@ -552,8 +559,8 @@ export default function FocusPage() {
           </div>
       } />
       {(backgroundImage || backgroundScene !== "none") && <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden>
-        {backgroundImage ? <div className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-45" style={{ backgroundImage: `url(${backgroundImage})` }} /> : <FocusWallpaperLayer scene={backgroundScene as Exclude<FocusWallpaper, "none">} failed={wallpaperVideoFailed || !!prefs.theme.reducedMotion} onError={() => setWallpaperVideoFailed(true)} />}
-        <div className="absolute inset-0 bg-gradient-to-b from-[color-mix(in_srgb,var(--bg)_48%,transparent)] via-[color-mix(in_srgb,var(--bg)_72%,transparent)] to-[var(--bg)]" />
+        {backgroundImage ? <div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: `url(${backgroundImage})` }} /> : <FocusWallpaperLayer scene={backgroundScene as Exclude<FocusWallpaper, "none">} failed={wallpaperVideoFailed || !!prefs.theme.reducedMotion} onError={() => setWallpaperVideoFailed(true)} />}
+        <div className="absolute inset-0 bg-gradient-to-b from-[color-mix(in_srgb,var(--bg)_48%,transparent)] via-[color-mix(in_srgb,var(--bg)_72%,transparent)] to-[var(--bg)]" style={{ opacity: backgroundOverlay / 55 }} />
       </div>}
       <div className="relative z-10">
       <div className="grid gap-[var(--gap)] lg:grid-cols-[1fr_340px]">
