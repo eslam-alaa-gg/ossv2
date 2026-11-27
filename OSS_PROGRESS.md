@@ -713,3 +713,103 @@ A follow-up review was performed against the current target-branch source after 
 - Confirmed Host-header URL injection, concurrent token consumption, permissive CSRF metadata handling, unbounded JSON request bodies and unbounded rate-limit bucket growth have been addressed in source.
 - **Phase 09: PARTIAL — NOT COMPLETE.** Code-level security fixes and local authenticated E2E verification are complete. Remaining gates: inspect production database grants / Supabase exposed-schema settings and deployment secret configuration; decide whether RLS is required before any direct Data API exposure; run authenticated load and memory profiling against representative production-like data; and repair the legacy Drizzle snapshot metadata in a separate controlled change. The rate limiter remains per-instance and PostgreSQL RLS remains absent.
 - No production deployment, merge, rebase, reset or force-push was performed during this phase.
+
+
+## Phase 10 — Complete project verification (2026-11-27)
+
+### Final verification scope and outcome
+
+The audit was run against branch `fix/ukiyo-habits-heatmap-focus`, based on the latest pre-audit branch tip `48b2f571e8104d79d47976da57df5a702c6557b8`. The full production build, local PostgreSQL migrations, authenticated API suite and Chromium responsive suite were executed after syncing the branch's latest Phase 09 security/CI changes.
+
+**Final test totals: 89 passed, 0 failed, 4 areas blocked or not fully verifiable.**
+
+| Check | Result | Evidence |
+|---|---:|---|
+| TypeScript | PASS | `npm run typecheck` |
+| ESLint | PASS | `npm run lint`; 0 errors, 54 existing warnings |
+| Production build | PASS | `npm run build` on Next.js 16.4.6 |
+| Database migrations | PASS | `npx drizzle-kit migrate` applied successfully |
+| API integration / authenticated E2E | **44/44 PASS** | `node tests/e2e.mjs` against local PostgreSQL and production-mode server |
+| Desktop / mobile responsive browser checks | **45/45 PASS** | Playwright Chromium: 5 viewport profiles × 9 authenticated routes |
+| Dependency audit | PASS | `npm audit --package-lock=false`; 0 vulnerabilities |
+| Git whitespace validation | PASS | `git diff --check` |
+| Drizzle snapshot consistency check | FAIL (tooling metadata) | `npx drizzle-kit check` flags legacy snapshots `0000_snapshot.json`, `0001_snapshot.json`, `0002_snapshot.json` as malformed; database migrations themselves apply successfully |
+
+### Responsive matrix
+
+The 45 browser checks covered these viewport profiles:
+
+- Desktop: 1440×900
+- Laptop: 1280×800
+- Tablet: 820×1180
+- Mobile portrait: 390×844
+- Mobile landscape: 844×390
+
+Each profile exercised `/dashboard`, `/tasks`, `/habits`, `/focus`, `/study`, `/music`, `/music-bridge`, `/analytics` and `/settings` after completing the authenticated onboarding flow. All 45 navigations returned HTTP 200, had no horizontal overflow, and produced no uncaught browser page errors.
+
+Keyboard and login accessibility smoke checks confirmed that the first Tab focus reaches the visible Skip to content link with a solid 2px outline. The Forgot password and Create an account links now have 44px minimum hit areas. The Skip to content link remains visually hidden until keyboard focus by design.
+
+### Bugs fixed during final verification
+
+1. **Focus Zone mobile overflow:** long segmented controls and timer presets were forcing the Focus card beyond the mobile content width. The shared Card primitive now permits shrinking with `min-w-0`, allowing the segmented controls to scroll within their own bounds.
+2. **Settings mobile overflow:** the implicit single-column grid track could expand to the min-content width of its cards. Settings now declares an explicit one-column mobile grid before switching to two columns at large breakpoints; cards can shrink within the track.
+3. **Login touch targets:** Forgot password and Create an account links were below the 44px touch target benchmark. Both now expose 44px minimum-height hit areas.
+4. **E2E rate-limit interference:** all test clients previously shared one synthetic IP, causing the intended per-IP login throttle test to rate-limit unrelated authentication tests. Each E2E client now receives a distinct reserved test IP; the dedicated throttle test continues to reuse its own client's IP and still proves the IP-level limit works. This was a test-harness isolation issue, not an application authentication failure.
+5. **CI origin configuration:** the latest CI branch configuration supplies a trusted HTTPS `NEXT_PUBLIC_SITE_URL`, so production-mode auth email-link creation has a valid origin during CI tests.
+
+### Feature coverage
+
+- **Authentication / authorization:** signup, login, logout, session cookie attributes, weak/duplicate credentials, protected API/page access, password reset, concurrent single-use reset tokens, account deletion, trusted OAuth callback origin, CSRF and request-size validation.
+- **User isolation / IDOR:** two independent users cannot list, read, modify, delete or cross-link each other's private records; client-supplied `user_id` is ignored.
+- **Habits / heatmap / trackers:** habit targets and history, once-per-day reward behavior, heatmap scoring and per-user isolation, water/reading/learning trackers and idempotent retry handling.
+- **Focus Zone:** early completion rejection, XP validation, concurrent session starts, pause/resume accounting, duplicate state-transition rejection, session ownership, private background/font upload validation.
+- **Study / spaced repetition:** account-scoped subjects/cards, atomic review/history updates, exact schedules for all review ratings, duplicate concurrent review rejection, study suggestion ranking and accept/dismiss persistence.
+- **Music Hub / Spotify / device bridge:** Spotify route authentication/configuration behavior and Music Detection pairing, now-playing update and device revocation isolation. These tests do not substitute for a real Spotify OAuth session or physical native bridge hardware.
+- **Responsive routes:** all nine authenticated product routes listed above across all five viewport profiles.
+
+### Blocked or unverified areas (4)
+
+1. **Dedicated unit tests:** the repository has no standalone unit-test files or `test` script. The available automated functional coverage is the API E2E suite; no unit-test pass is claimed.
+2. **Live Spotify provider integration:** real OAuth authorization, playback control and token refresh were not exercised because no authorized Spotify test account / client credentials were available.
+3. **Native bridge on physical devices:** Android/Windows native bridge build and real device pairing/playback were not exercised on physical hardware. The API-side pairing and revocation integration tests passed.
+4. **Physical-device accessibility and gestures:** Chromium viewport emulation passed, but physical iOS/Android device testing, screen-reader review, OS-level orientation/fullscreen behavior and hardware touch/drag gestures remain unverified.
+
+### Remaining known issues
+
+- `npx drizzle-kit check` continues to flag the three legacy snapshot JSON files as malformed. This is distinct from migration execution: `npx drizzle-kit migrate` passed. Do not rewrite historical snapshots as part of this report without a controlled migration-metadata repair.
+- ESLint reports 54 warnings (0 errors), including existing image optimization and React effect-state warnings.
+- PostgreSQL RLS is not defined for the `ossv2` schema. Current private-data isolation depends on server-side session validation and owner-scoped queries. Keep direct client-facing Data API access disabled unless per-user RLS policies and grants are added and tested.
+- The in-memory rate limiter is bounded but remains per server instance; it is not a globally consistent distributed limiter.
+- Live third-party OAuth, email delivery, push delivery and native device integrations still require deployment credentials and provider/device-specific verification.
+
+### Files modified in Phase 10
+
+- `src/components/ui.tsx` — allow Card content to shrink safely inside narrow grid tracks.
+- `src/app/(app)/settings/page.tsx` — explicit single-column mobile grid.
+- `src/app/(auth)/login/page.tsx` — 44px login link hit areas.
+- `tests/e2e.mjs` — isolated synthetic client IPs while retaining the per-IP throttling test.
+- `OSS_PROGRESS.md` — this final verification report.
+
+### Commands executed
+
+```bash
+npm run typecheck
+npm run lint
+npm run build
+npx drizzle-kit migrate
+node tests/e2e.mjs
+node /tmp/oss-responsive/phase10-responsive.cjs
+npm audit --package-lock=false
+npx drizzle-kit check
+git diff --check
+```
+
+### Final status
+
+- Test cases: **89 passed / 0 failed**.
+- Blocked or unverified areas: **4**, listed above.
+- Separate diagnostic failure: Drizzle snapshot consistency check (3 legacy snapshots); migration application passed.
+- Current branch: `fix/ukiyo-habits-heatmap-focus`.
+- Verification base commit: `48b2f571e8104d79d47976da57df5a702c6557b8`; the final Phase 10 report/fixes are committed separately after that base.
+- No merge into `main`, Preview deployment, Production deployment, rebase, reset or force-push was performed.
+- **Phase 10: PARTIAL — NOT COMPLETE.** The available automated checks pass, but the four unverified areas and the Drizzle metadata issue must be resolved before claiming complete project verification.

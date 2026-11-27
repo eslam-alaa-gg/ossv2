@@ -9,9 +9,11 @@ let passed = 0;
 const results = [];
 
 class Client {
+  static nextTestIp = 1;
+  testIp = `198.51.100.${Client.nextTestIp++}`;
   jar = {};
   async req(method, path, body, raw) {
-    const headers = {};
+    const headers = { "X-Forwarded-For": this.testIp };
     if (!["GET", "HEAD", "OPTIONS"].includes(method)) {
       headers.Origin = BASE;
       headers["Sec-Fetch-Site"] = "same-origin";

@@ -28,7 +28,7 @@ export default function LoginPage() {
   }
 
   return (
-    <AuthShell title="Welcome back" subtitle="Sign in to your private workspace" footer={<>{t("New to Ukiyo?")} <Link href="/signup" className="font-medium text-accent">{t("Create an account")}</Link></>}>
+    <AuthShell title="Welcome back" subtitle="Sign in to your private workspace" footer={<>{t("New to Ukiyo?")} <Link href="/signup" className="inline-flex min-h-11 items-center px-2 font-medium text-accent">{t("Create an account")}</Link></>}>
       <GoogleSignInButton next="/dashboard" />
       <div className="my-5 flex items-center gap-3 text-xs text-faint"><span className="h-px flex-1 bg-[var(--border)]" /> {t("or use email")} <span className="h-px flex-1 bg-[var(--border)]" /></div>
       <form onSubmit={submit} className="space-y-4" noValidate>
@@ -38,7 +38,7 @@ export default function LoginPage() {
         <Field label={t("Password")}>
           <input className="input" type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" aria-label={t("Password")} />
         </Field>
-        <div className="text-end text-xs"><Link href="/forgot-password" className="text-muted hover:text-fg">{t("Forgot password?")}</Link></div>
+        <div className="flex justify-end text-xs"><Link href="/forgot-password" className="inline-flex min-h-11 items-center px-2 text-muted hover:text-fg">{t("Forgot password?")}</Link></div>
         {error && <p role="alert" className="rounded-lg border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">{error}</p>}
         <Button type="submit" variant="primary" className="h-11 w-full" loading={busy} disabled={!email || !password}>{t("Sign In")}</Button>
       </form>

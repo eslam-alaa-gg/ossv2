@@ -36,7 +36,7 @@ export function LinkButton({ href, children, variant = "glass", className, ...p 
 /* ------------------------------- surfaces ----------------------------- */
 export function Card({ children, className, hover, pad = true, ...p }: { children: ReactNode; className?: string; hover?: boolean; pad?: boolean } & React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cn("glass", pad && "card-pad", hover && "card-hover", className)} {...p}>
+    <div className={cn("glass min-w-0", pad && "card-pad", hover && "card-hover", className)} {...p}>
       {children}
     </div>
   );
