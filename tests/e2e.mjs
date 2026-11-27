@@ -248,6 +248,23 @@ await test("spaced repetition review updates schedule and history atomically", a
   assert.equal((await B.req("POST", "/api/study/review", { cardId: card.id, rating: "easy" })).status, 404);
 });
 
+await test("study review rejects concurrent duplicate ratings for the same card", async () => {
+  const created = await A.req("POST", "/api/study/flashcards", {
+    front: "Concurrent review guard",
+    back: "Only one review should be accepted",
+  });
+  assert.equal(created.status, 200, created.text);
+  const cardId = created.json.card.id;
+  const results = await Promise.all([
+    A.req("POST", "/api/study/review", { cardId, rating: "good" }),
+    A.req("POST", "/api/study/review", { cardId, rating: "easy" }),
+  ]);
+  assert.deepEqual(results.map((result) => result.status).sort(), [200, 409]);
+  const stored = (await A.req("GET", "/api/study/flashcards")).json.cards.find((item) => item.id === cardId);
+  assert.equal(stored.repetitions, 1);
+  assert.ok(new Date(stored.dueAt).getTime() > Date.now());
+});
+
 await test("daily study suggestions rank study work and persist accept/dismiss decisions", async () => {
   const initial = await A.req("GET", "/api/study/suggestions");
   assert.equal(initial.status, 200);
