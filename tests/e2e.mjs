@@ -306,6 +306,20 @@ await test("water, reading and learning trackers persist per user and update lin
   assert.equal((await B.req("DELETE", `/api/trackers/reading?id=${tracker.reading.entries[0].id}`)).status, 404);
 });
 
+await test("tracker retries with the same clientActionId never duplicate persisted entries", async () => {
+  const actionId = "d6c8a4f0-91a7-4d3b-9b31-2c6f1a7e5d40";
+  const before = (await A.req("GET", "/api/trackers")).json;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    assert.equal((await A.req("POST", "/api/trackers/water", { ml: 250, clientActionId: actionId })).status, 200);
+    assert.equal((await A.req("POST", "/api/trackers/reading", { book: "Idempotent book", pages: 3, clientActionId: actionId })).status, 200);
+    assert.equal((await A.req("POST", "/api/trackers/learning", { title: "Idempotent concept", explanation: "", clientActionId: actionId })).status, 200);
+  }
+  const after = (await A.req("GET", "/api/trackers")).json;
+  assert.equal(after.water.total - before.water.total, 250);
+  assert.equal(after.reading.todayPages - before.reading.todayPages, 3);
+  assert.equal(after.learning.todayCount - before.learning.todayCount, 1);
+});
+
 
 await test("focus pause and resume preserve active time and enforce session ownership", async () => {
   const session = (await A.req("POST", "/api/focus", { mode: "focus", minutes: 5 })).json.session;
