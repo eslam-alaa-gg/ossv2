@@ -822,6 +822,7 @@ git diff --check
 - Replaced the Dashboard YouTube Music external-link placeholder with the existing shared YouTube player component. Selecting `YouTube Music` in the Dashboard Music source selector now exposes in-app search, result selection and the official embedded player.
 - Promoted the Focus Room music control to a clearly labelled **Search music** action in the top-right PageHeader actions. Its popover contains the YouTube search/player; immersive Focus mode places the same control at the top-right.
 - Selecting a result requests autoplay in the official YouTube embed after the user's selection. Browser autoplay rules may still require pressing Play in the embedded player.
+- Search requests prioritize YouTube's official Music video category (`videoCategoryId=10`) while filtering for embeddable videos.
 - Hardened persisted player state by validating YouTube video IDs and thumbnail hosts, capped restored results, and prevented stale search responses from replacing newer results.
 - Added authenticated YouTube search request limits per user and IP. These use the existing bounded in-memory limiter and therefore remain per server instance, not globally distributed.
 - Removed the retired Demo Mode walkthrough from README and updated setup/feature documentation to describe the actual embedded YouTube behavior and its limitations.
