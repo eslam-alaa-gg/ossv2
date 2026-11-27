@@ -332,6 +332,7 @@ export default function StudyPage() {
               <div className="mb-2 flex items-center justify-between gap-3"><div><p className="text-sm font-semibold">{t("Learning progress")}</p><p className="mt-1 text-xs text-muted">{reviewedFlashcards} {t("reviewed cards")} · {newFlashcards} {t("new cards")}</p></div><span className="text-sm font-semibold tabular-nums">{reviewProgress}%</span></div>
               <div className="h-2 overflow-hidden rounded-full bg-line" role="progressbar" aria-label={t("Reviewed flashcards")} aria-valuemin={0} aria-valuemax={100} aria-valuenow={reviewProgress}><div className="h-full rounded-full bg-accent transition-[width]" style={{ width: String(reviewProgress) + "%" }} /></div>
             </section>
+            {dailySuggestions.error && !dailySuggestions.data && <div className="rounded-xl border border-line p-3 text-sm"><p className="text-muted">{dailySuggestions.error}</p><Button className="mt-2" size="sm" variant="secondary" onClick={() => void dailySuggestions.reload()}>{t("Try again")}</Button></div>}
             {dailySuggestions.data?.suggestions.some((item) => item.status !== "dismissed") && <section className="space-y-2 rounded-xl border border-line bg-card/70 p-3">
               <div className="flex items-center justify-between gap-2">
                 <div><p className="text-xs font-semibold uppercase tracking-wide text-accent">{t("Daily study suggestions")}</p><p className="mt-1 text-xs text-muted">{t("A small, practical plan based on your open tasks, due reviews and weekly focus time.")} <span className="text-muted">· {dailySuggestions.data.focusMinutesThisWeek} {t("focus min this week")}</span></p></div>
@@ -364,7 +365,7 @@ export default function StudyPage() {
               </div>
             </div>}
             {studyTasks.some((task) => !!task.dueDate && task.dueDate < localDate()) && <p className="text-xs text-amber-400">{t("Overdue tasks receive extra priority in your study plan.")}</p>}
-            {tasks.loading ? <p className="py-6 text-center text-sm text-muted">{t("Loading…")}</p> : studyTasks.length ? <ul className="space-y-2">{studyTasks.map((task) => <li key={task.id} className="flex items-center gap-3 rounded-xl border border-line bg-card p-3">
+            {tasks.loading && !tasks.data ? <p className="py-6 text-center text-sm text-muted">{t("Loading…")}</p> : tasks.error && !tasks.data ? <div className="rounded-xl border border-line p-4 text-center"><p className="text-sm text-muted">{tasks.error}</p><Button className="mt-3" size="sm" variant="secondary" onClick={() => void tasks.reload()}>{t("Try again")}</Button></div> : studyTasks.length ? <ul className="space-y-2">{studyTasks.map((task) => <li key={task.id} className="flex items-center gap-3 rounded-xl border border-line bg-card p-3">
               <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-accent/10 text-accent"><BookOpen className="size-4" /></span>
               <div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{task.title}</p><p className="text-xs text-muted">{task.dueDate ?? t("No due date")} · {t(task.status)}</p>{task.dueDate && task.dueDate < localDate() && <Badge tone="red">{t("Overdue")}</Badge>}</div>
               <Badge tone={task.priority === "urgent" ? "red" : undefined}>{t(task.priority)}</Badge>
