@@ -59,7 +59,7 @@ await test("duplicate email rejected, weak password rejected, wrong password rej
   assert.equal((await anon.req("POST", "/api/auth/login", { email: emailA, password: "wrong-password" })).status, 401);
 });
 await test("protected API routes require auth (401)", async () => {
-  for (const p of ["/api/me", "/api/tasks", "/api/habits", "/api/goals", "/api/notes", "/api/journal", "/api/focus", "/api/dashboard", "/api/analytics", "/api/export", "/api/notifications", "/api/me/avatar", "/api/youtube/search?q=lofi"]) {
+  for (const p of ["/api/me", "/api/tasks", "/api/habits", "/api/goals", "/api/notes", "/api/journal", "/api/focus", "/api/dashboard", "/api/analytics", "/api/export", "/api/notifications", "/api/me/avatar", "/api/search?q=Secret", "/api/youtube/search?q=lofi"]) {
     assert.equal((await anon.req("GET", p)).status, 401, p);
   }
 });
@@ -84,6 +84,14 @@ await test("A creates task, note, goal, milestone, habit", async () => {
   habitA = (await A.req("POST", "/api/habits", { name: "Habit A", reminderTime: "08:15" })).json.habit;
   assert.ok(taskA?.id && noteA?.id && goalA?.id && msA?.id && habitA?.id);
   assert.equal(habitA.reminderTime, "08:15", "valid reminder times are accepted");
+});
+await test("global search finds owned tasks and note content without leaking records", async () => {
+  const taskResults = (await A.req("GET", "/api/search?q=Secret%20task")).json.results;
+  assert.ok(taskResults.some((item) => item.kind === "Task" && item.title === "Secret task A"));
+  const noteResults = (await A.req("GET", "/api/search?q=top%20secret")).json.results;
+  assert.ok(noteResults.some((item) => item.kind === "Note" && item.title === "Private note A"));
+  assert.deepEqual((await B.req("GET", "/api/search?q=top%20secret")).json.results, []);
+  assert.deepEqual((await A.req("GET", "/api/search?q=%25%25")).json.results, []);
 });
 await test("habit targets can be edited and historical daily progress persists", async () => {
   const created = await A.req("POST", "/api/habits", { name: "Historical target test", target: 1 });
