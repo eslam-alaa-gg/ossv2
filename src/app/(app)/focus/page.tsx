@@ -1,6 +1,7 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
-import { ImagePlus, Keyboard, Maximize2, Minimize2, Music2, Pause, Play, RotateCcw, SkipBack, SkipForward, Square, Trash2, Volume2, VolumeX } from "lucide-react";
+import { ImagePlus, Keyboard, Maximize2, Minimize2, Music2, Palette, Pause, Play, RotateCcw, SkipBack, SkipForward, Square, Trash2, Video, Volume2, VolumeX } from "lucide-react";
+import { PRESETS as THEME_PRESETS } from "@/lib/theme";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useApp } from "@/components/providers";
 import { PriorityBadge, type Task } from "@/components/task-form";
@@ -16,7 +17,7 @@ type Mode = "focus" | "short_break" | "long_break" | "custom";
 const MODES: { value: Mode; label: string; min: number }[] = [{ value: "focus", label: "Standard Focus", min: 25 }, { value: "short_break", label: "Short Break", min: 5 }, { value: "long_break", label: "Long Break", min: 15 }, { value: "custom", label: "Custom Session", min: 30 }];
 const PRESETS = [15, 25, 45, 60];
 type FocusWallpaper = "none" | "forest" | "ocean" | "rain" | "sunset" | "cosmos";
-type TimerStyle = "ring" | "digital" | "minimal" | "bar";
+type TimerStyle = "ring" | "digital" | "minimal" | "bar" | "orbit";
 const WALLPAPER_VIDEO_URLS: Record<Exclude<FocusWallpaper, "none">, string> = {
   forest: "https://assets.mixkit.co/videos/preview/mixkit-waterfall-in-forest-2213-large.mp4",
   ocean: "https://assets.mixkit.co/videos/preview/mixkit-waves-coming-to-the-beach-5016-large.mp4",
@@ -148,7 +149,7 @@ function FocusNowPlaying({ immersive = false }: { immersive?: boolean }) {
           </div>
         </> : <div className="py-2 text-center"><Music2 className="mx-auto mb-2 size-6 text-white/55" /><p className="text-sm font-medium">{status?.connected ? t("Nothing playing") : t("Connect Spotify")}</p><p className="mt-1 text-xs text-white/55">{status?.connected ? t("Start playback in Spotify and it will show up here.") : t("Connect Spotify to see what you're listening to.")}</p><a href="/music" className="mt-3 inline-flex rounded-full bg-white/10 px-4 py-2 text-xs font-medium hover:bg-white/15">{t("Open Music Hub")}</a></div>}
         {message && <p role="status" className="mt-2 text-center text-xs text-amber-300">{message}</p>}
-        <div className="mt-3 border-t border-white/10 pt-3"><YouTubeMusicPlayer compact onTrackChange={setYoutubeTrack} spotifyPlaying={!!spotifyNowPlaying?.playing} /></div>
+        <div className="mt-3 border-t border-white/10 pt-3"><YouTubeMusicPlayer compact onTrackChange={setYoutubeTrack} /></div>
       </div>}
     </div>
   );
@@ -171,6 +172,8 @@ export default function FocusPage() {
   const [volume, setVolume] = useState(prefs.focus.volume);
   const [audioOn, setAudioOn] = useState(false);
   const [soundOpen, setSoundOpen] = useState(false);
+  const [backgroundOpen, setBackgroundOpen] = useState(false);
+  const [themeOpen, setThemeOpen] = useState(false);
   const soundPanelRef = useRef<HTMLDivElement>(null);
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
   const [backgroundScene, setBackgroundScene] = useState<FocusWallpaper>(prefs.focus.background);
@@ -462,6 +465,20 @@ export default function FocusPage() {
           <div className="h-1.5 w-full max-w-[340px] overflow-hidden rounded-full bg-white/15"><div className="h-full rounded-full bg-white/80 transition-[width] duration-500" style={{ width: `${pct}%` }} /></div>
           <p className="mt-4 max-w-[80%] truncate text-sm text-white/65">{task?.title ?? t("Ready when you are")}</p>
         </div>
+      ) : timerStyle === "orbit" ? (
+        <div className="relative grid place-items-center" style={{ width: "min(78vw, 360px)", aspectRatio: "1" }}>
+          <svg viewBox="0 0 340 340" className="absolute inset-0" aria-hidden>
+            <circle cx="170" cy="170" r="132" fill="none" stroke="var(--input)" strokeWidth="1.5" strokeDasharray="3 9" />
+            <circle cx="170" cy="170" r="104" fill="none" stroke="var(--input)" strokeWidth="1" />
+            <circle cx="170" cy="170" r="132" fill="none" stroke="var(--accent)" strokeWidth="3" strokeLinecap="round" strokeDasharray={2 * Math.PI * 132} strokeDashoffset={2 * Math.PI * 132 * (1 - pct / 100)} transform="rotate(-90 170 170)" style={{ transition: "stroke-dashoffset .5s linear", filter: "drop-shadow(0 0 8px rgba(var(--accent-rgb),.45))" }} />
+            <circle cx="170" cy="38" r="6" fill="var(--accent)" style={{ transformOrigin: "170px 170px", transform: `rotate(${pct * 3.6}deg)` }} />
+          </svg>
+          <div className="text-center">
+            <p className="text-xs uppercase tracking-[0.25em] text-faint">{t(MODES.find((m) => m.value === mode)?.label ?? "Focus")}</p>
+            <p role="timer" aria-live="off" className="my-2 text-[clamp(3.2rem,14vw,5.5rem)] font-light tabular-nums leading-none tracking-tight">{mmss(remaining)}</p>
+            <p className="mx-auto max-w-[14rem] truncate text-sm text-muted">{task?.title ?? t("Stay with it")}</p>
+          </div>
+        </div>
       ) : timerStyle === "minimal" ? (
         <div className="flex min-h-[220px] w-full flex-col items-center justify-center py-8">
           <p className="mb-4 text-xs uppercase tracking-[0.32em] text-faint">{t(MODES.find((m) => m.value === mode)?.label ?? "Focus")}</p>
@@ -517,7 +534,7 @@ export default function FocusPage() {
         <div className="flex w-full flex-wrap items-center justify-center gap-3 rounded-2xl border border-white/10 bg-black/25 p-3 backdrop-blur-xl">
           <select className="input w-auto" value={taskId} onChange={(e) => setTaskId(e.target.value)} disabled={phase !== "idle"} aria-label={t("Focus on a task (optional)")}><option value="">{t("No task — general focus")}</option>{data?.tasks.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}</select>
           <Segmented value={mode} onChange={pickMode} label={t("Focus mode")} options={MODES.map((m) => ({ value: m.value, label: t(m.label) }))} />
-          <Segmented value={timerStyle} onChange={(value) => void selectTimerStyle(value as TimerStyle)} label={t("Timer style")} options={[{ value: "ring", label: t("Ring") }, { value: "digital", label: t("Digital") }, { value: "minimal", label: t("Minimal") }, { value: "bar", label: t("Progress bar") }]} />
+          <Segmented value={timerStyle} onChange={(value) => void selectTimerStyle(value as TimerStyle)} label={t("Timer style")} options={[{ value: "ring", label: t("Ring") }, { value: "digital", label: t("Digital") }, { value: "minimal", label: t("Minimal") }, { value: "bar", label: t("Progress bar") }, { value: "orbit", label: t("Orbit") }]} />
           {(mode === "focus" || mode === "custom") && <>
             {PRESETS.map((p) => <button key={p} type="button" disabled={phase !== "idle"} onClick={() => setDuration(p)} aria-pressed={minutes === p} className={cn("chip px-3 py-1 text-sm", minutes === p && "!border-accent !text-fg", "disabled:opacity-40")}>{p} {t("min")}</button>)}
             <label className="chip px-3 py-1 text-sm">{t("Custom")} <input type="number" min={1} max={240} disabled={phase !== "idle"} value={minutes} onChange={(e) => setDuration(Number(e.target.value))} className="w-14 bg-transparent text-center outline-none" aria-label={t("Custom minutes")} /> {t("min")}</label>
@@ -541,12 +558,39 @@ export default function FocusPage() {
   return (
     <>
       <PageHeader title={t("Focus Room")} subtitle={t("Deep work, one session at a time.")} actions={
-        <div ref={soundPanelRef} className="relative">
-          <Button variant="ghost" size="sm" onClick={() => setSoundOpen((value) => !value)} aria-haspopup="dialog" aria-expanded={soundOpen}>
-            {audioOn && sound !== "none" ? <Volume2 className="size-4" /> : <VolumeX className="size-4" />}
-            {t("Sound settings")}
-          </Button>
-          {soundOpen && <div role="dialog" aria-label={t("Sound settings")} className="absolute end-0 top-[calc(100%+8px)] z-50 w-[min(90vw,320px)] rounded-2xl border border-line bg-pop p-4 shadow-2xl">
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          <div className="relative">
+            <Button variant="ghost" size="icon" className="size-9 rounded-full border border-line bg-card/70 backdrop-blur-xl" onClick={() => { setThemeOpen((value) => !value); setBackgroundOpen(false); setSoundOpen(false); }} aria-label={t("Focus theme")} aria-haspopup="dialog" aria-expanded={themeOpen}><Palette className="size-4" /></Button>
+            {themeOpen && <div role="dialog" aria-label={t("Focus theme")} className="absolute end-0 top-[calc(100%+10px)] z-50 w-[min(90vw,300px)] rounded-2xl border border-white/15 bg-[#11131b]/90 p-3 text-white shadow-2xl backdrop-blur-2xl">
+              <div className="mb-3 flex items-center justify-between"><p className="text-sm font-semibold">{t("Theme")}</p><button type="button" onClick={() => setThemeOpen(false)} aria-label={t("Close")} className="rounded-lg p-1 text-white/60 hover:bg-white/10">×</button></div>
+              <div className="grid grid-cols-3 gap-2">
+                {THEME_PRESETS.map((item) => <button key={item.id} type="button" onClick={() => void savePrefs({ theme: { ...prefs.theme, preset: item.id, accent: item.accent } })} aria-pressed={prefs.theme.preset === item.id} className={cn("flex items-center gap-2 rounded-xl border p-2 text-xs", prefs.theme.preset === item.id ? "border-white/70 bg-white/15" : "border-white/10 bg-white/5 hover:bg-white/10")}><span className="size-3 shrink-0 rounded-full" style={{ background: item.accent }} />{t(item.name)}</button>)}
+              </div>
+              <div className="mt-3 grid grid-cols-3 gap-2">
+                {(["dark", "light", "system"] as const).map((modeOption) => <button key={modeOption} type="button" onClick={() => void savePrefs({ theme: { ...prefs.theme, mode: modeOption } })} aria-pressed={prefs.theme.mode === modeOption} className={cn("rounded-lg border px-2 py-2 text-xs capitalize", prefs.theme.mode === modeOption ? "border-white/70 bg-white/15" : "border-white/10 bg-white/5")}>{t(modeOption === "system" ? "System" : modeOption === "dark" ? "Dark" : "Light")}</button>)}
+              </div>
+              <a href="/themes" className="mt-3 block text-center text-xs text-white/65 underline underline-offset-4">{t("Open Theme Studio")}</a>
+            </div>}
+          </div>
+          <div className="relative">
+            <Button variant="ghost" size="icon" className="size-9 rounded-full border border-line bg-card/70 backdrop-blur-xl" onClick={() => { setBackgroundOpen((value) => !value); setThemeOpen(false); setSoundOpen(false); }} aria-label={t("Focus background")} aria-haspopup="dialog" aria-expanded={backgroundOpen}><Video className="size-4" /></Button>
+            {backgroundOpen && <div role="dialog" aria-label={t("Focus background")} className="absolute end-0 top-[calc(100%+10px)] z-50 max-h-[min(78vh,620px)] w-[min(92vw,360px)] overflow-y-auto rounded-2xl border border-white/15 bg-[#11131b]/92 p-3 text-white shadow-2xl backdrop-blur-2xl">
+              <div className="mb-3 flex items-center justify-between"><p className="text-sm font-semibold">{t("Focus background")}</p><button type="button" onClick={() => setBackgroundOpen(false)} aria-label={t("Close")} className="rounded-lg p-1 text-white/60 hover:bg-white/10">×</button></div>
+              <p className="mb-2 text-[11px] text-white/55">{t("Choose one of five looping video wallpapers. Your selection is saved to your account.")}</p>
+              <div className="grid grid-cols-2 gap-2">
+                {WALLPAPERS.map((wallpaper) => <button key={wallpaper.id} type="button" onClick={() => void selectWallpaper(wallpaper.id)} aria-pressed={backgroundScene === wallpaper.id} className={cn("group overflow-hidden rounded-xl border text-start transition", backgroundScene === wallpaper.id ? "border-white/80 ring-1 ring-white/40" : "border-white/10 hover:border-white/30")}><div className={`focus-wallpaper-preview focus-wallpaper-${wallpaper.id}`} /><span className="block px-2.5 py-2 text-xs font-medium">{t(wallpaper.label)}</span></button>)}
+                <button type="button" onClick={() => void selectWallpaper("none")} aria-pressed={backgroundScene === "none"} className={cn("flex min-h-[86px] flex-col items-center justify-center gap-1 rounded-xl border text-xs", backgroundScene === "none" ? "border-white/80 ring-1 ring-white/40" : "border-white/10 hover:border-white/30")}><span className="text-lg">◌</span>{t("No wallpaper")}</button>
+              </div>
+              <div className="my-3 border-t border-white/10" />
+              <label className="flex h-10 cursor-pointer items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/10 text-sm transition hover:bg-white/15"><ImagePlus className="size-4" />{t("Upload background image")}<input type="file" accept="image/*" className="sr-only" onChange={(e) => { const file = e.target.files?.[0]; if (file) void uploadFocusBackground(file); e.currentTarget.value = ""; }} /></label>
+              <p className="mt-2 text-[10px] text-white/45">{t("Images are compressed to 450 KB or less and saved privately to your account.")}</p>
+              {imageMessage && <p role="status" className="mt-2 text-xs text-white/70">{imageMessage}</p>}
+              {backgroundImage && <button type="button" onClick={removeFocusBackground} className="mt-2 flex items-center gap-1.5 text-xs text-white/60 hover:text-white"><Trash2 className="size-3.5" />{t("Remove background image")}</button>}
+            </div>}
+          </div>
+          <div className="relative">
+            <Button variant="ghost" size="icon" className="size-9 rounded-full border border-line bg-card/70 backdrop-blur-xl" onClick={() => { setSoundOpen((value) => !value); setThemeOpen(false); setBackgroundOpen(false); }} aria-haspopup="dialog" aria-expanded={soundOpen} aria-label={t("Sound settings")}>{audioOn && sound !== "none" ? <Volume2 className="size-4" /> : <VolumeX className="size-4" />}</Button>
+            {soundOpen && <div role="dialog" aria-label={t("Sound settings")} className="absolute end-0 top-[calc(100%+10px)] z-50 w-[min(90vw,320px)] rounded-2xl border border-white/15 bg-[#11131b]/92 p-4 text-white shadow-2xl backdrop-blur-2xl">
             <div className="mb-3 flex items-center justify-between"><p className="text-sm font-semibold">{t("Ambient sound")}</p><button type="button" onClick={() => setSoundOpen(false)} aria-label={t("Close")} className="rounded-md p-1 text-muted hover:bg-card">×</button></div>
             <div className="grid grid-cols-2 gap-2">
               <button type="button" onClick={() => { setSound("none"); setAudioOn(false); }} aria-pressed={sound === "none"} className={cn("rounded-xl border px-3 py-2 text-sm", sound === "none" ? "border-accent bg-accent/10" : "border-line")}>{t("Silent")}</button>
@@ -566,12 +610,12 @@ export default function FocusPage() {
         <div className="absolute inset-0 bg-gradient-to-b from-[color-mix(in_srgb,var(--bg)_48%,transparent)] via-[color-mix(in_srgb,var(--bg)_72%,transparent)] to-[var(--bg)]" />
       </div>}
       <div className="relative z-10">
-      <div className="mb-4 flex justify-center"><FocusNowPlaying /></div>
+      <div className="mb-4 flex justify-end"><FocusNowPlaying /></div>
       <div className="grid gap-[var(--gap)] lg:grid-cols-[1fr_340px]">
         <Card className="flex flex-col items-center py-8">
           <div className="mb-6 flex w-full flex-col items-center gap-3">
             <Segmented value={mode} onChange={pickMode} label={t("Focus mode")} options={MODES.map((m) => ({ value: m.value, label: t(m.label) }))} />
-            <Segmented value={timerStyle} onChange={(value) => void selectTimerStyle(value as TimerStyle)} label={t("Timer style")} options={[{ value: "ring", label: t("Ring") }, { value: "digital", label: t("Digital") }, { value: "minimal", label: t("Minimal") }, { value: "bar", label: t("Progress bar") }]} />
+            <Segmented value={timerStyle} onChange={(value) => void selectTimerStyle(value as TimerStyle)} label={t("Timer style")} options={[{ value: "ring", label: t("Ring") }, { value: "digital", label: t("Digital") }, { value: "minimal", label: t("Minimal") }, { value: "bar", label: t("Progress bar") }, { value: "orbit", label: t("Orbit") }]} />
             {(mode === "focus" || mode === "custom") && (
               <div className="flex flex-wrap items-center justify-center gap-2">
                 {PRESETS.map((p) => <button key={p} disabled={phase !== "idle"} onClick={() => setDuration(p)} aria-pressed={minutes === p} className={cn("chip px-3 py-1 text-sm disabled:opacity-50", minutes === p && "!border-accent !text-fg")}>{p} {t("min")}</button>)}
@@ -591,27 +635,6 @@ export default function FocusPage() {
             </Field>
             {task && <div className="mt-3 flex items-center gap-2 text-sm"><PriorityBadge p={task.priority} /><span className="truncate text-muted">{task.title}</span></div>}
             {data && data.tasks.length === 0 && <p className="mt-2 text-xs text-faint">{t("No pending tasks. Create one to link sessions to it.")}</p>}
-          </Card>
-          <Card>
-            <div className="mb-3 flex items-center justify-between"><h2 className="text-sm font-medium text-muted">{t("Focus background")}</h2>{(backgroundImage || backgroundScene !== "none") && <Badge tone="green">{t("Ready")}</Badge>}</div>
-            <p className="mb-3 text-xs text-faint">{t("Choose one of five looping video wallpapers. Your selection is saved to your account.")}</p>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {WALLPAPERS.map((wallpaper) => <button key={wallpaper.id} type="button" onClick={() => void selectWallpaper(wallpaper.id)} aria-pressed={backgroundScene === wallpaper.id} className={cn("group overflow-hidden rounded-xl border text-start transition", backgroundScene === wallpaper.id ? "border-accent ring-1 ring-accent/40" : "border-line hover:border-[var(--border-strong)]")}>
-                <div className={`focus-wallpaper-preview focus-wallpaper-${wallpaper.id}`} />
-                <span className="block px-2.5 py-2 text-xs font-medium">{t(wallpaper.label)}</span>
-              </button>)}
-              <button type="button" onClick={() => void selectWallpaper("none")} aria-pressed={backgroundScene === "none"} className={cn("flex min-h-[86px] flex-col items-center justify-center gap-1 rounded-xl border text-xs", backgroundScene === "none" ? "border-accent ring-1 ring-accent/40" : "border-line hover:border-[var(--border-strong)]")}><span className="text-lg">◌</span>{t("No wallpaper")}</button>
-            </div>
-            {backgroundImage && <p className="mt-3 text-[11px] text-faint">{t("Your uploaded image currently appears above the selected live wallpaper.")}</p>}
-            <div className="my-3 border-t border-line" />
-            <label className="glass-btn btn-secondary flex h-10 cursor-pointer items-center justify-center gap-2 text-sm">
-              <ImagePlus className="size-4" /> {t("Upload background image")}
-              <input type="file" accept="image/*" className="sr-only" onChange={(e) => { const file = e.target.files?.[0]; if (file) void uploadFocusBackground(file); e.currentTarget.value = ""; }} />
-            </label>
-            <p className="mt-2 text-xs text-faint">{t("Images are compressed to 450 KB or less and saved privately to your account.")}</p>
-            <p className="mt-2 text-xs text-muted">{t("Tap")} <a className="text-accent underline" href="https://share.google/XH6X3uwEOF0VNJKzi" target="_blank" rel="noreferrer">{t("here")}</a> {t("to reduce image quality before uploading.")}</p>
-            {imageMessage && <p role="status" className="mt-2 text-xs text-muted">{imageMessage}</p>}
-            {backgroundImage && <button type="button" onClick={removeFocusBackground} className="mt-2 flex items-center gap-1.5 text-xs text-muted hover:text-fg"><Trash2 className="size-3.5" /> {t("Remove background")}</button>}
           </Card>
           <Card>
             <h2 className="mb-3 text-sm font-medium text-muted">{t("Your focus")}</h2>
