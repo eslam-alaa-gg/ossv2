@@ -384,3 +384,81 @@ The five existing video scene choices and their fallback CSS animations were ret
 - [ ] Drag/resize behavior: no draggable/resizable control was found in the Focus page itself; no new drag/resize interaction was invented. Existing fullscreen behavior was preserved but still needs browser QA.
 
 **Deployment/integration:** no merge, rebase, production deployment or preview deployment was performed.
+
+
+---
+
+# Phase 05 — Study & Learning System
+
+Phase status: **IMPLEMENTED — automated CI pending; browser/mobile QA not performed**
+Implementation branch: `fix/ukiyo-habits-heatmap-focus`
+
+## Existing system preserved
+
+The existing Study Planner was audited before changes. It already includes:
+- Study subjects with per-user ownership and color metadata.
+- Flashcard create/list/delete workflows and subject association.
+- Spaced-repetition scheduling with Again, Hard, Good and Easy ratings.
+- A server-side due-card query based on `due_at <= now`.
+- Transactional review updates and persisted `flashcard_reviews` history.
+- A daily suggestion engine connected to open Study tasks, due reviews and weekly Focus activity.
+- Study task creation in the shared Tasks system and handoff to the existing Focus Room.
+- User-scoped IndexedDB snapshots and queued offline actions for supported Study mutations.
+
+No parallel flashcard, task, or learning system was created. Existing records and table structures were retained; no data migration was required.
+
+## Confirmed improvements implemented
+
+1. **Review state is now returned consistently**
+   - The existing flashcard list endpoint now includes the persisted `easeFactor` and `lastReviewedAt` fields.
+   - The Study UI can distinguish never-reviewed cards from cards with a saved review without inventing progress from client-only state.
+
+2. **Learning progress summary**
+   - The Study Planner now shows total cards, reviewed cards, new cards and the reviewed-card percentage.
+   - The progress indicator is derived from persisted flashcard fields returned by the API.
+   - The metric is explicitly a reviewed-card count, not an unsupported mastery score.
+
+3. **Offline review preview matches the server scheduler**
+   - The previous optimistic offline update used fixed intervals that did not match the server's actual Hard/Good/Easy algorithm and did not update ease factor or lapses consistently.
+   - Offline optimistic state now mirrors the same interval, ease-factor, repetition, lapse and retry-delay rules as the API. The server remains authoritative when the queued action syncs.
+
+4. **Due queue freshness**
+   - The due-card list refreshes when the Study page regains focus and every 60 seconds while visible and online.
+   - This allows Again cards to re-enter the queue after their ten-minute retry time without requiring a full page reload.
+
+5. **Loading and error recovery**
+   - Subject, flashcard and due-review panels now distinguish initial loading from empty state.
+   - Failed initial requests show the error and a retry action rather than incorrectly displaying an empty collection.
+
+## Regression coverage added
+
+- Added API E2E coverage for all four review ratings.
+- Verifies Again schedules a ten-minute retry and increments lapses while resetting repetitions.
+- Verifies Hard, Good and Easy interval values for a new card.
+- Verifies updated repetitions, lapses, ease factor, last-reviewed timestamp and interval survive a fresh GET.
+- Verifies future-due cards are excluded from the due-only query.
+- Existing tests continue to cover account isolation, review-history transaction behavior, concurrent duplicate-review rejection, daily suggestion persistence and task/Focus handoff.
+
+## Verification boundaries
+
+- [x] Existing Study page, APIs, schema, review transaction, suggestions, offline queue and E2E tests inspected.
+- [x] Existing data model and workflows preserved; no duplicate Study system or schema migration added.
+- [x] API exposes persisted review metadata needed for progress.
+- [x] Progress summary and accessible progress bar added to the Study dashboard.
+- [x] Offline optimistic scheduling aligned with the server algorithm.
+- [x] Due queue refreshes on focus and at a one-minute interval while visible.
+- [x] Loading/error/retry states added for subjects, flashcards and due reviews.
+- [x] Regression tests added for all four rating schedules and persisted results.
+- [ ] TypeScript, ESLint, production build, migrations and API E2E — GitHub Actions run pending at time of this update.
+- [ ] Real desktop/tablet/mobile browser QA, including touch navigation and narrow-screen review controls.
+- [ ] Offline queue replay/reconnect and IndexedDB account-switching behavior require browser/network verification; not claimed as passed.
+- [ ] Real-world timezone boundary testing remains outstanding.
+
+Implementation commits:
+- `df75ebb4dfc5b26f0c52ece7cbcd173accf06d3b` — expose persisted review metadata in flashcard reads.
+- `751817153bad5a83eb4e04a29361ed82db71d651` — learning progress summary, review UX states, due refresh and matching offline schedule preview.
+- `3906676bb43e699d9a8f3c422fe48b8d666962e3` — regression coverage for all rating schedules and persistence.
+
+CI run: [#45988700249](https://github.com/eslam-alaa-gg/ossv2/actions/runs/45988700249) — pending at the time this section was written.
+
+No merge, rebase, reset, force-push, preview deployment or production deployment was performed.
