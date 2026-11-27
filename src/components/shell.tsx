@@ -196,7 +196,9 @@ function CommandMenu({ open, onClose }: { open: boolean; onClose: () => void }) 
   const { t } = useApp();
   const [q, setQ] = useState("");
   const [results, setResults] = useState<{ kind: string; title: string; href: string }[]>([]);
+  const [searchState, setSearchState] = useState<"idle" | "loading" | "error">("idle");
   const [sel, setSel] = useState(0);
+  const searchRequest = useRef(0);
   const signOut = useSignOut();
   const actions = [
     { kind: "Action", title: "Create Task", href: "/tasks?new=1" },
@@ -208,40 +210,79 @@ function CommandMenu({ open, onClose }: { open: boolean; onClose: () => void }) 
     { kind: "Account", title: "Profile", href: "/profile" },
   ];
   useEffect(() => {
-    if (!open) { setQ(""); setResults([]); }
+    if (!open) { setQ(""); setResults([]); setSearchState("idle"); }
   }, [open]);
   useEffect(() => {
-    if (q.trim().length < 2) { setResults([]); return; }
-    const h = setTimeout(() => api<{ results: typeof results }>(`/api/search?q=${encodeURIComponent(q)}`).then((r) => setResults(r.results)).catch(() => {}), 200);
-    return () => clearTimeout(h);
+    const requestId = ++searchRequest.current;
+    const query = q.trim();
+    if (query.length < 2) {
+      setResults([]);
+      setSearchState("idle");
+      return;
+    }
+    setSearchState("loading");
+    const timer = window.setTimeout(() => {
+      api<{ results: typeof results }>(`/api/search?q=${encodeURIComponent(query)}`)
+        .then((response) => {
+          if (searchRequest.current !== requestId) return;
+          setResults(response.results);
+          setSearchState("idle");
+        })
+        .catch(() => {
+          if (searchRequest.current !== requestId) return;
+          setResults([]);
+          setSearchState("error");
+        });
+    }, 180);
+    return () => {
+      window.clearTimeout(timer);
+      searchRequest.current += 1;
+    };
   }, [q]);
-  const filtered = actions.filter((a) => !q || t(a.title).toLowerCase().includes(q.toLowerCase()) || a.title.toLowerCase().includes(q.toLowerCase()));
-  const all = [...filtered, ...results];
+  const filtered = actions.filter((a) => !q || t(a.title).toLowerCase().includes(q.trim().toLowerCase()) || a.title.toLowerCase().includes(q.trim().toLowerCase()));
+  const seen = new Set<string>();
+  const all = [...filtered, ...results].filter((item) => {
+    const key = `${item.kind}:${item.href}:${item.title}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
   useEffect(() => setSel(0), [q]);
+  useEffect(() => setSel((current) => Math.min(current, Math.max(0, all.length - 1))), [all.length]);
   const go = (href: string) => { onClose(); router.push(href); };
   return (
-    <Modal open={open} onClose={onClose} title={t("Command menu")}>
-      <input className="input" placeholder={t("Search or jump to…")} aria-label={t("Search")} value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => {
-        if (e.key === "ArrowDown") { e.preventDefault(); setSel((s) => Math.min(s + 1, all.length - 1)); }
-        if (e.key === "ArrowUp") { e.preventDefault(); setSel((s) => Math.max(s - 1, 0)); }
-        if (e.key === "Enter" && all[sel]) go(all[sel].href);
-      }} />
-      <ul className="mt-3 max-h-80 space-y-0.5 overflow-y-auto" role="listbox">
+    <Modal open={open} onClose={onClose} title={t("Command menu")} wide>
+      <div className="relative">
+        <Search className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-faint" aria-hidden />
+        <input className="input ps-10" placeholder={t("Search or jump to…")} aria-label={t("Search")} aria-controls="command-results" aria-expanded={all.length > 0} aria-autocomplete="list" value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => {
+          if (e.key === "ArrowDown" && all.length) { e.preventDefault(); setSel((s) => Math.min(s + 1, all.length - 1)); }
+          if (e.key === "ArrowUp" && all.length) { e.preventDefault(); setSel((s) => Math.max(s - 1, 0)); }
+          if (e.key === "Enter" && all[sel]) { e.preventDefault(); go(all[sel].href); }
+        }} />
+      </div>
+      <div className="mt-3 flex items-center justify-between gap-3">
+        <p className="text-xs font-medium text-muted">{q.trim().length >= 2 ? t("Search results") : t("Quick actions and navigation")}</p>
+        <span className="kbd">↑ ↓ <span className="mx-1">·</span> Enter</span>
+      </div>
+      <ul id="command-results" className="mt-2 max-h-[min(55vh,420px)] space-y-0.5 overflow-y-auto" role="listbox" aria-label={t("Search results")}>
         {all.map((a, i) => (
-          <li key={a.kind + a.title + i}>
-            <button role="option" aria-selected={i === sel} onMouseEnter={() => setSel(i)} onClick={() => go(a.href)} className={cn("flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm", i === sel && "bg-card")}>
-              <span className="truncate">{a.kind === "Action" || a.kind === "Go to" || a.kind === "Account" ? t(a.title) : a.title}</span>
-              <span className="chip">{t(a.kind)}</span>
+          <li key={a.kind + a.href + a.title}>
+            <button role="option" aria-selected={i === sel} onMouseEnter={() => setSel(i)} onClick={() => go(a.href)} className={cn("flex min-h-10 w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-start text-sm transition-colors", i === sel ? "bg-card text-fg" : "text-muted hover:bg-card hover:text-fg")}>
+              <span className="min-w-0 truncate">{a.kind === "Action" || a.kind === "Go to" || a.kind === "Account" ? t(a.title) : a.title}</span>
+              <span className="chip shrink-0">{t(a.kind)}</span>
             </button>
           </li>
         ))}
-        {q.trim().length >= 2 && !all.length && <li className="py-6 text-center text-sm text-muted">{t("No results")}</li>}
-        <li><button onClick={signOut} className="mt-1 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted hover:bg-card"><LogOut className="size-4" /> {t("Sign out")}</button></li>
+        {searchState === "loading" && <li className="px-3 py-4 text-center text-sm text-muted" role="status">{t("Searching…")}</li>}
+        {searchState === "error" && <li className="px-3 py-4 text-center text-sm text-red-400" role="alert">{t("Search is temporarily unavailable. Try again.")}</li>}
+        {q.trim().length >= 2 && searchState === "idle" && !all.length && <li className="px-3 py-6 text-center text-sm text-muted">{t("No results")}</li>}
       </ul>
+      <div className="mt-2 border-t border-line pt-2">
+        <button onClick={signOut} className="flex min-h-10 w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted transition-colors hover:bg-card hover:text-red-400"><LogOut className="size-4" /> {t("Sign out")}</button>
+      </div>
     </Modal>
   );
 }
-
 
 type QuickHabit = { id: string; name: string; icon: string; kind: "standard" | "water" | "reading" | "learning"; target: number; todayAmount: number; todayDone: boolean; unit: string };
 type QuickTrackers = { today: string; water: { goal: number; total: number }; reading: { target: number; todayPages: number }; learning: { target: number; todayCount: number; entries: { id: string; date: string; title: string }[] } };
@@ -460,8 +501,10 @@ export function AppShell({ children }: { children: ReactNode }) {
       <Sidebar collapsed={collapsed} setCollapsed={toggle} />
       <div className={cn("min-h-dvh transition-[padding] duration-300", collapsed ? "lg:ps-[92px]" : "lg:ps-[272px]")}>
         <header className="app-topbar glass-panel sticky top-2 z-30 mx-auto mt-2 flex h-[54px] w-[calc(100%-1.25rem)] max-w-[1120px] items-center gap-2 px-3 py-1.5 sm:gap-3 sm:px-4 lg:px-5">
-          <button onClick={() => setCmd(true)} className="header-icon-btn glass-btn btn-ghost btn-icon h-9 w-9 shrink-0" aria-label={t("Open command menu")} title={t("Search")}>
-            <Search className="size-[19px]" />
+          <button onClick={() => setCmd(true)} className="header-icon-btn glass-btn btn-ghost h-9 shrink-0 gap-2 px-2.5 sm:px-3" aria-label={t("Open command menu")} title={t("Search")}>
+            <Search className="size-[18px]" />
+            <span className="hidden text-xs font-medium sm:inline">{t("Search")}</span>
+            <kbd className="kbd hidden lg:inline">⌘ K</kbd>
           </button>
           <HabitQuickPanel />
           <div className="ms-auto flex min-w-0 items-center gap-1.5 sm:gap-2">
