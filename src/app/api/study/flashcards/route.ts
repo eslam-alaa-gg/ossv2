@@ -21,6 +21,8 @@ export const GET = handle(async (request) => {
     intervalDays: flashcards.intervalDays,
     repetitions: flashcards.repetitions,
     lapses: flashcards.lapses,
+    easeFactor: flashcards.easeFactor,
+    lastReviewedAt: flashcards.lastReviewedAt,
     createdAt: flashcards.createdAt,
   }).from(flashcards)
     .leftJoin(studySubjects, and(eq(flashcards.subjectId, studySubjects.id), eq(studySubjects.userId, auth.id)))
