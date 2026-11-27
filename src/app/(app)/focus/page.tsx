@@ -1,6 +1,6 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
-import { ImagePlus, Keyboard, Maximize2, Minimize2, Music2, Palette, Pause, Play, RotateCcw, SkipBack, SkipForward, Square, Trash2, Video, Volume2, VolumeX } from "lucide-react";
+import { ImagePlus, Keyboard, Maximize2, Minimize2, Music2, Palette, Pause, Play, RotateCcw, Square, Trash2, Video, Volume2, VolumeX } from "lucide-react";
 import { PRESETS as THEME_PRESETS } from "@/lib/theme";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useApp } from "@/components/providers";
@@ -8,7 +8,6 @@ import { PriorityBadge, type Task } from "@/components/task-form";
 import { Badge, Button, Card, EmptyState, Field, PageHeader, Segmented, cn, useUI } from "@/components/ui";
 import { api, minutesLabel, useFetch } from "@/lib/client";
 import { SOUNDS, startAmbient, type AmbientHandle } from "@/lib/ambient";
-import { useProgress, useSpotify } from "@/components/spotify";
 import { YouTubeMusicPlayer } from "@/components/youtube-music";
 
 type Session = { id: string; mode: string; plannedSeconds: number; actualSeconds: number; status: string; startedAt: string; lastResumedAt?: string | null; pausedAt?: string | null; taskTitle?: string | null };
@@ -44,16 +43,6 @@ function FocusWallpaperLayer({ scene, failed, onError }: { scene: Exclude<FocusW
     </div>
   );
 }
-
-type BridgeNowPlaying = {
-  idle: boolean;
-  playing?: boolean;
-  track?: { title: string; artist: string; album: string; artwork: string | null; appName: string };
-  device?: { id: string; name: string; platform: string };
-  progressMs?: number;
-  durationMs?: number;
-  fetchedAt?: number;
-};
 
 function FocusNowPlaying({ immersive = false }: { immersive?: boolean }) {
   const { t } = useApp();
@@ -504,7 +493,7 @@ export default function FocusPage() {
               {backgroundImage && <button type="button" onClick={removeFocusBackground} className="mt-2 flex items-center gap-1.5 text-xs text-white/60 hover:text-white"><Trash2 className="size-3.5" />{t("Remove background image")}</button>}
             </div>}
           </div>
-          <div className="relative">
+          <div ref={soundPanelRef} className="relative">
             <Button variant="ghost" size="icon" className="size-9 rounded-full border border-line bg-card/70 backdrop-blur-xl" onClick={() => { setSoundOpen((value) => !value); setThemeOpen(false); setBackgroundOpen(false); }} aria-haspopup="dialog" aria-expanded={soundOpen} aria-label={t("Sound settings")}>{audioOn && sound !== "none" ? <Volume2 className="size-4" /> : <VolumeX className="size-4" />}</Button>
             {soundOpen && <div role="dialog" aria-label={t("Sound settings")} className="absolute end-0 top-[calc(100%+10px)] z-50 w-[min(90vw,320px)] rounded-2xl border border-white/15 bg-[#11131b]/92 p-4 text-white shadow-2xl backdrop-blur-2xl">
             <div className="mb-3 flex items-center justify-between"><p className="text-sm font-semibold">{t("Ambient sound")}</p><button type="button" onClick={() => setSoundOpen(false)} aria-label={t("Close")} className="rounded-md p-1 text-muted hover:bg-card">×</button></div>
