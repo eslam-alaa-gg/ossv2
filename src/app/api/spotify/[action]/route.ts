@@ -1,6 +1,6 @@
 import { createHash, randomBytes, timingSafeEqual } from "crypto";
 import { eq } from "drizzle-orm";
-import { cookies, headers } from "next/headers";
+import { cookies } from "next/headers";
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { db } from "@/db";
@@ -102,8 +102,7 @@ async function connect() {
   const verifier = randomBytes(48).toString("base64url");
   const state = randomBytes(24).toString("base64url");
   const challenge = createHash("sha256").update(verifier).digest("base64url");
-  const forwardedProto = (await headers()).get("x-forwarded-proto")?.split(",")[0]?.trim();
-  const secure = forwardedProto === "https";
+  const secure = new URL(origin).protocol === "https:";
   (await cookies()).set(COOKIE, JSON.stringify({ state, verifier, uid: user.id }), { httpOnly: true, sameSite: "lax", secure, path: "/api/spotify", maxAge: 600 });
   const url = new URL("https://accounts.spotify.com/authorize");
   url.search = new URLSearchParams({
