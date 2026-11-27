@@ -7,6 +7,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { api, ApiErr } from "@/lib/client";
 import { useApp } from "./providers";
 import { Button, Card, Progress, Skeleton } from "./ui";
+import { YouTubeMusicPlayer } from "./youtube-music";
 
 export type NPTrack = {
   id: string;
@@ -197,7 +198,6 @@ export function NowPlayingWidget({ source = "spotify" }: { source?: "spotify" | 
   const progress = useProgress(np);
   const spotifyTrack = source === "spotify" && np && !np.idle ? np.track : null;
   const [bridge, setBridge] = useState<BridgeNowPlaying | null>(null);
-  const [youtubeQuery, setYoutubeQuery] = useState("");
 
   useEffect(() => {
     if (source !== "detection" || spotifyTrack) return;
@@ -231,11 +231,7 @@ export function NowPlayingWidget({ source = "spotify" }: { source?: "spotify" | 
   if (source === "youtube") {
     return (
       <Card className="space-y-3">
-        <div className="flex items-center gap-3"><span className="grid size-11 place-items-center rounded-xl bg-card text-accent"><Music2 className="size-5" /></span><div className="min-w-0"><p className="font-medium">{tr("YouTube Music")}</p><p className="text-xs text-muted">{tr("Search and continue playback in the official YouTube Music app or website.")}</p></div></div>
-        <form className="flex flex-col gap-2 sm:flex-row" onSubmit={(event) => event.preventDefault()}>
-          <input className="input min-w-0 flex-1" value={youtubeQuery} onChange={(event) => setYoutubeQuery(event.target.value)} placeholder={tr("Search YouTube Music")} maxLength={120} aria-label={tr("Search YouTube Music")} />
-          <a className="glass-btn btn-primary justify-center" href={youtubeQuery.trim() ? `https://music.youtube.com/search?q=${encodeURIComponent(youtubeQuery.trim())}` : "https://music.youtube.com"} target="_blank" rel="noreferrer noopener">{tr("Open YouTube Music")}</a>
-        </form>
+        <YouTubeMusicPlayer compact spotifyPlaying={!!np && !np.idle && np.playing} />
       </Card>
     );
   }
