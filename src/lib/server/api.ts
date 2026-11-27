@@ -21,7 +21,7 @@ export function handle<P = Record<string, never>>(fn: Fn<P>) {
       if (!["GET", "HEAD", "OPTIONS"].includes(req.method)) {
         const origin = req.headers.get("origin");
         const site = req.headers.get("sec-fetch-site");
-        const hosts = [req.headers.get("x-forwarded-host"), req.headers.get("host")].filter((host): host is string => !!host);
+        const requestHost = req.headers.get("host") ?? req.nextUrl.host;
         const bearerOnly = /^Bearer\s+\S+$/i.test(req.headers.get("authorization") ?? "") && !req.cookies.get("lifeos_session");
         if (!bearerOnly) {
           if (site === "cross-site") throw new ApiError(403, "Cross-origin request blocked.");
@@ -30,11 +30,12 @@ export function handle<P = Record<string, never>>(fn: Fn<P>) {
             try {
               const parsed = new URL(origin);
               if (parsed.protocol !== "https:" && parsed.protocol !== "http:") throw new Error("Invalid origin protocol");
+              if (parsed.origin !== origin) throw new Error("Invalid origin format");
               originHost = parsed.host;
             } catch {
               throw new ApiError(403, "Cross-origin request blocked.");
             }
-            if (!hosts.includes(originHost)) throw new ApiError(403, "Cross-origin request blocked.");
+            if (!requestHost || originHost !== requestHost) throw new ApiError(403, "Cross-origin request blocked.");
           } else if (site !== "same-origin" && site !== "none") {
             throw new ApiError(403, "Cross-origin request blocked.");
           }
@@ -50,7 +51,8 @@ export function handle<P = Record<string, never>>(fn: Fn<P>) {
         const i = e.issues[0];
         return Response.json({ error: `${i?.path.join(".") || "input"}: ${i?.message ?? "invalid"}` }, { status: 400 });
       }
-      console.error("[api]", e);
+      const errorCode = typeof e === "object" && e !== null && "code" in e && typeof e.code === "string" ? e.code : undefined;
+      console.error("[api] unexpected error", { name: e instanceof Error ? e.name : "UnknownError", code: errorCode });
       return Response.json({ error: "Something went wrong. Please try again." }, { status: 500 });
     }
   };
