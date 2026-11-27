@@ -550,3 +550,77 @@ The Spotify provider remains mounted at the application shell level. Focus now r
 **Important:** Spotify playback is **not claimed as verified**. The code paths and API contracts were audited, but only a real authorized Spotify account plus an available Spotify device can establish actual playback behavior. The native bridge projects are source code and are not packaged installers in this repository snapshot.
 
 No merge, rebase, reset, force-push, preview deployment or production deployment was performed.
+
+
+---
+
+# Phase 07 — Global Design & Navigation
+
+Phase status: **IMPLEMENTED — CI passed on the final UI implementation commit (39/39 API E2E); visual browser/device QA remains outstanding**
+
+Implementation branch: `fix/ukiyo-habits-heatmap-focus`
+
+## Application-wide audit
+
+Reviewed the shared application shell, global CSS tokens, theme generation/provider, navigation and mobile drawer, command/search menu, shared UI primitives, authenticated layouts, search API and all **17 authenticated route pages**:
+- Achievements, Analytics, Calendar, Daily Challenge, Dashboard, Focus, Goals, Habits, Music Bridge redirect, Music, Profile, Weekly Review, Settings, Study, Tasks, Theme Studio and Memory Vault.
+- The existing shared PageHeader/Card/Button/Modal patterns are already used consistently by the majority of pages. Dashboard retains its intentional custom hero/dashboard composition.
+- Existing desktop sidebar and mobile navigation drawer already expose active-route states with `aria-current="page"`; these were preserved rather than replaced.
+- Focus wallpapers, subject colors and Theme Studio preview colors are intentional feature-specific colors; they were not flattened into a generic theme or removed.
+
+## Changes implemented
+
+1. **Theme mode correctness**
+   - Fixed a real System-mode issue: the generated theme variables previously selected the dark palette whenever the saved mode was `system`, even when the operating system resolved to light.
+   - System mode now emits the dark base palette plus a light-mode override. The existing media-query listener continues to update `data-mode` when the OS appearance changes.
+   - The browser `theme-color` metadata now follows the active preset and resolved light/dark mode, including preset changes.
+   - Existing saved themes, accent colors, glass settings, fonts, gradients, density, motion and other preferences remain in the existing preference model; no preference reset or migration was introduced.
+
+2. **Light-theme details**
+   - Native select options now use readable light foreground/background colors when Light mode is active.
+   - Existing shared CSS variables continue to drive surfaces, cards, borders, text, inputs, popovers, buttons and navigation highlights.
+
+3. **Global search placement and experience**
+   - The search control remains at the inline-start edge of the top bar, which places it in the upper-right in the Arabic RTL interface.
+   - Changed the icon-only desktop control into a compact labelled search control, with the keyboard shortcut shown on larger screens. Existing Ctrl/Cmd+K handling remains.
+   - Refined the command menu with a clearer search field, quick-action/navigation grouping, keyboard guidance, active-result styling, and explicit loading, empty and error states.
+   - Added stale-response protection so a slower earlier query cannot overwrite results for a newer query.
+   - Added result de-duplication and guarded arrow/Enter navigation when the result list is empty.
+   - Added Arabic translations for the new search states.
+
+4. **Search coverage and privacy**
+   - Global search now matches note titles **and note content**, in addition to tasks, goals and habits.
+   - Existing authenticated-user scoping, query length bounds and wildcard sanitization are preserved.
+   - Search results continue to navigate to the existing feature pages; no duplicate search index or parallel data store was added.
+
+5. **Navigation and visual consistency**
+   - Preserved the existing navigation hierarchy and active states across desktop and mobile.
+   - Retained shared design tokens and component primitives rather than performing unnecessary page-by-page redesigns.
+   - No existing feature page, widget, theme preset or navigation destination was removed.
+
+## Regression coverage
+
+- Added API E2E coverage proving global search finds an owned task and a note by matching its content.
+- Added account-isolation coverage proving another account receives no matching private note results.
+- Added a protected-route assertion for unauthenticated search requests.
+- The final implementation CI run includes these new cases and reports **39/39 API E2E tests passed**.
+
+## Verification boundaries
+
+- [x] Shared shell, theme provider/generator, global CSS, navigation, search API, shared UI primitives and all 17 authenticated route pages reviewed.
+- [x] System mode now resolves the correct light/dark palette and updates with operating-system appearance changes.
+- [x] Browser chrome theme color follows the selected preset and resolved appearance.
+- [x] Search remains upper-right in the Arabic RTL top bar and supports Ctrl/Cmd+K.
+- [x] Search loading/error/empty states, stale query protection, result de-duplication and keyboard selection implemented.
+- [x] Search now matches note content while retaining per-user authorization.
+- [x] Light-mode native select readability corrected.
+- [x] Arabic translations added for new global-search states.
+- [x] Final implementation CI: [run #45992231164](https://github.com/eslam-alaa-gg/ossv2/actions/runs/45992231164) completed successfully on commit `34d0fd0489d47aa00fc735018520b24718977b85`. Dependency installation, TypeScript, ESLint, production build, database migrations, app startup/health and **39/39 API E2E tests** passed.
+- [ ] Real browser visual QA across desktop/tablet/mobile, including Arabic RTL and English LTR: not run in this GitHub-only session.
+- [ ] Manual light/dark/system switching with OS appearance changes, saved custom themes and contrast review: not run in a real browser/device.
+- [ ] Manual verification of the top-right search control, focus behavior, keyboard selection and mobile command-menu layout: not run in a real browser/device.
+- [ ] Screen-reader and automated visual-regression checks: not available in the current CI workflow.
+
+**Important:** Source review and API CI do not prove visual appearance or interaction quality on actual devices. Those checks remain explicitly outstanding; no visual QA pass is claimed.
+
+No merge, rebase, reset, force-push, preview deployment or production deployment was performed.
