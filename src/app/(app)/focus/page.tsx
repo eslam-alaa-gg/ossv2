@@ -75,14 +75,17 @@ function FocusNowPlaying({ immersive = false }: { immersive?: boolean }) {
   const displayDuration = track?.durationMs ?? bridge?.durationMs ?? 0;
 
   useEffect(() => {
-    if (!open || track) return;
+    if (track) return;
     let stopped = false;
     let inFlight = false;
     let timer: number | null = null;
     const load = async () => {
       if (stopped || inFlight || document.visibilityState !== "visible") return;
       inFlight = true;
-      try { setBridge(await api<BridgeNowPlaying>("/api/music-bridge/now-playing")); } catch { /* Bridge is optional. */ }
+      try {
+        const next = await api<BridgeNowPlaying>("/api/music-bridge/now-playing");
+        if (!stopped) setBridge(next);
+      } catch { /* Bridge is optional; Spotify remains the primary source. */ }
       finally { inFlight = false; }
     };
     const start = () => {
@@ -101,7 +104,7 @@ function FocusNowPlaying({ immersive = false }: { immersive?: boolean }) {
       if (timer) window.clearInterval(timer);
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [open, track?.id]);
+  }, [track?.id]);
 
   async function control(action: "play" | "pause" | "next" | "previous") {
     setBusy(true);
