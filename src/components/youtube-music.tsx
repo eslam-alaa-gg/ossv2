@@ -11,6 +11,9 @@ type YTPlayer = {
   destroy: () => void;
   playVideo: () => void;
   pauseVideo: () => void;
+  getCurrentTime: () => number;
+  getDuration: () => number;
+  seekTo: (seconds: number, allowSeekAhead: boolean) => void;
 };
 type YTApi = {
   Player: new (element: HTMLElement, options: {
@@ -68,7 +71,7 @@ const isVideo = (value: unknown): value is Video => {
     && typeof video.thumbnail === "string" && /^https:\/\/i\.ytimg\.com\//.test(video.thumbnail);
 };
 
-export function YouTubeMusicPlayer({ compact = false, onTrackChange, spotifyPlaying = false }: { compact?: boolean; onTrackChange?: (video: Video | null) => void; spotifyPlaying?: boolean }) {
+export function YouTubeMusicPlayer({ compact = false, searchOpen = true, onCloseSearch, onTrackChange, spotifyPlaying = false }: { compact?: boolean; searchOpen?: boolean; onCloseSearch?: () => void; onTrackChange?: (video: Video | null) => void; spotifyPlaying?: boolean }) {
   const { lang } = useApp();
   const ar = lang === "ar";
   const [query, setQuery] = useState("");
@@ -79,6 +82,8 @@ export function YouTubeMusicPlayer({ compact = false, onTrackChange, spotifyPlay
   const [hydrated, setHydrated] = useState(false);
   const [playerReady, setPlayerReady] = useState(false);
   const [playing, setPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
   const searchRequest = useRef(0);
   const playerMount = useRef<HTMLDivElement>(null);
   const player = useRef<YTPlayer | null>(null);
@@ -129,6 +134,7 @@ export function YouTubeMusicPlayer({ compact = false, onTrackChange, spotifyPlay
           onReady: (event) => {
             if (cancelled) return;
             setPlayerReady(true);
+            setDuration(event.target.getDuration() || 0);
             event.target.playVideo();
           },
           onStateChange: (event) => {
@@ -157,6 +163,16 @@ export function YouTubeMusicPlayer({ compact = false, onTrackChange, spotifyPlay
     };
   }, [selected?.id, ar]);
 
+  useEffect(() => {
+    if (!playing || !playerReady || !player.current) return;
+    const timer = window.setInterval(() => {
+      if (!player.current) return;
+      setCurrentTime(player.current.getCurrentTime() || 0);
+      setDuration(player.current.getDuration() || 0);
+    }, 500);
+    return () => window.clearInterval(timer);
+  }, [playing, playerReady, selected?.id]);
+
   const search = async (event: FormEvent) => {
     event.preventDefault();
     const q = query.trim();
@@ -181,6 +197,12 @@ export function YouTubeMusicPlayer({ compact = false, onTrackChange, spotifyPlay
     const next = results[index + direction];
     if (next) { setError(""); setSelected(next); }
   };
+  const seek = (value: number) => {
+    if (!playerReady || !player.current || !Number.isFinite(value)) return;
+    player.current.seekTo(Math.max(0, Math.min(duration, value)), true);
+    setCurrentTime(value);
+  };
+  const formatTime = (value: number) => `${Math.floor(value / 60)}:${String(Math.floor(value % 60)).padStart(2, "0")}`;
   const togglePlayback = () => {
     if (!playerReady || !player.current) return;
     if (playing) player.current.pauseVideo();
@@ -188,47 +210,20 @@ export function YouTubeMusicPlayer({ compact = false, onTrackChange, spotifyPlay
   };
 
   return (
-    <section className={compact ? "w-full space-y-3" : "mx-auto w-full max-w-3xl space-y-4"}>
-      <div className="flex items-center gap-2">
-        <span className="grid size-9 place-items-center rounded-xl bg-card text-accent"><Music2 className="size-5" /></span>
-        <div className="min-w-0 flex-1">
-          <h3 className="text-sm font-semibold">YouTube Music</h3>
-          <p className="text-xs text-muted">{ar ? "ابحث واختر وشغّل من داخل Ukiyo" : "Search, choose and play from inside Ukiyo"}</p>
-        </div>
-        {selected && <span className="rounded-full bg-card px-2 py-1 text-[10px] text-muted">{playing ? (ar ? "يعمل الآن" : "Playing") : (ar ? "متوقف" : "Paused")}</span>}
-      </div>
-      <form onSubmit={search} className="flex gap-2">
-        <input className="input min-w-0 flex-1" value={query} onChange={(e) => setQuery(e.target.value)} maxLength={120} minLength={2} placeholder={ar ? "ابحث عن أغنية أو فنان..." : "Search songs or artists..."} aria-label="Search YouTube Music" />
-        <button type="submit" disabled={loading || query.trim().length < 2} className="glass-btn btn-primary shrink-0" aria-label={ar ? "بحث" : "Search"}><Search className="size-4" />{loading ? (ar ? "..." : "Searching") : (ar ? "بحث" : "Search")}</button>
-      </form>
-      {error && <p role="status" className="text-xs text-amber-400">{error}</p>}
-      {selected && <div className="space-y-2 rounded-xl border border-line bg-card/70 p-3">
-        <div className="flex items-center gap-3">
-          <img src={selected.thumbnail} alt="" className="size-12 shrink-0 rounded-lg object-cover" />
-          <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{selected.title}</p><p className="truncate text-xs text-muted">{selected.channel}</p></div>
-        </div>
-        <div className="overflow-hidden rounded-xl bg-black">
-          <div ref={playerMount} className="aspect-video min-h-[200px] w-full" aria-label={ar ? "مشغل YouTube" : "YouTube player"} />
-        </div>
-        <div className="flex items-center justify-between gap-2">
-          <button type="button" onClick={() => move(-1)} disabled={results.findIndex((item) => item.id === selected.id) <= 0} className="glass-btn btn-secondary" aria-label={ar ? "السابق" : "Previous"}><SkipBack className="size-4" />{ar ? "السابق" : "Previous"}</button>
-          <button type="button" onClick={togglePlayback} disabled={!playerReady} className="glass-btn btn-primary" aria-label={playing ? (ar ? "إيقاف مؤقت" : "Pause") : (ar ? "تشغيل" : "Play")}>{playing ? <Pause className="size-4" /> : <Play className="size-4" />}{playing ? (ar ? "إيقاف" : "Pause") : (ar ? "تشغيل" : "Play")}</button>
-          <button type="button" onClick={() => move(1)} disabled={results.findIndex((item) => item.id === selected.id) < 0 || results.findIndex((item) => item.id === selected.id) >= results.length - 1} className="glass-btn btn-secondary" aria-label={ar ? "التالي" : "Next"}>{ar ? "التالي" : "Next"}<SkipForward className="size-4" /></button>
-        </div>
+    <section className={compact ? "w-full max-w-3xl space-y-3" : "mx-auto w-full max-w-3xl space-y-4"}>
+      {searchOpen && <div className="w-full rounded-[1.6rem] border border-white/15 bg-[#0b111c]/75 p-3 text-white shadow-2xl backdrop-blur-3xl sm:p-4">
+        <div className="mb-3 flex items-center justify-between gap-3"><div className="flex min-w-0 items-center gap-2"><span className="grid size-8 place-items-center rounded-xl bg-white/10"><Music2 className="size-4" /></span><div className="min-w-0"><h3 className="text-sm font-semibold">YouTube Music</h3><p className="text-[11px] text-white/45">{ar ? "نتائج من بحث YouTube Music" : "Results from YouTube Music search"}</p></div></div>{onCloseSearch && <button type="button" onClick={onCloseSearch} aria-label={ar ? "إغلاق البحث" : "Close search"} className="grid size-8 place-items-center rounded-lg text-white/55 hover:bg-white/10"><span className="text-xl leading-none">×</span></button>}</div>
+        <form onSubmit={search} className="flex items-center gap-2 rounded-full border border-white/10 bg-black/35 p-1.5"><Search className="ms-2 size-4 shrink-0 text-white/45" /><input className="min-w-0 flex-1 bg-transparent px-1 py-2 text-sm text-white outline-none placeholder:text-white/35" value={query} onChange={e => setQuery(e.target.value)} maxLength={120} minLength={2} placeholder={ar ? "ابحث عن أغنية أو فنان..." : "Search songs or artists..."} aria-label="Search YouTube Music" /><button type="submit" disabled={loading || query.trim().length < 2} className="rounded-full bg-white px-4 py-2 text-xs font-semibold text-slate-950 disabled:opacity-40">{loading ? "…" : ar ? "بحث" : "Search"}</button></form>
+        {error && <p role="status" className="mt-2 text-xs text-amber-300">{error}</p>}
+        {results.length > 0 && <div className="mt-3 max-h-56 divide-y divide-white/[.07] overflow-y-auto">{results.map((video, index) => <button key={video.id} type="button" onClick={() => choose(video)} aria-pressed={selected?.id === video.id} className={`flex w-full items-center gap-3 rounded-xl px-2 py-2 text-start transition hover:bg-white/[.07] ${selected?.id === video.id ? "bg-white/[.09]" : ""}`}><span className="w-5 shrink-0 text-center text-[11px] tabular-nums text-white/35">{index + 1}</span><img src={video.thumbnail} alt="" className="size-11 shrink-0 rounded-lg object-cover" /><span className="min-w-0 flex-1"><span className="block truncate text-xs font-medium text-white/90">{video.title}</span><span className="mt-1 block truncate text-[11px] text-white/45">{video.channel}</span></span>{selected?.id === video.id && <span className="text-xs text-white/65">♪</span>}</button>)}</div>}
+        {!results.length && !loading && !error && <p className="py-5 text-center text-xs text-white/40">{ar ? "اكتب اسم أغنية أو فنان لعرض النتائج." : "Search for a song or artist to see results."}</p>}
       </div>}
-      {results.length > 0 && <div className="space-y-2">
-        <p className="text-[11px] font-medium text-muted">{ar ? "قائمة النتائج" : "Search results"} · {results.length}</p>
-        <div className="grid gap-2 sm:grid-cols-2">
-          {results.map((video) => <button key={video.id} type="button" onClick={() => choose(video)} aria-pressed={selected?.id === video.id} className={`flex min-w-0 items-center gap-3 rounded-xl border p-2 text-start transition ${selected?.id === video.id ? "border-accent bg-accent/10" : "border-line bg-card hover:border-[var(--border-strong)]"}`}>
-            <img src={video.thumbnail} alt="" className="h-14 w-20 shrink-0 rounded-lg object-cover" />
-            <span className="min-w-0"><span className="block line-clamp-2 text-xs font-medium">{video.title}</span><span className="mt-1 block truncate text-[10px] text-muted">{video.channel}</span></span>
-            {selected?.id === video.id && <span className="shrink-0 text-accent"><Music2 className="size-4" /></span>}
-          </button>)}
-        </div>
+      {selected && <div className="w-full rounded-[1.6rem] border border-white/15 bg-white/[.075] p-3 text-white shadow-[0_18px_60px_rgba(0,0,0,.3)] backdrop-blur-3xl sm:p-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center"><div className="flex min-w-0 flex-1 items-center gap-3"><img src={selected.thumbnail} alt="" className="size-14 shrink-0 rounded-xl object-cover shadow-lg" /><div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{selected.title}</p><p className="mt-1 truncate text-xs text-white/50">{selected.channel}</p><p className="mt-1 text-[10px] text-white/35">{playing ? (ar ? "يعمل الآن" : "Now playing") : (ar ? "متوقف مؤقتًا" : "Paused")}</p></div></div><div className="flex shrink-0 items-center justify-center gap-2"><button type="button" onClick={() => move(-1)} disabled={results.findIndex(item => item.id === selected.id) <= 0} aria-label={ar ? "السابق" : "Previous"} className="grid size-10 place-items-center rounded-full border border-white/10 bg-white/[.07] transition hover:bg-white/15 disabled:opacity-30"><SkipBack className="size-4" /></button><button type="button" onClick={togglePlayback} disabled={!playerReady} aria-label={playing ? "Pause" : "Play"} className="grid size-11 place-items-center rounded-full bg-white text-slate-950 shadow-lg transition hover:scale-105 disabled:opacity-40">{playing ? <Pause className="size-5" /> : <Play className="size-5" />}</button><button type="button" onClick={() => move(1)} disabled={results.findIndex(item => item.id === selected.id) < 0 || results.findIndex(item => item.id === selected.id) >= results.length - 1} aria-label={ar ? "التالي" : "Next"} className="grid size-10 place-items-center rounded-full border border-white/10 bg-white/[.07] transition hover:bg-white/15 disabled:opacity-30"><SkipForward className="size-4" /></button></div></div>
+        <div className="mt-3 flex items-center gap-2 text-[10px] tabular-nums text-white/40"><span>{formatTime(currentTime)}</span><input type="range" min={0} max={Math.max(1,duration)} step={1} value={Math.min(currentTime,duration || 0)} onChange={e => seek(Number(e.target.value))} aria-label={ar ? "تقدم الأغنية" : "Track progress"} className="min-w-0 flex-1 accent-white" /><span>{formatTime(duration)}</span></div>
+        <div className="mt-3 flex justify-center"><div className="h-[200px] w-[200px] overflow-hidden rounded-2xl border border-white/10 bg-black/50 shadow-xl"><div ref={playerMount} className="h-full w-full" aria-label={ar ? "مشغل YouTube الرسمي" : "Official YouTube player"} /></div></div>
       </div>}
-      {!results.length && !selected && !loading && <p className="rounded-xl border border-dashed border-line px-3 py-5 text-center text-xs text-muted">{ar ? "ابحث عن أغنية أو فنان لبدء الاستماع." : "Search for a song or artist to start listening."}</p>}
-      {spotifyPlaying && <p className="text-[10px] text-amber-400">{ar ? "Spotify يعمل أيضًا؛ أوقفه يدويًا لتجنب تشغيل مصدرين معًا." : "Spotify is also playing; pause it manually to avoid overlapping audio."}</p>}
-      <p className="text-[10px] leading-relaxed text-faint">{ar ? "يتم تشغيل نتائج YouTube الموسيقية القابلة للتضمين عبر مشغل YouTube الرسمي. قد لا تكون بعض النتائج متاحة للتشغيل داخل الموقع." : "Embeddable music-category results use the official YouTube player. Some results may not be available for in-site playback."}</p>
+      {spotifyPlaying && <p className="text-[10px] text-amber-300">{ar ? "Spotify يعمل أيضًا؛ أوقفه يدويًا لتجنب تشغيل مصدرين معًا." : "Spotify is also playing; pause it manually to avoid overlapping audio."}</p>}
     </section>
   );
 }
