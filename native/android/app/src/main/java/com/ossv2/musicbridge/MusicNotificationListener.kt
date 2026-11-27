@@ -103,9 +103,8 @@ class MusicNotificationListener : NotificationListenerService() {
     }
 
     private fun send(payload: JSONObject) {
-        val prefs = getSharedPreferences("bridge", MODE_PRIVATE)
-        val server = prefs.getString("server", "").orEmpty().trimEnd('/')
-        val token = prefs.getString("token", "").orEmpty()
+        val server = SecureBridgePrefs.read(this, "server").trimEnd('/')
+        val token = SecureBridgePrefs.read(this, "token")
         if (server.isBlank() || token.isBlank()) return
         io.execute {
             var connection: HttpURLConnection? = null
