@@ -44,7 +44,10 @@ export async function queueOfflineAction(userId: string, path: string, method: P
   const db = database();
   if (!db || !userId) return false;
   try {
-    await db.pending.add({ userId, path, method, body, createdAt: Date.now() });
+    const queuedBody = method === "POST" && path.startsWith("/api/trackers/")
+      ? { ...body, clientActionId: typeof body?.clientActionId === "string" ? body.clientActionId : crypto.randomUUID() }
+      : body;
+    await db.pending.add({ userId, path, method, body: queuedBody, createdAt: Date.now() });
     return true;
   } catch { return false; }
 }

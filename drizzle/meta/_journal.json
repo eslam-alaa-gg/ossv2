@@ -64,6 +64,13 @@
       "when": 1795728000000,
       "tag": "0008_daily_study_suggestions",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1795737600000,
+      "tag": "0009_tracker_action_idempotency",
+      "breakpoints": true
     }
   ]
 }

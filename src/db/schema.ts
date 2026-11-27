@@ -261,9 +261,13 @@ export const waterLogs = ossv2.table(
     userId: userRef(),
     date: date("date").notNull(),
     ml: integer("ml").notNull(),
+    clientActionId: uuid("client_action_id"),
     createdAt: createdAt(),
   },
-  (t) => [index("water_user_date_idx").on(t.userId, t.date)],
+  (t) => [
+    index("water_user_date_idx").on(t.userId, t.date),
+    uniqueIndex("water_logs_user_action_unique").on(t.userId, t.clientActionId),
+  ],
 );
 
 export const readingLogs = ossv2.table(
@@ -274,9 +278,13 @@ export const readingLogs = ossv2.table(
     date: date("date").notNull(),
     book: text("book").notNull(),
     pages: integer("pages").notNull(),
+    clientActionId: uuid("client_action_id"),
     createdAt: createdAt(),
   },
-  (t) => [index("reading_user_date_idx").on(t.userId, t.date)],
+  (t) => [
+    index("reading_user_date_idx").on(t.userId, t.date),
+    uniqueIndex("reading_logs_user_action_unique").on(t.userId, t.clientActionId),
+  ],
 );
 
 export const learningEntries = ossv2.table(
@@ -287,9 +295,13 @@ export const learningEntries = ossv2.table(
     date: date("date").notNull(),
     title: text("title").notNull(),
     explanation: text("explanation").notNull().default(""),
+    clientActionId: uuid("client_action_id"),
     createdAt: createdAt(),
   },
-  (t) => [index("learning_user_date_idx").on(t.userId, t.date)],
+  (t) => [
+    index("learning_user_date_idx").on(t.userId, t.date),
+    uniqueIndex("learning_entries_user_action_unique").on(t.userId, t.clientActionId),
+  ],
 );
 
 /* -------------------------------- challenges --------------------------------- */
