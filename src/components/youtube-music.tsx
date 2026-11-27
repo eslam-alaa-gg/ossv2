@@ -1,11 +1,19 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Music2, Search, SkipBack, SkipForward, ExternalLink } from "lucide-react";
 import { useApp } from "@/components/providers";
 import { api } from "@/lib/client";
 
 type Video = { id: string; title: string; channel: string; thumbnail: string; publishedAt: string };
+const isVideo = (value: unknown): value is Video => {
+  if (!value || typeof value !== "object") return false;
+  const video = value as Partial<Video>;
+  return typeof video.id === "string" && /^[A-Za-z0-9_-]{11}$/.test(video.id)
+    && typeof video.title === "string" && video.title.length <= 500
+    && typeof video.channel === "string" && typeof video.publishedAt === "string"
+    && typeof video.thumbnail === "string" && /^https:\/\/i\.ytimg\.com\//.test(video.thumbnail);
+};
 
 export function YouTubeMusicPlayer({ compact = false, onTrackChange, spotifyPlaying = false }: { compact?: boolean; onTrackChange?: (video: Video | null) => void; spotifyPlaying?: boolean }) {
   const { lang } = useApp();
@@ -16,13 +24,14 @@ export function YouTubeMusicPlayer({ compact = false, onTrackChange, spotifyPlay
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [hydrated, setHydrated] = useState(false);
+  const searchRequest = useRef(0);
   useEffect(() => {
     try {
       const saved = localStorage.getItem("ukiyo.youtube.player");
       if (saved) {
         const value = JSON.parse(saved) as { selected?: Video | null; results?: Video[] };
-        if (Array.isArray(value.results)) setResults(value.results.filter((item) => item && typeof item.id === "string" && typeof item.title === "string"));
-        if (value.selected && typeof value.selected.id === "string" && typeof value.selected.title === "string") setSelected(value.selected);
+        if (Array.isArray(value.results)) setResults(value.results.filter(isVideo).slice(0, 12));
+        if (isVideo(value.selected)) setSelected(value.selected);
       }
     } catch { /* Ignore unavailable or invalid local playback state. */ }
     setHydrated(true);
@@ -36,16 +45,20 @@ export function YouTubeMusicPlayer({ compact = false, onTrackChange, spotifyPlay
     event.preventDefault();
     const q = query.trim();
     if (q.length < 2) return;
+    const requestId = ++searchRequest.current;
     setLoading(true); setError("");
     try {
       const data = await api<{ results: Video[] }>(`/api/youtube/search?q=${encodeURIComponent(q)}`);
-      setResults(data.results);
-      if (!data.results.length) setError(ar ? "لم نعثر على نتائج قابلة للتشغيل." : "No playable results found.");
+      if (requestId !== searchRequest.current) return;
+      const safeResults = Array.isArray(data.results) ? data.results.filter(isVideo).slice(0, 12) : [];
+      setResults(safeResults);
+      if (!safeResults.length) setError(ar ? "لم نعثر على نتائج قابلة للتشغيل." : "No playable results found.");
     } catch (e) {
+      if (requestId !== searchRequest.current) return;
       setError(e instanceof Error ? e.message : (ar ? "تعذر البحث الآن." : "Search is unavailable right now."));
-    } finally { setLoading(false); }
+    } finally { if (requestId === searchRequest.current) setLoading(false); }
   };
-  const choose = (video: Video) => setSelected(video);
+  const choose = (video: Video) => { if (isVideo(video)) setSelected(video); };
   const move = (direction: -1 | 1) => {
     if (!selected || !results.length) return;
     const index = results.findIndex((item) => item.id === selected.id);
@@ -73,7 +86,7 @@ export function YouTubeMusicPlayer({ compact = false, onTrackChange, spotifyPlay
           <a href={`https://www.youtube.com/watch?v=${selected.id}`} target="_blank" rel="noreferrer noopener" className="text-muted hover:text-fg" aria-label={ar ? "فتح على YouTube" : "Open on YouTube"}><ExternalLink className="size-4" /></a>
         </div>
         <div className="overflow-hidden rounded-xl bg-black">
-          <iframe key={selected.id} title={selected.title} src={`https://www.youtube.com/embed/${selected.id}?autoplay=0&controls=1&enablejsapi=1&playsinline=1&rel=0&origin=${encodeURIComponent(typeof window !== "undefined" ? window.location.origin : "")}`} className="aspect-video min-h-[200px] w-full" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen />
+          <iframe key={selected.id} title={selected.title} src={`https://www.youtube.com/embed/${selected.id}?autoplay=1&controls=1&enablejsapi=1&playsinline=1&rel=0&origin=${encodeURIComponent(typeof window !== "undefined" ? window.location.origin : "")}`} className="aspect-video min-h-[200px] w-full" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen />
         </div>
         <div className="flex items-center justify-between gap-2">
           <button type="button" onClick={() => move(-1)} disabled={results.findIndex((item) => item.id === selected.id) <= 0} className="glass-btn btn-secondary" aria-label={ar ? "السابق" : "Previous"}><SkipBack className="size-4" />{ar ? "السابق" : "Previous"}</button>
