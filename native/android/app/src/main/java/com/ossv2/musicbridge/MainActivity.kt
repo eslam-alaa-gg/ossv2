@@ -14,6 +14,10 @@ import android.text.InputType
 class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val migrationSucceeded = runCatching { SecureBridgePrefs.migrateLegacy(this) }.isSuccess
+        if (!migrationSucceeded) {
+            android.widget.Toast.makeText(this, "Old device credentials could not be migrated. Please pair this device again.", android.widget.Toast.LENGTH_LONG).show()
+        }
         val pad = (20 * resources.displayMetrics.density).toInt()
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
