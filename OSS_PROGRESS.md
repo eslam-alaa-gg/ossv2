@@ -259,3 +259,57 @@ The GitHub Actions workflow was re-checked against the latest branch head, `e69f
 - A source-only pass confirmed the Study page has an in-flight review guard and that offline snapshots/queued actions are partitioned by user ID. This does not replace browser/network testing.
 
 **Updated Phase 02 outcome:** all 34 existing API E2E cases, typecheck, lint, production build, migrations, and CI health check pass on the latest branch head. Phase 02 remains **IN PROGRESS** until offline/reconnect and browser/mobile workflows are exercised; do not label those surfaces fully verified. No merge, rebase, reset, force-push, or deployment was performed.
+
+
+## Phase 02 follow-up — Study review concurrency
+
+After the Phase 02 summary above, a second concurrency defect was fixed:
+- \`src/app/api/study/review/route.ts\` now locks the owned flashcard row inside the transaction before calculating/updating its schedule and inserting review history.
+- A duplicate/stale review that arrives after the first review has advanced the due date receives HTTP 409.
+- \`tests/e2e.mjs\` now submits two simultaneous reviews for one card and asserts exactly one succeeds, one receives 409, and the card advances only once.
+- CI run [#45984652927](https://github.com/eslam-alaa-gg/ossv2/actions/runs/45984652927) completed successfully for the regression test commit.
+- Phase 02 remains **IN PROGRESS** only for browser/mobile and offline/reconnect verification.
+
+## Phase 03 — Habits, trackers and contribution heatmap
+
+Implementation branch: \`fix/ukiyo-habits-heatmap-focus\`
+
+### Source audit findings
+
+- Preserved the existing Habits page, APIs, three linked trackers (Drink Water, Read Books, Learn Something New), and the top-bar water-drop \`HabitQuickPanel\`. No second habit system was created.
+- Standard habits already support target editing, daily amount logging, historical logging within the last 30 days, and persisted history.
+- Water uses the existing user water-goal preference; reading and learning targets are taken from their linked special habit when configured, with existing defaults otherwise.
+- Tracker entries are stored in dedicated per-user tables and dated using \`todayIn(a.tz)\`.
+- The analytics heatmap previously counted only completed \`habit_logs\`; tracker entries below their linked target could therefore be persisted but absent from the contribution count.
+- Date validation previously checked only the YYYY-MM-DD shape; impossible calendar dates could pass the regex.
+- The top-bar quick panel and Habits page had independent client fetch state and no explicit refresh event, so a successful update in one surface could leave the other showing stale progress until a reload.
+
+### Changes committed
+
+- \`ed25fa212bb195408dcb42982398a88d7ab3026f\` — count real water/reading/learning activity in heatmap contributions. Each tracker kind contributes at most once per user-local day; a completed linked special habit is not double-counted.
+- \`2e0518318d6cbabb6f8d169bee2e3135ce50bc35\` — make \`isDateStr\` reject impossible calendar dates by round-trip validation.
+- \`c721d4ac498b52c09f56a9fcd03790d2ec81f131\` — apply real-calendar-date validation to historical habit logging.
+- \`224dccaeb85eb25456c337b4b84061cf857ce8f3\` — add API regression coverage for editing targets, logging/re-reading historical progress, rejecting impossible dates, tracker persistence, and tracker-driven heatmap contributions/intensity calculation.
+- \`eb262cace7edf836e8689f5efa4eda2c48339eea\` — add a shared \`ukiyo:habit-progress-updated\` event so the quick panel refreshes after changes from the Habits page and vice versa.
+- \`bac36019148eaa2e5ba45f5649231d878e2b6bca\` — dispatch the shared refresh event whenever the Habits page reloads both habit and tracker data.
+
+### Heatmap intensity and date rules verified from source
+
+- Score: task 1 point, completed habit 1 point, challenge 2 points, focus session 2 points, milestone 2 points.
+- Level 0: no activity; level 1: score > 0; level 2: at least one-third of the daily goal; level 3: at least two-thirds; level 4: reaches/exceeds the daily goal.
+- CSS maps levels 0–4 to neutral, 30%, 55%, 80%, and full accent intensity respectively; level 4 also receives an accent glow.
+- Date-only values are handled as UTC calendar dates in date helpers and heatmap rendering. Tracker log dates are assigned from the authenticated user's timezone, avoiding browser-local timezone drift for daily tracker aggregation.
+- Historical standard habit logs are accepted only from the previous 30 days through today. Future dates and impossible calendar dates are rejected.
+
+### Verification status
+
+- [x] Existing Habits/Quick Habit Tracker and tracker implementation inspected; no duplicate system introduced.
+- [x] Tracker contribution aggregation corrected for below-target activity and duplicate linked-habit counting.
+- [x] Calendar-date validation hardened for historical habit logs.
+- [x] Quick panel and Habits page refresh synchronization wired in source.
+- [x] E2E regression cases added for create/edit/log/refresh/history and tracker heatmap contribution/intensity.
+- [x] CI passed for the isolated heatmap aggregation commit [#45985550581](https://github.com/eslam-alaa-gg/ossv2/actions/runs/45985550581), calendar-date helper commit [#45985579957](https://github.com/eslam-alaa-gg/ossv2/actions/runs/45985579957), and historical-log validation commit [#45985586593](https://github.com/eslam-alaa-gg/ossv2/actions/runs/45985586593).
+- [ ] Final CI for the full Phase 03 branch head, including the new E2E assertions and synchronization changes, is still running: [latest Actions runs](https://github.com/eslam-alaa-gg/ossv2/actions?query=branch%3Afix%2Fukiyo-habits-heatmap-focus).
+- [ ] Browser-level verification of the top-bar quick panel, cross-component refresh, mobile layout, offline optimistic updates, and timezone boundary behavior has not been performed; this repository still has no browser automation suite.
+
+**Phase 03 status: IN PROGRESS — source fixes and regression tests committed; final CI and browser/offline verification pending.** No merge, rebase, reset, force-push, or deployment was performed.
