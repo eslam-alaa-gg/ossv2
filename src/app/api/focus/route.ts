@@ -43,8 +43,21 @@ export const POST = handle(async (req) => {
   const a = await requireUser();
   const d = await body(req, z.object({ mode: z.enum(["focus", "short_break", "long_break", "custom"]), minutes: z.number().int().min(1).max(240), taskId: z.string().uuid().nullable().default(null) }));
   if (d.taskId) await ownTask(a, d.taskId);
-  // an abandoned running session is closed (not rewarded)
-  await db.update(focusSessions).set({ status: "ended", endedAt: new Date(), actualSeconds: 0 }).where(and(eq(focusSessions.userId, a.id), inArray(focusSessions.status, ["running", "paused"])));
-  const [s] = await db.insert(focusSessions).values({ userId: a.id, mode: d.mode, taskId: d.taskId, plannedSeconds: d.minutes * 60 }).returning();
-  return { session: s, serverNow: Date.now() };
+  // Serialize session starts per user and keep closing the previous session
+  // plus creating the replacement atomic. This prevents concurrent starts from
+  // leaving multiple active sessions or closing the old one if insertion fails.
+  const session = await db.transaction(async (tx) => {
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${a.id}))`);
+    await tx.update(focusSessions)
+      .set({ status: "ended", endedAt: new Date(), actualSeconds: 0 })
+      .where(and(eq(focusSessions.userId, a.id), inArray(focusSessions.status, ["running", "paused"])));
+    const [created] = await tx.insert(focusSessions).values({
+      userId: a.id,
+      mode: d.mode,
+      taskId: d.taskId,
+      plannedSeconds: d.minutes * 60,
+    }).returning();
+    return created;
+  });
+  return { session, serverNow: Date.now() };
 });
