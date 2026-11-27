@@ -94,6 +94,8 @@ export function YouTubeMusicPlayer({ compact = false, searchOpen = true, mixerOp
   const searchRequest = useRef(0);
   const playerMount = useRef<HTMLDivElement>(null);
   const player = useRef<YTPlayer | null>(null);
+  const volumeRef = useRef(75);
+  const mutedRef = useRef(false);
   const resultsRef = useRef(results);
   const selectedRef = useRef(selected);
   useEffect(() => {
@@ -144,8 +146,8 @@ export function YouTubeMusicPlayer({ compact = false, searchOpen = true, mixerOp
             if (cancelled) return;
             setPlayerReady(true);
             setDuration(event.target.getDuration() || 0);
-            event.target.setVolume(volume);
-            if (muted) event.target.mute();
+            event.target.setVolume(volumeRef.current);
+            if (mutedRef.current) event.target.mute();
             event.target.playVideo();
           },
           onStateChange: (event) => {
@@ -213,8 +215,8 @@ export function YouTubeMusicPlayer({ compact = false, searchOpen = true, mixerOp
     player.current.seekTo(Math.max(0, Math.min(duration, value)), true);
     setCurrentTime(value);
   };
-  const changeVolume = (value: number) => { const next = Math.max(0, Math.min(100, value)); setVolume(next); setMuted(next === 0); if (player.current) { player.current.setVolume(next); if (next > 0) player.current.unMute(); else player.current.mute(); } };
-  const toggleMute = () => { if (!player.current) { setMuted(value => !value); return; } if (muted || player.current.isMuted()) { player.current.unMute(); player.current.setVolume(Math.max(1, volume)); setMuted(false); } else { player.current.mute(); setMuted(true); } };
+  const changeVolume = (value: number) => { const next = Math.max(0, Math.min(100, value)); volumeRef.current = next; mutedRef.current = next === 0; setVolume(next); setMuted(next === 0); if (player.current) { player.current.setVolume(next); if (next > 0) player.current.unMute(); else player.current.mute(); } };
+  const toggleMute = () => { if (!player.current) { setMuted(value => !value); return; } if (muted || player.current.isMuted()) { player.current.unMute(); player.current.setVolume(Math.max(1, volume)); mutedRef.current = false; setMuted(false); } else { player.current.mute(); mutedRef.current = true; setMuted(true); } };
   const formatTime = (value: number) => `${Math.floor(value / 60)}:${String(Math.floor(value % 60)).padStart(2, "0")}`;
   const togglePlayback = () => {
     if (!playerReady || !player.current) return;
