@@ -3,7 +3,8 @@ import { ImagePlus, Maximize2, Minimize2, Music2, Pause, Play, RotateCcw, Square
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useApp } from "@/components/providers";
 import { PriorityBadge, type Task } from "@/components/task-form";
-import { Badge, Button, Card, EmptyState, Field, PageHeader, Segmented, cn, useUI } from "@/components/ui";
+import { FocusBackground } from "@/components/focus-background";
+import { Badge, Button, Card, EmptyState, Field, PageHeader, Segmented, Switch, cn, useUI } from "@/components/ui";
 import { api, minutesLabel, useFetch } from "@/lib/client";
 import { SOUNDS, startAmbient, type AmbientHandle } from "@/lib/ambient";
 import { useSpotify } from "@/components/spotify";
@@ -57,6 +58,8 @@ export default function FocusPage() {
   const [audioOn, setAudioOn] = useState(false);
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
   const [imageMessage, setImageMessage] = useState("");
+  const [blurOn, setBlurOn] = useState(prefs.focus.blur);
+  const [blurAmount, setBlurAmount] = useState(prefs.focus.blurAmount);
   const endAt = useRef(0);
   const amb = useRef<AmbientHandle | null>(null);
   const finishing = useRef(false);
@@ -105,7 +108,15 @@ export default function FocusPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [audioOn, sound]);
   useEffect(() => { amb.current?.setVolume(volume); }, [volume]);
-  useEffect(() => { const h = setTimeout(() => { if (sound !== prefs.focus.sound || volume !== prefs.focus.volume) savePrefs({ focus: { ...prefs.focus, sound, volume } }).catch(() => {}); }, 800); return () => clearTimeout(h); }, [sound, volume]); // eslint-disable-line react-hooks/exhaustive-deps
+  // One debounced save for every Focus Room setting, flushed if the page is left before the delay ends.
+  const settings = useRef({ saved: prefs.focus, next: prefs.focus, save: savePrefs });
+  useEffect(() => { settings.current = { saved: prefs.focus, next: { ...prefs.focus, sound, volume, blur: blurOn, blurAmount }, save: savePrefs }; });
+  const flushSettings = useCallback(() => {
+    const { saved, next, save } = settings.current;
+    if (JSON.stringify(saved) !== JSON.stringify(next)) save({ focus: next }).catch(() => {});
+  }, []);
+  useEffect(() => { const h = setTimeout(flushSettings, 600); return () => clearTimeout(h); }, [sound, volume, blurOn, blurAmount, flushSettings]);
+  useEffect(() => { window.addEventListener("pagehide", flushSettings); return () => { window.removeEventListener("pagehide", flushSettings); flushSettings(); }; }, [flushSettings]);
   useEffect(() => { const h = () => { if (!document.fullscreenElement) setZen(false); }; document.addEventListener("fullscreenchange", h); return () => document.removeEventListener("fullscreenchange", h); }, []);
 
   const setDuration = (m: number) => { if (phase !== "idle") return; const v = Math.min(240, Math.max(1, Math.round(m) || 1)); setMinutes(v); setRemaining(v * 60); setPlanned(v * 60); };
@@ -122,6 +133,7 @@ export default function FocusPage() {
       let width = Math.round(img.naturalWidth * scale);
       let height = Math.round(img.naturalHeight * scale);
       let quality = 0.84;
+      let type = "image/webp";
       let result: Blob | null = null;
       const canvas = document.createElement("canvas");
       for (let attempt = 0; attempt < 14; attempt++) {
@@ -130,7 +142,9 @@ export default function FocusPage() {
         const context = canvas.getContext("2d");
         if (!context) throw new Error("Image processing is not available in this browser.");
         context.drawImage(img, 0, 0, canvas.width, canvas.height);
-        result = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/webp", quality));
+        result = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, type, quality));
+        // Browsers that cannot encode WebP (Safari, iOS) silently return a PNG, which ignores quality.
+        if (result && result.type !== type) { type = "image/jpeg"; result = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, type, quality)); }
         if (result && result.size <= 400 * 1024) break;
         if (quality > 0.5) quality -= 0.08;
         else { width *= 0.82; height *= 0.82; quality = 0.82; }
@@ -218,13 +232,7 @@ export default function FocusPage() {
 
   if (zen) return (
     <div className="fixed inset-0 z-[90] flex min-h-[100dvh] w-screen flex-col items-center justify-center overflow-hidden p-3 sm:p-6">
-      {backgroundImage ? (
-        <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: `url(${backgroundImage})`, backgroundSize: "cover", backgroundPosition: "center center" }}
-          aria-hidden
-        />
-      ) : <div className="absolute inset-0 app-glow" />}
+      {backgroundImage ? <FocusBackground image={backgroundImage} blur={blurOn ? blurAmount : 0} /> : <div className="absolute inset-0 app-glow" />}
       <div className="absolute inset-0 bg-black/35" aria-hidden />
       <div className="relative z-10 flex w-full max-w-5xl flex-col items-center justify-center">
         {timer}
@@ -280,7 +288,20 @@ export default function FocusPage() {
               <ImagePlus className="size-4" /> {t("Upload background image")}
               <input type="file" accept="image/*" className="sr-only" onChange={(e) => { const file = e.target.files?.[0]; if (file) void uploadFocusBackground(file); e.currentTarget.value = ""; }} />
             </label>
-            <p className="mt-2 text-xs text-faint">{t("Images are automatically compressed to a maximum of 400 KB and blurred in full-screen focus.")}</p>
+            {backgroundImage && (
+              <>
+                {/* A third of the strength keeps the small preview representative of the full-screen result. */}
+                <div className="relative mt-3 aspect-video overflow-hidden rounded-xl border border-line" data-testid="focus-preview">
+                  <FocusBackground image={backgroundImage} blur={blurOn ? Math.max(1, Math.round(blurAmount / 3)) : 0} />
+                </div>
+              </>
+            )}
+            <div className="mt-3 flex items-center justify-between gap-3 text-sm"><span>{t("Blur background")}</span><Switch checked={blurOn} onChange={setBlurOn} label={t("Blur background")} /></div>
+            <div className="mt-2 flex items-center gap-3">
+              <input type="range" min={2} max={40} step={1} value={blurAmount} disabled={!blurOn} onChange={(e) => setBlurAmount(Number(e.target.value))} aria-label={t("Blur strength")} className="disabled:opacity-40" />
+              <span className="w-10 text-end text-xs tabular-nums text-muted" dir="ltr">{blurAmount}px</span>
+            </div>
+            <p className="mt-2 text-xs text-faint">{t("Images are automatically compressed to a maximum of 400 KB. Blur is a display effect; your original file is not changed.")}</p>
             <p className="mt-2 text-xs text-muted">{t("Tap")} <a className="text-accent underline" href="https://share.google/XH6X3uwEOF0VNJKzi" target="_blank" rel="noreferrer">{t("here")}</a> {t("to reduce image quality before uploading.")}</p>
             {imageMessage && <p role="status" className="mt-2 text-xs text-muted">{imageMessage}</p>}
             {backgroundImage && <button type="button" onClick={removeFocusBackground} className="mt-2 flex items-center gap-1.5 text-xs text-muted hover:text-fg"><Trash2 className="size-3.5" /> {t("Remove background")}</button>}

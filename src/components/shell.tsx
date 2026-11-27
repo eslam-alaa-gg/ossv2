@@ -1,7 +1,7 @@
 "use client";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  BarChart3, Bell, BookMarked, BookOpen, CalendarCheck, CalendarDays, Check, CheckSquare, ChevronsLeft, ChevronsRight, Droplets, Languages, LayoutDashboard, Lightbulb, LogOut, Minus, Music2, Palette, Plus, Repeat, Search, Settings, Target, Timer,
+  BarChart3, Bell, BookMarked, CalendarCheck, CalendarDays, CheckSquare, ChevronsLeft, ChevronsRight, Languages, LayoutDashboard, LogOut, Music2, Palette, Plus, Repeat, Search, Settings, Target, Timer,
   Trophy, User as UserIcon, X, Zap,
 } from "lucide-react";
 import Link from "next/link";
@@ -9,10 +9,10 @@ import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { api, useFetch } from "@/lib/client";
 import { Avatar } from "./avatar";
-import { HabitIcon } from "./habit-icon";
+import { HabitQuickPanel } from "./habit-quick-panel";
 import { useApp } from "./providers";
 import { SpotifyProvider } from "./spotify";
-import { Button, Modal, cn, useUI } from "./ui";
+import { Button, Modal, cn } from "./ui";
 
 export const NAV = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, primary: true },
@@ -238,177 +238,6 @@ function CommandMenu({ open, onClose }: { open: boolean; onClose: () => void }) 
 }
 
 
-type QuickHabit = { id: string; name: string; icon: string; kind: "standard" | "water" | "reading" | "learning"; target: number; todayAmount: number; todayDone: boolean; unit: string };
-type QuickTrackers = { today: string; water: { goal: number; total: number }; reading: { target: number; todayPages: number }; learning: { target: number; todayCount: number } };
-
-function HabitQuickPanel() {
-  const { t } = useApp();
-  const { run, toast } = useUI();
-  const router = useRouter();
-  const [open, setOpen] = useState(false);
-  const [habits, setHabits] = useState<QuickHabit[]>([]);
-  const [tracker, setTracker] = useState<QuickTrackers | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [busyId, setBusyId] = useState<string | null>(null);
-  const ref = useRef<HTMLDivElement>(null);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [h, tr] = await Promise.all([
-        api<{ habits: QuickHabit[] }>("/api/habits"),
-        api<QuickTrackers>("/api/trackers"),
-      ]);
-      setHabits(h.habits);
-      setTracker(tr);
-    } catch {
-      // The quick panel remains usable when a refresh fails.
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { void load(); }, [load]);
-  useEffect(() => {
-    if (!open) return;
-    void load();
-    const outside = (e: PointerEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false); };
-    const escape = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
-    document.addEventListener("pointerdown", outside);
-    document.addEventListener("keydown", escape);
-    return () => { document.removeEventListener("pointerdown", outside); document.removeEventListener("keydown", escape); };
-  }, [open, load]);
-
-  const water = habits.find((h) => h.kind === "water");
-  const reading = habits.find((h) => h.kind === "reading");
-  const learning = habits.find((h) => h.kind === "learning");
-  const standard = habits.filter((h) => h.kind === "standard");
-  const cup = 250;
-  const waterAmount = tracker?.water.total ?? 0;
-  const waterGoal = tracker?.water.goal ?? 0;
-
-  const logStandard = async (h: QuickHabit) => {
-    if (busyId) return;
-    setBusyId(h.id);
-    try {
-      const next = h.target === 1 ? (h.todayDone ? 0 : 1) : Math.min(h.target, h.todayAmount + 1);
-      const r = await run(() => api<{ completed: boolean }>(`/api/habits/${h.id}/log`, { body: { amount: next } }));
-      if (r) {
-        if (r.completed) toast("success", t("Habit complete"));
-        await load();
-      }
-    } finally {
-      setBusyId(null);
-    }
-  };
-
-  const addWater = async () => {
-    if (busyId) return;
-    setBusyId("water");
-    try {
-      if (await run(() => api("/api/trackers/water", { body: { ml: cup } }), t("Water logged"))) await load();
-    } finally { setBusyId(null); }
-  };
-
-  const openTracker = (tab: "reading" | "learning") => {
-    setOpen(false);
-    router.push(`/habits?tab=${tab}`);
-  };
-
-  const HabitButton = ({ id, name, icon, amount, target, done, onClick, disabled }: {
-    id: string; name: string; icon: string; amount: number; target: number; done?: boolean; onClick: () => void; disabled?: boolean;
-  }) => {
-    const pct = target > 0 ? Math.min(100, (amount / target) * 100) : 0;
-    const radius = 20;
-    const circumference = 2 * Math.PI * radius;
-    const complete = done ?? (target > 0 && amount >= target);
-    return (
-      <button
-        key={id}
-        type="button"
-        onClick={onClick}
-        disabled={disabled || complete}
-        title={`${t(name)} · ${amount}/${target}`}
-        aria-label={`${t(name)}: ${amount} / ${target}`}
-        className="group flex min-w-0 flex-col items-center gap-1.5 rounded-xl p-2 transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-default"
-      >
-        <span className="relative grid size-12 place-items-center">
-          <svg viewBox="0 0 48 48" className="absolute inset-0 size-12 -rotate-90" aria-hidden="true">
-            <circle cx="24" cy="24" r={radius} fill="none" stroke="rgba(255,255,255,.17)" strokeWidth="3" />
-            <circle cx="24" cy="24" r={radius} fill="none" stroke="var(--accent)" strokeWidth="3" strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={circumference * (1 - pct / 100)} className="transition-[stroke-dashoffset] duration-300" />
-          </svg>
-          <span className={cn("grid size-9 place-items-center rounded-full transition-transform", complete ? "text-accent" : "text-white/90 group-hover:scale-110")}>
-            {icon === "water" ? <Droplets className="size-5" /> : icon === "reading" ? <BookOpen className="size-5" /> : icon === "learning" ? <Lightbulb className="size-5" /> : <HabitIcon name={icon} className="size-5" />}
-          </span>
-          {complete && <Check className="absolute -end-0.5 -top-0.5 size-3.5 rounded-full bg-[var(--accent)] p-0.5 text-[var(--on-accent)]" />}
-        </span>
-        <span className="max-w-full truncate text-[11px] text-white/85">{t(name)}</span>
-        <span className="text-[10px] tabular-nums text-white/55">{amount}/{target}</span>
-      </button>
-    );
-  };
-
-  return (
-    <div ref={ref} className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="header-icon-btn grid size-10 shrink-0 place-items-center rounded-xl border-0 bg-transparent text-current transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
-        aria-label={t("Habit quick tracker")}
-        title={t("Habit quick tracker")}
-        aria-haspopup="dialog"
-        aria-expanded={open}
-        aria-controls="habit-quick-panel"
-      >
-        <Droplets className="size-[22px] stroke-[2.1]" aria-hidden="true" />
-      </button>
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            id="habit-quick-panel"
-            role="dialog"
-            aria-label={t("Quick habit tracker")}
-            initial={{ opacity: 0, y: -7, scale: .97 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -5, scale: .98 }}
-            transition={{ duration: .16 }}
-            className="absolute start-0 top-[calc(100%+0.65rem)] z-[80] w-[min(calc(100vw-2rem),320px)] overflow-hidden rounded-2xl border border-white/15 p-3 shadow-2xl"
-            style={{ background: "rgba(12, 12, 20, .66)", backdropFilter: "blur(24px) saturate(160%)", WebkitBackdropFilter: "blur(24px) saturate(160%)" }}
-          >
-            <div className="mb-2 flex items-center justify-between px-1">
-              <div>
-                <p className="text-sm font-semibold text-white">{t("Quick habit tracker")}</p>
-                <p className="text-[11px] text-white/55">{t("Your daily targets")}</p>
-              </div>
-              <button type="button" onClick={() => setOpen(false)} aria-label={t("Close")} className="rounded-lg p-1.5 text-white/70 hover:bg-white/10"><X className="size-4" /></button>
-            </div>
-            {loading && !tracker ? <p className="py-5 text-center text-xs text-white/60">{t("Loading…")}</p> : (
-              <div className="grid grid-cols-3 gap-1">
-                {tracker && water && (
-                  <HabitButton id="water" name="Drink Water" icon="water" amount={Math.floor(waterAmount / cup)} target={Math.max(1, Math.ceil(waterGoal / cup))} onClick={addWater} disabled={!!busyId || waterAmount >= waterGoal} />
-                )}
-                {reading && tracker && (
-                  <HabitButton id={reading.id} name={reading.name} icon="reading" amount={tracker.reading.todayPages} target={reading.target} onClick={() => openTracker("reading")} />
-                )}
-                {learning && tracker && (
-                  <HabitButton id={learning.id} name={learning.name} icon="learning" amount={tracker.learning.todayCount} target={learning.target} onClick={() => openTracker("learning")} />
-                )}
-                {standard.map((h) => (
-                  <HabitButton key={h.id} id={h.id} name={h.name} icon={h.icon} amount={h.todayAmount} target={h.target} done={h.todayDone} onClick={() => void logStandard(h)} disabled={!!busyId || (h.target > 1 && h.todayAmount >= h.target)} />
-                ))}
-                {!habits.length && <p className="col-span-3 py-5 text-center text-xs text-white/60">{t("Add a habit with a daily target to see it here.")}</p>}
-              </div>
-            )}
-            <div className="mt-2 border-t border-white/15 pt-2">
-              <Link href="/habits" onClick={() => setOpen(false)} className="block rounded-lg py-1.5 text-center text-xs text-white/80 transition-colors hover:bg-white/10">{t("Open all habits")}</Link>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
-
 export function AppShell({ children }: { children: ReactNode }) {
   const path = usePathname();
   const { t, lang, patchUser } = useApp();
@@ -494,4 +323,3 @@ export function AppShell({ children }: { children: ReactNode }) {
     </SpotifyProvider>
   );
 }
-void useUI;

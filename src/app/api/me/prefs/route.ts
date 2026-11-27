@@ -1,7 +1,9 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { users } from "@/db/schema";
+import { habits, users } from "@/db/schema";
+import { todayIn } from "@/lib/dates";
+import { syncSpecialHabit } from "@/lib/server/habits";
 import { ApiError, body, handle } from "@/lib/server/api";
 import { requireUser } from "@/lib/server/auth";
 import { PREF_KEYS, parsePrefs, prefSchemas, type Prefs } from "@/lib/prefs";
@@ -18,5 +20,11 @@ export const PATCH = handle(async (req) => {
   }
   if (!changed) throw new ApiError(400, "Nothing to update.");
   const [u] = await db.update(users).set({ preferences: next, updatedAt: new Date() }).where(eq(users.id, a.id)).returning();
-  return { prefs: parsePrefs(u.preferences) };
+  const prefs = parsePrefs(u.preferences);
+  if (prefs.waterGoal !== a.prefs.waterGoal) {
+    // Keep the linked water habit's target and today's completion in step with the new goal.
+    await db.update(habits).set({ target: prefs.waterGoal }).where(and(eq(habits.userId, a.id), eq(habits.kind, "water")));
+    await syncSpecialHabit({ ...a, prefs }, "water", todayIn(a.tz));
+  }
+  return { prefs };
 });

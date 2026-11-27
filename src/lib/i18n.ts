@@ -2,6 +2,18 @@
 export type Lang = "en" | "ar";
 
 const ar: Record<string, string> = {
+  "Quick log": "تسجيل سريع",
+  "Quick check-in": "تسجيل سريع",
+  "Not added yet": "لم تتم إضافتها بعد",
+  "Overall progress": "إجمالي التقدم",
+  "entry": "إدخال",
+  "Move {widget}": "تحريك {widget}",
+  "Resize {widget}": "تغيير حجم {widget}",
+  "Reset layout": "إعادة ضبط التخطيط",
+  "Choose which widgets appear. Drag a widget by its handle to move it, and drag its corner to resize it.": "اختر العناصر الظاهرة. اسحب العنصر من مقبضه لنقله، واسحب زاويته لتغيير حجمه.",
+  "Blur background": "تمويه الخلفية",
+  "Blur strength": "قوة التمويه",
+  "Images are automatically compressed to a maximum of 400 KB. Blur is a display effect; your original file is not changed.": "يتم ضغط الصور تلقائيًا إلى 400 كيلوبايت كحد أقصى. التمويه تأثير عرض فقط ولا يغيّر ملفك الأصلي.",
   "Get device token from OSSv2": "الحصول على رمز الجهاز من OSSv2",
   "Pair Android": "ربط أندرويد",
   "Device token": "رمز الجهاز",
@@ -37,7 +49,6 @@ const ar: Record<string, string> = {
   "In-app reminders are generated from your real tasks and habits whenever you use Ukiyo.": "يتم إنشاء التذكيرات داخل التطبيق من مهامك وعاداتك الفعلية عند استخدام Ukiyo.",
   "Focus background": "خلفية التركيز",
   "Upload background image": "رفع صورة للخلفية",
-  "Images are automatically compressed to a maximum of 400 KB and blurred in full-screen focus.": "يتم ضغط الصور تلقائيًا إلى 400 كيلوبايت كحد أقصى مع إضافة تمويه في وضع التركيز الكامل.",
   "Tap": "اضغط",
   "here": "هنا",
   "to reduce image quality before uploading.": "لخفض جودة الصورة قبل رفعها.",

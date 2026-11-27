@@ -53,7 +53,7 @@ export async function dashboardData(a: Authed) {
  const weekValues=Object.values(act);
  return {
   today,score,dailyGoal:a.user.dailyGoal,completedToday:todayTasks.filter(t=>t.completedAt && todayIn(a.tz,t.completedAt)===today).length,remaining:openTasks.filter(t=>t.dueDate===today).length,overdue:overdueTasks.length,openTotal:openTasks.length,
-  habits:{done:habitsDone.length,total:scheduled.length,list:scheduled.map(h=>({id:h.id,name:h.name,icon:h.icon,done:doneIds.has(h.id)}))},
+  habits:{done:habitsDone.length,total:scheduled.length,list:scheduled.map(h=>({id:h.id,name:h.name,icon:h.icon,target:h.target,done:doneIds.has(h.id)}))},
   challenge:challengeToday?{id:challengeToday.id,title:challengeToday.title,minutes:challengeToday.minutes,xp:challengeToday.xp,difficulty:challengeToday.difficulty,completedAt:challengeToday.completedAt?.toISOString()??null}:null,
   streak,weeklyStreak:weeklyStreak(activeDays,today),focusMinutes:act[today]?.focusMinutes??0,weekFocusMinutes:weekValues.reduce((s,d)=>s+d.focusMinutes,0),
   week,weekTasks:weekValues.reduce((s,d)=>s+d.tasks,0),weekHabits:weekValues.reduce((s,d)=>s+d.habits,0),

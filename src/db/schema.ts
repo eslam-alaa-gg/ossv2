@@ -409,3 +409,45 @@ export const musicBridgeDevices = ossv2.table(
   },
   (t) => [index("music_bridge_user_updated_idx").on(t.userId, t.updatedAt)],
 );
+
+/* ------------------------------ spaced repetition ----------------------------- */
+export const flashcards = ossv2.table(
+  "flashcards",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: userRef(),
+    front: text("front").notNull(),
+    back: text("back").notNull(),
+    dueAt: ts("due_at").notNull().defaultNow(),
+    intervalDays: integer("interval_days").notNull().default(0),
+    easeFactor: integer("ease_factor").notNull().default(2500),
+    repetitions: integer("repetitions").notNull().default(0),
+    lapses: integer("lapses").notNull().default(0),
+    lastReviewedAt: ts("last_reviewed_at"),
+    createdAt: createdAt(),
+    updatedAt: ts("updated_at").notNull().defaultNow(),
+  },
+  (t) => [
+    index("flashcards_user_due_idx").on(t.userId, t.dueAt),
+  ],
+);
+
+export const flashcardReviews = ossv2.table(
+  "flashcard_reviews",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: userRef(),
+    flashcardId: uuid("flashcard_id")
+      .notNull()
+      .references(() => flashcards.id, { onDelete: "cascade" }),
+    rating: text("rating").notNull(),
+    intervalBefore: integer("interval_before").notNull(),
+    intervalAfter: integer("interval_after").notNull(),
+    reviewedAt: ts("reviewed_at").notNull().defaultNow(),
+  },
+  (t) => [
+    index("flashcard_reviews_user_reviewed_idx").on(t.userId, t.reviewedAt),
+    index("flashcard_reviews_card_idx").on(t.flashcardId, t.reviewedAt),
+  ],
+);
+

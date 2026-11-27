@@ -30,7 +30,6 @@ html[dir="rtl"] :is(h1,h2,h3,h4) { line-height: 1.45; letter-spacing: 0; font-we
 html[dir="rtl"] :is(button,a,[role="button"]) { letter-spacing: 0; }
 html[dir="rtl"] .glass-btn { min-height: 40px; line-height: 1.55; padding-block: .58rem; }
 html[dir="rtl"] .card-pad { padding-block: calc(var(--pad) + 2px); }
-html[dir="rtl"] .dashboard-layout { direction: rtl; }
 html[dir="rtl"] :is(button, input, textarea, select) { font-family: inherit; }
 html[dir="rtl"] :is(h1,h2,h3,h4,p,label,li,dt,dd) { letter-spacing: 0; }
 html[dir="rtl"] .text-xs { line-height: 1.65; }
@@ -156,3 +155,33 @@ html[dir="rtl"] .app-topbar { direction: rtl; }
   .app-topbar .header-icon-btn { width: 2.25rem; height: 2.25rem; }
   .app-topbar .avatar-ring img, .app-topbar img { max-width: 2.15rem; }
 }
+
+/* ---------- dashboard grid (positions are computed in src/lib/dashboard-layout.ts) ---------- */
+.dash-grid { position: relative; width: 100%; }
+.dash-item { position: absolute; top: 0; left: 0; min-width: 0; }
+.dash-ready .dash-item, .dash-placeholder { transition: transform .22s cubic-bezier(.22,1,.36,1), width .22s cubic-bezier(.22,1,.36,1), height .22s cubic-bezier(.22,1,.36,1), opacity .16s ease; }
+.dash-ready .dash-item.dash-item-active { z-index: 20; }
+.dash-ready .dash-item.dash-item-floating { transition: height .22s ease, opacity .16s ease; opacity: .88; }
+.dash-frame { width: 100%; height: 100%; overflow: hidden; }
+.dash-item-active > .dash-frame { border-color: var(--accent); box-shadow: 0 18px 50px rgba(0,0,0,.35); }
+.dash-scroll { height: 100%; overflow: hidden; }
+.dash-scroll-fixed { overflow: auto; overscroll-behavior: contain; }
+.dash-content { display: flow-root; min-width: 0; }
+/* A widget that brings its own card sits flush inside the grid frame. */
+.dash-content > .glass { background: none; border: 0; padding: 0; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+.dash-handle, .dash-resize { position: absolute; display: grid; place-items: center; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; color: var(--muted); opacity: .45; transition: opacity .16s ease, color .16s ease, background-color .16s ease; }
+.dash-handle { top: 0; left: 50%; width: 64px; height: 22px; transform: translateX(-50%); cursor: grab; border-radius: 0 0 12px 12px; }
+.dash-resize { bottom: 0; inset-inline-end: 0; width: 28px; height: 28px; cursor: nwse-resize; border-radius: 10px; }
+html[dir="rtl"] .dash-resize { cursor: nesw-resize; }
+.dash-resize svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; }
+html[dir="rtl"] .dash-resize svg { transform: scaleX(-1); }
+.dash-item:hover > .dash-handle, .dash-item:hover > .dash-resize, .dash-handle:focus-visible, .dash-resize:focus-visible, .dash-item-active > button { opacity: 1; color: var(--accent); background: var(--card-hover); }
+@media (pointer: coarse) { .dash-handle { width: 88px; height: 30px; } .dash-resize { width: 40px; height: 40px; } .dash-handle, .dash-resize { opacity: .75; } .dash-content.card-pad { padding-top: max(var(--pad), 30px); } }
+.dash-placeholder { position: absolute; top: 0; left: 0; border: 2px dashed var(--accent); border-radius: var(--radius); background: rgba(var(--accent-rgb), .12); pointer-events: none; }
+.dash-size-badge { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); padding: .15rem .6rem; border-radius: 999px; background: var(--accent); color: var(--on-accent); font-size: .72rem; font-weight: 600; direction: ltr; white-space: nowrap; pointer-events: none; }
+html.dash-gesture, html.dash-gesture * { user-select: none !important; -webkit-user-select: none !important; }
+html.dash-gesture .dash-frame { cursor: grabbing; }
+
+/* ---------- quick habit tracker ---------- */
+.habit-glass { background: color-mix(in srgb, var(--bg) 68%, transparent); -webkit-backdrop-filter: blur(26px) saturate(170%); backdrop-filter: blur(26px) saturate(170%); border: 1px solid var(--border-strong); border-radius: var(--radius); box-shadow: 0 22px 60px rgba(0,0,0,.35), inset 0 1px 0 var(--hl); }
+.habit-ring { transition: stroke-dashoffset .6s cubic-bezier(.22,1,.36,1), stroke .3s ease; }
