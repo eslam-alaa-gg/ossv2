@@ -1,6 +1,6 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
-import { ImagePlus, Keyboard, Maximize2, Minimize2, Music2, Palette, Pause, Play, RotateCcw, Square, Trash2, Video, Volume2, VolumeX } from "lucide-react";
+import { ImagePlus, Keyboard, Maximize2, Minimize2, Palette, Pause, Play, RotateCcw, Search, Square, Trash2, Video, Volume2, VolumeX } from "lucide-react";
 import { PRESETS as THEME_PRESETS } from "@/lib/theme";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useApp } from "@/components/providers";
@@ -60,16 +60,15 @@ function FocusNowPlaying({ immersive = false }: { immersive?: boolean }) {
   const { t } = useApp();
   const [open, setOpen] = useState(false);
   return (
-    <div className={immersive ? "pointer-events-auto absolute bottom-4 right-4 z-30 w-[min(92vw,390px)] sm:bottom-6 sm:right-6" : "relative z-30"}>
-      <Button variant="ghost" size={immersive ? "sm" : "icon"} className={immersive ? "rounded-full border border-white/15 bg-black/35 text-white backdrop-blur-2xl" : "size-9 rounded-full border border-line bg-card/70 backdrop-blur-xl"} onClick={() => setOpen((value) => !value)} aria-expanded={open} aria-haspopup="dialog" aria-label={t("Music")}>
-        <Music2 className="size-4" />{immersive ? t("Music") : null}
+    <div className={immersive ? "pointer-events-auto absolute right-4 top-4 z-30 w-[min(92vw,390px)] sm:right-6 sm:top-6" : "relative z-30"}>
+      <Button variant="ghost" size="sm" className={immersive ? "rounded-full border border-white/15 bg-black/35 text-white backdrop-blur-2xl" : "rounded-full border border-line bg-card/70 backdrop-blur-xl"} onClick={() => setOpen((value) => !value)} aria-expanded={open} aria-haspopup="dialog" aria-label={t("Search music")}>
+        <Search className="size-4" />{t("Search music")}
       </Button>
-      {open && <div role="dialog" aria-label={t("Search YouTube Music")} className={immersive ? "absolute bottom-[calc(100%+10px)] right-0 max-h-[min(75vh,640px)] w-[min(92vw,390px)] overflow-y-auto rounded-2xl border border-white/15 bg-[#11131b]/92 p-3 text-white shadow-2xl backdrop-blur-2xl" : "absolute end-0 top-[calc(100%+10px)] z-50 max-h-[min(78vh,640px)] w-[min(92vw,390px)] overflow-y-auto rounded-2xl border border-white/15 bg-[#11131b]/92 p-3 text-white shadow-2xl backdrop-blur-2xl"}>
-        <div className="mb-3 flex items-center justify-between"><p className="text-sm font-semibold">{t("Music")}</p><button type="button" onClick={() => setOpen(false)} aria-label={t("Close")} className="rounded-lg p-1 text-white/60 hover:bg-white/10">×</button></div>
+      {open && <div role="dialog" aria-label={t("Search YouTube Music")} className={immersive ? "absolute end-0 top-[calc(100%+10px)] z-50 max-h-[min(75vh,640px)] w-[min(92vw,390px)] overflow-y-auto rounded-2xl border border-white/15 bg-[#11131b]/92 p-3 text-white shadow-2xl backdrop-blur-2xl" : "absolute end-0 top-[calc(100%+10px)] z-50 max-h-[min(78vh,640px)] w-[min(92vw,390px)] overflow-y-auto rounded-2xl border border-white/15 bg-[#11131b]/92 p-3 text-white shadow-2xl backdrop-blur-2xl"}>
+        <div className="mb-3 flex items-center justify-between"><p className="text-sm font-semibold">{t("Search music")}</p><button type="button" onClick={() => setOpen(false)} aria-label={t("Close")} className="rounded-lg p-1 text-white/60 hover:bg-white/10">×</button></div>
         <div className="space-y-3">
           <NowPlayingWidget source="spotify" />
           <div className="rounded-xl border border-white/10 p-3">
-            <p className="mb-2 text-xs font-semibold text-white/75">YouTube Music</p>
             <YouTubeMusicPlayer compact />
           </div>
         </div>
