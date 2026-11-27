@@ -48,8 +48,13 @@ class MainActivity : Activity() {
         root.addView(Button(this).apply {
             text = "Save device connection"
             setOnClickListener {
+                val serverUrl = server.text.toString().trim().trimEnd('/')
+                if (!serverUrl.startsWith("https://", ignoreCase = true)) {
+                    android.widget.Toast.makeText(this@MainActivity, "Use an HTTPS OSSv2 URL to protect your device token.", android.widget.Toast.LENGTH_LONG).show()
+                    return@setOnClickListener
+                }
                 try {
-                    SecureBridgePrefs.write(this@MainActivity, "server", server.text.toString().trim().trimEnd('/'))
+                    SecureBridgePrefs.write(this@MainActivity, "server", serverUrl)
                     SecureBridgePrefs.write(this@MainActivity, "token", token.text.toString().trim())
                     android.widget.Toast.makeText(this@MainActivity, "Encrypted connection saved.", android.widget.Toast.LENGTH_SHORT).show()
                 } catch (_: Exception) {
