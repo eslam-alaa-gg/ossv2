@@ -35,7 +35,6 @@ export const GET = handle(async () => {
     sessions: sessions.map((r) => ({ ...r.s, taskTitle: r.taskTitle })),
     running: running ? { ...running, serverNow: Date.now() } : null,
     tasks: pending,
-    prefs: a.prefs.focus,
   };
 });
 
