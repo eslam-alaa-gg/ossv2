@@ -201,6 +201,11 @@ await test("preferences are per-user and validated", async () => {
   assert.equal(ok.status, 200);
   assert.equal((await A.req("GET", "/api/me")).json.prefs.theme.accent, "#2dd4bf");
   assert.equal((await B.req("GET", "/api/me")).json.prefs.theme.accent, "#8b7cff", "B unaffected");
+  const spotifyPrefs = await A.req("PATCH", "/api/me/prefs", { spotify: { ambience: false, autoRefresh: false } });
+  assert.equal(spotifyPrefs.status, 200);
+  assert.deepEqual(spotifyPrefs.json.prefs.spotify, { ambience: false, autoRefresh: false });
+  assert.deepEqual((await A.req("GET", "/api/me")).json.prefs.spotify, { ambience: false, autoRefresh: false });
+  assert.deepEqual((await B.req("GET", "/api/me")).json.prefs.spotify, { ambience: true, autoRefresh: true }, "Spotify preferences are per-user");
   assert.equal((await A.req("PATCH", "/api/me/prefs", { bogus: 1 })).status, 400);
 });
 await test("profile: name validation, trim, email unchanged", async () => {
@@ -539,6 +544,7 @@ await test("logout, login again, preferences & profile persisted", async () => {
   assert.equal((await A.req("POST", "/api/auth/login", { email: emailA, password: pw })).status, 200);
   const me = (await A.req("GET", "/api/me")).json;
   assert.equal(me.user.displayName, "Alice Renamed"); assert.equal(me.prefs.theme.preset, "aurora");
+  assert.deepEqual(me.prefs.spotify, { ambience: false, autoRefresh: false });
 });
 await test("password reset flow: generic response, invalid token rejected", async () => {
   const r = await anon.req("POST", "/api/auth/forgot", { email: "nobody@test.local" });
