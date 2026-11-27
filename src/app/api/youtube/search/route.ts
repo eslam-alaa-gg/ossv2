@@ -22,6 +22,7 @@ export const GET = handle(async (req) => {
     part: "snippet",
     type: "video",
     videoEmbeddable: "true",
+    videoCategoryId: "10",
     maxResults: "12",
     q,
     safeSearch: "strict",
