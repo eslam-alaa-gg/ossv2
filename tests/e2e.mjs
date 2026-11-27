@@ -232,7 +232,9 @@ await test("Spotify routes: auth required, status reflects config", async () => 
   assert.equal((await anon.req("GET", "/api/spotify/status")).status, 401);
   const s = await A.req("GET", "/api/spotify/status");
   assert.equal(s.status, 200); assert.equal(s.json.connected, false);
-  assert.equal((await A.req("GET", "/api/spotify/now-playing")).status, 401); // not connected -> typed error, no fake data
+  const missingConnection = await A.req("GET", "/api/spotify/now-playing");
+  assert.equal(missingConnection.status, 401); // no fake now-playing data when not connected
+  assert.equal(missingConnection.json.code, "expired");
   assert.equal((await A.req("GET", "/api/spotify/art?url=https://evil.example/x.png")).status, 400);
   const cb = await A.req("GET", "/api/spotify/callback?code=x&state=y", undefined, true);
   assert.match(cb.headers.get("location") ?? "", /error=invalid_state/);
