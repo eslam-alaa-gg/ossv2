@@ -1,5 +1,5 @@
 import { ApiError, handle } from "@/lib/server/api";
-import { requireUser } from "@/lib/server/auth";
+import { clientIp, rateLimit, requireUser } from "@/lib/server/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +11,9 @@ type YouTubeSearchResponse = {
 };
 
 export const GET = handle(async (req) => {
-  await requireUser();
+  const auth = await requireUser();
+  rateLimit(`youtube-search:user:${auth.id}`, 12, 60_000);
+  rateLimit(`youtube-search:ip:${await clientIp()}`, 30, 60_000);
   const q = (req.nextUrl.searchParams.get("q") ?? "").trim().slice(0, 120);
   if (q.length < 2) throw new ApiError(400, "Enter at least 2 characters to search.");
   const key = process.env.YOUTUBE_API_KEY;
@@ -22,7 +24,6 @@ export const GET = handle(async (req) => {
     videoEmbeddable: "true",
     maxResults: "12",
     q,
-    regionCode: "EG",
     safeSearch: "strict",
     key,
   });
