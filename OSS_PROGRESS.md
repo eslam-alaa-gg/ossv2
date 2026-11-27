@@ -680,3 +680,34 @@ A follow-up review was performed against the current target-branch source after 
 - Accessibility/touch audit: **not fully passed** because two visible links have undersized hit areas.
 - Full Phase 08: **PARTIAL — NOT COMPLETE**. Do not mark the entire responsive/accessibility phase complete until the touch-target issue is fixed and authenticated browser tests cover desktop/tablet/mobile navigation, dialogs, Focus Zone, drag/resize, and keyboard/touch interactions.
 - No application source code was changed during this audit. No production deployment, merge, rebase or branch reset was performed.
+
+
+## Phase 09 — Security and performance audit (2026-11-27)
+
+### Confirmed issues fixed
+
+1. **Host-header-derived application URLs:** Authentication email links and Spotify redirects previously fell back to `Host` / `X-Forwarded-Host`; the Google OAuth callback used the request URL origin. Added `src/lib/server/origin.ts`, which resolves `NEXT_PUBLIC_SITE_URL` or trusted platform `VERCEL_URL`, requires HTTPS for non-local origins, permits localhost only in development, and fails closed in production when configuration is missing or invalid. Password reset, email verification, Spotify OAuth and Google OAuth callback now use this trusted origin. Email fallback links are HTML-escaped.
+2. **Single-use authentication tokens:** Reset and verification tokens were checked and marked used in separate operations. Both now atomically claim an unexpired, unused token with a conditional update inside a transaction. Password reset, token consumption and session revocation commit together. Invalid reset tokens are rejected before password hashing.
+3. **Cookie and request boundaries:** Session cookies always set `Secure` in production. Unsafe cookie-authenticated API mutations validate same-origin metadata and reject cross-site or metadata-free requests; bearer-only device requests remain supported. The shared JSON body parser streams and caps request bodies at 1,000,000 bytes and returns HTTP 413 for oversized input.
+4. **Memory and dependencies:** The per-instance rate-limit map is bounded to 10,000 buckets and periodically removes expired entries. It remains per-instance, not a globally consistent distributed limiter. Next.js was updated from 16.4.2 to 16.4.6. Scoped npm overrides pin vulnerable esbuild copies (including the nested `@esbuild-kit/core-utils` copy) to 0.25.12. Unused direct dependencies (`date-fns` and `@supabase/supabase-js`) were removed, build-time tooling/types moved to devDependencies, and `eslint-config-next` was aligned.
+
+### Review results
+- Session identity is derived server-side from the hashed session token. Reviewed private API reads/writes and raw SQL aggregates scope by the authenticated user ID. UUID route parameters and payloads use Zod / `uuidParam`; foreign task, goal and milestone references are checked against the current user.
+- Session and device tokens are stored as hashes; Spotify OAuth tokens are encrypted server-side with AES-256-GCM. The public VAPID key is intentionally exposed; private VAPID, database, email, Spotify encryption and cron secrets remain server-side environment variables. No committed `.env` or credential file was found; only `.env.example` is tracked.
+- The `ossv2` schema has no per-user PostgreSQL RLS policies in the migrations. Current isolation relies on server-side session checks and owner-scoped queries. Do not expose this schema through a client-facing Data API until a per-user JWT/RLS migration is completed and verified.
+- No broad architectural rewrite or speculative dependency removal was made. Dashboard overview queries already use parallel requests; no production load profile was run and no measured latency improvement is claimed.
+
+### Verification
+- `npm run typecheck`: passed.
+- `npm run lint`: passed with 0 errors; 54 existing warnings remain.
+- `npm run build`: passed on Next.js 16.4.6 using placeholder build-time environment values; this verifies build output, not a live database connection.
+- `npm audit --package-lock=false`: 0 vulnerabilities after the Next.js update and scoped esbuild override.
+- `npx drizzle-kit --version`: passed (Drizzle Kit 0.31.11; Drizzle ORM 0.45.2).
+- `drizzle-kit check`: did not pass; Drizzle Kit reports legacy snapshots `0000_snapshot.json` through `0002_snapshot.json` as malformed, although each file parses as JSON. No migration files or snapshots were rewritten; this pre-existing migration-metadata compatibility issue needs a separate controlled repair.
+- Production-mode HTTP smoke tests against the built app: attacker-controlled `Host` and `X-Forwarded-Host` headers still redirected to the configured trusted application origin; cross-site and metadata-free cookie mutation requests both returned HTTP 403; oversized JSON returned HTTP 413 and malformed JSON returned HTTP 400.
+- Full authenticated API E2E / two-user IDOR tests were not run because no database credentials or authorized test-user session were available. The expanded `tests/e2e.mjs` suite now covers cross-user isolation, token replay under concurrent reset requests, login throttling across changing email addresses, host-header redirect injection, CSRF and request-size boundaries; it still needs to be executed against a disposable test database.
+
+### Outcome and remaining work
+- Confirmed Host-header URL injection, concurrent token consumption, permissive CSRF metadata handling, unbounded JSON request bodies and unbounded rate-limit bucket growth have been addressed in source.
+- **Phase 09: PARTIAL — NOT COMPLETE.** Before marking complete, run the API E2E suite against a disposable database with two independent accounts; verify cross-user IDOR cases and token replay/concurrency behavior; review database grants and production secret configuration; and run authenticated load/memory profiling. PostgreSQL RLS remains intentionally absent and is a deployment constraint.
+- No production deployment, merge, rebase, reset or force-push was performed during this phase.

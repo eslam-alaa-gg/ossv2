@@ -1,6 +1,8 @@
 // End-to-end API tests: auth, cross-user isolation (IDOR), reward validation, demo mode, profile.
 // Usage: BASE_URL=http://127.0.0.1:3000 node tests/e2e.mjs
 import assert from "node:assert/strict";
+import { createHash, randomBytes } from "node:crypto";
+import { Client as PgClient } from "pg";
 
 const BASE = process.env.BASE_URL || "http://127.0.0.1:3000";
 let passed = 0;
@@ -10,6 +12,10 @@ class Client {
   jar = {};
   async req(method, path, body, raw) {
     const headers = {};
+    if (!["GET", "HEAD", "OPTIONS"].includes(method)) {
+      headers.Origin = BASE;
+      headers["Sec-Fetch-Site"] = "same-origin";
+    }
     if (body !== undefined && !(body instanceof FormData)) headers["Content-Type"] = "application/json";
     const cookie = Object.entries(this.jar).map(([k, v]) => `${k}=${v}`).join("; ");
     if (cookie) headers.Cookie = cookie;
@@ -237,9 +243,28 @@ await test("avatar: validates type/size, per-user, replace + remove", async () =
   assert.equal((await A.req("DELETE", "/api/me/avatar")).json.avatarVersion, null);
   assert.equal((await A.req("GET", "/api/me/avatar")).status, 404);
 });
-await test("CSRF: cross-origin mutation blocked", async () => {
-  const res = await fetch(BASE + "/api/tasks", { method: "POST", headers: { "Content-Type": "application/json", Origin: "https://evil.example", Cookie: `lifeos_session=${A.jar.lifeos_session}` }, body: JSON.stringify({ title: "csrf" }) });
-  assert.equal(res.status, 403);
+await test("OAuth callback ignores attacker-controlled host headers", async () => {
+  const response = await fetch(BASE + "/auth/callback?code=missing", {
+    headers: { Host: "attacker.example", "X-Forwarded-Host": "attacker.example" },
+    redirect: "manual",
+  });
+  assert.ok(response.status >= 300 && response.status < 400);
+  assert.ok(!response.headers.get("location")?.includes("attacker.example"));
+});
+await test("API request bodies are bounded and malformed JSON is rejected", async () => {
+  const headers = { Origin: BASE, "Sec-Fetch-Site": "same-origin", "Content-Type": "application/json" };
+  const oversized = await fetch(BASE + "/api/auth/reset", { method: "POST", headers, body: `{${" ".repeat(1_000_100)}}` });
+  assert.equal(oversized.status, 413);
+  const malformed = await fetch(BASE + "/api/auth/reset", { method: "POST", headers, body: "{bad" });
+  assert.equal(malformed.status, 400);
+});
+await test("CSRF: cross-origin and metadata-free cookie mutations blocked", async () => {
+  const crossOrigin = await fetch(BASE + "/api/tasks", { method: "POST", headers: { "Content-Type": "application/json", Origin: "https://evil.example", Cookie: `lifeos_session=${A.jar.lifeos_session}` }, body: JSON.stringify({ title: "csrf" }) });
+  assert.equal(crossOrigin.status, 403);
+  const missingMetadata = await fetch(BASE + "/api/tasks", { method: "POST", headers: { "Content-Type": "application/json", Cookie: `lifeos_session=${A.jar.lifeos_session}` }, body: JSON.stringify({ title: "csrf" }) });
+  assert.equal(missingMetadata.status, 403);
+  const sameOrigin = await A.req("POST", "/api/tasks", { title: "same-origin-csrf-regression" });
+  assert.equal(sameOrigin.status, 200);
 });
 await test("Spotify routes: auth required, status reflects config", async () => {
   assert.equal((await anon.req("GET", "/api/spotify/status")).status, 401);
@@ -559,11 +584,42 @@ await test("password reset flow: generic response, invalid token rejected", asyn
   assert.equal(r.status, 200);
   assert.equal((await anon.req("POST", "/api/auth/reset", { token: "x".repeat(40), password: "new-password-123" })).status, 400);
 });
+await test("password reset tokens are single-use under concurrent requests", async () => {
+  assert.ok(process.env.DATABASE_URL, "DATABASE_URL is required for the token-consumption integration test");
+  const c = new Client();
+  const email = `reset_race_${rnd()}@test.local`;
+  assert.equal((await c.req("POST", "/api/auth/signup", { email, password: pw, displayName: "Reset Race" })).status, 200);
+  const user = (await c.req("GET", "/api/me")).json.user;
+  const token = randomBytes(32).toString("base64url");
+  const sql = new PgClient({ connectionString: process.env.DATABASE_URL });
+  await sql.connect();
+  try {
+    await sql.query("INSERT INTO ossv2.auth_tokens (user_id, type, token_hash, expires_at) VALUES ($1, 'reset', $2, $3)", [user.id, createHash("sha256").update(token).digest("hex"), new Date(Date.now() + 60 * 60 * 1000)]);
+  } finally {
+    await sql.end();
+  }
+  const firstPassword = "reset-race-first-123";
+  const secondPassword = "reset-race-second-123";
+  const results = await Promise.all([
+    c.req("POST", "/api/auth/reset", { token, password: firstPassword }),
+    c.req("POST", "/api/auth/reset", { token, password: secondPassword }),
+  ]);
+  assert.deepEqual(results.map((result) => result.status).sort(), [200, 400]);
+  assert.equal((await c.req("GET", "/api/me")).status, 401, "reset invalidates existing sessions");
+  const winningPassword = results[0].status === 200 ? firstPassword : secondPassword;
+  assert.equal((await c.req("POST", "/api/auth/login", { email, password: winningPassword })).status, 200);
+  assert.equal((await c.req("DELETE", "/api/me/account", { password: winningPassword })).status, 200);
+});
 await test("account deletion removes data (cascade)", async () => {
   assert.equal((await B.req("DELETE", "/api/me/account", { password: "nope-nope" })).status, 400);
   assert.equal((await B.req("DELETE", "/api/me/account", { password: pw })).status, 200);
   assert.equal((await B.req("GET", "/api/me")).status, 401);
   assert.equal((await anon.req("POST", "/api/auth/login", { email: emailB, password: pw })).status, 401);
+});
+
+await test("login throttling applies across changing email addresses", async () => {
+  const attempts = await Promise.all(Array.from({ length: 35 }, (_, i) => anon.req("POST", "/api/auth/login", { email: `rate_${i}_${rnd()}@test.local`, password: "wrong-password-123" })));
+  assert.ok(attempts.some((attempt) => attempt.status === 429), "per-IP login limit must trigger despite rotating email addresses");
 });
 
 console.log(results.join("\n"));

@@ -1,10 +1,10 @@
 import "server-only";
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
 import { and, eq, sql } from "drizzle-orm";
-import { headers } from "next/headers";
 import { db } from "@/db";
 import { spotifyConnections } from "@/db/schema";
 import { ApiError } from "./api";
+import { getAppOrigin } from "./origin";
 
 export const SPOTIFY_SCOPES = [
   "user-read-playback-state",
@@ -28,13 +28,8 @@ export function spotifyConfigured() {
   return !!process.env.SPOTIFY_CLIENT_ID && !!process.env.APP_SECRET && process.env.APP_SECRET.length >= 32;
 }
 
-export async function appOrigin() {
-  if (process.env.NEXT_PUBLIC_SITE_URL) return process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, "");
-  const h = await headers();
-  const proto = h.get("x-forwarded-proto")?.split(",")[0]?.trim() || "https";
-  const host = h.get("x-forwarded-host")?.split(",")[0]?.trim() || h.get("host");
-  if (!host) throw new ApiError(500, "Unable to determine the application URL.");
-  return `${proto}://${host}`;
+export function appOrigin() {
+  return getAppOrigin();
 }
 
 export async function redirectUri() {
