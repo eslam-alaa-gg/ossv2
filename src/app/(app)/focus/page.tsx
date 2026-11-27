@@ -9,6 +9,7 @@ import { Badge, Button, Card, EmptyState, Field, PageHeader, Segmented, cn, useU
 import { api, minutesLabel, useFetch } from "@/lib/client";
 import { SOUNDS, startAmbient, type AmbientHandle } from "@/lib/ambient";
 import { YouTubeMusicPlayer } from "@/components/youtube-music";
+import { NowPlayingWidget } from "@/components/spotify";
 
 type Session = { id: string; mode: string; plannedSeconds: number; actualSeconds: number; status: string; startedAt: string; lastResumedAt?: string | null; pausedAt?: string | null; taskTitle?: string | null };
 type FocusData = { todayMinutes: number; weekMinutes: number; totalSessions: number; sessions: Session[]; running: (Session & { serverNow: number }) | null; tasks: { id: string; title: string; priority: Task["priority"] }[]; prefs: { sound: string; volume: number; preset: number } };
@@ -60,12 +61,18 @@ function FocusNowPlaying({ immersive = false }: { immersive?: boolean }) {
   const [open, setOpen] = useState(false);
   return (
     <div className={immersive ? "pointer-events-auto absolute bottom-4 right-4 z-30 w-[min(92vw,390px)] sm:bottom-6 sm:right-6" : "relative z-30"}>
-      <Button variant="ghost" size={immersive ? "sm" : "icon"} className={immersive ? "rounded-full border border-white/15 bg-black/35 text-white backdrop-blur-2xl" : "size-9 rounded-full border border-line bg-card/70 backdrop-blur-xl"} onClick={() => setOpen((value) => !value)} aria-expanded={open} aria-haspopup="dialog" aria-label={t("Search YouTube Music")}>
-        <Music2 className="size-4" />{immersive ? t("YouTube Music") : null}
+      <Button variant="ghost" size={immersive ? "sm" : "icon"} className={immersive ? "rounded-full border border-white/15 bg-black/35 text-white backdrop-blur-2xl" : "size-9 rounded-full border border-line bg-card/70 backdrop-blur-xl"} onClick={() => setOpen((value) => !value)} aria-expanded={open} aria-haspopup="dialog" aria-label={t("Music")}>
+        <Music2 className="size-4" />{immersive ? t("Music") : null}
       </Button>
       {open && <div role="dialog" aria-label={t("Search YouTube Music")} className={immersive ? "absolute bottom-[calc(100%+10px)] right-0 max-h-[min(75vh,640px)] w-[min(92vw,390px)] overflow-y-auto rounded-2xl border border-white/15 bg-[#11131b]/92 p-3 text-white shadow-2xl backdrop-blur-2xl" : "absolute end-0 top-[calc(100%+10px)] z-50 max-h-[min(78vh,640px)] w-[min(92vw,390px)] overflow-y-auto rounded-2xl border border-white/15 bg-[#11131b]/92 p-3 text-white shadow-2xl backdrop-blur-2xl"}>
-        <div className="mb-2 flex items-center justify-between"><p className="text-sm font-semibold">YouTube Music</p><button type="button" onClick={() => setOpen(false)} aria-label={t("Close")} className="rounded-lg p-1 text-white/60 hover:bg-white/10">×</button></div>
-        <YouTubeMusicPlayer compact />
+        <div className="mb-3 flex items-center justify-between"><p className="text-sm font-semibold">{t("Music")}</p><button type="button" onClick={() => setOpen(false)} aria-label={t("Close")} className="rounded-lg p-1 text-white/60 hover:bg-white/10">×</button></div>
+        <div className="space-y-3">
+          <NowPlayingWidget source="spotify" />
+          <div className="rounded-xl border border-white/10 p-3">
+            <p className="mb-2 text-xs font-semibold text-white/75">YouTube Music</p>
+            <YouTubeMusicPlayer compact />
+          </div>
+        </div>
       </div>}
     </div>
   );
