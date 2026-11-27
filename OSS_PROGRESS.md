@@ -1,0 +1,840 @@
+# OSSv2 Audit & Progress Report
+
+Audit date: 2026-11-27
+Repository: `eslam-alaa-gg/ossv2`
+Target branch: `fix/ukiyo-habits-heatmap-focus`
+Audit baseline commit: `1099d3989ff7740765e75728badc39774170f63c`
+Default branch: `main`
+Phase: 01 — Complete Repository Audit
+Phase status: **NEEDS VERIFICATION** (remote source audit completed; local working tree and runtime checks unavailable)
+
+## 1. Repository and Git state
+
+- Repository is public and accessible; default branch is `main`.
+- Target branch exists and points to `1099d3989ff7740765e75728badc39774170f63c` at audit start.
+- Comparison `main...fix/ukiyo-habits-heatmap-focus`: **281 commits ahead, 15 commits behind; status = diverged**.
+- Merge base: `d2617ce94b9d45b984c799352b2908e6f075f39b`.
+- `main` head at audit: `51c4d7fa225d0cf9a65464ae0714e065192a0271`.
+- The target branch contains 150 tracked file entries in its recursive Git tree.
+- GitHub's remote API does not expose the local checkout's uncommitted working-tree state. Therefore local dirty/clean status is **not verified**; this report must not be interpreted as proof that a developer's local workspace is clean.
+- No merge, rebase, reset, force-push, or deployment was performed.
+
+### Branch divergence risk
+
+The 15 commits present on `main` but absent from the target branch include changes to Focus, Habits, Shell/navigation, Spotify, Music Bridge, Heatmap, tracker/server logic, and a new per-card review route at `src/app/api/study/flashcards/[id]/review/route.ts`. The target branch has substantial independent work, including Study Planner, focus backgrounds/pause recovery, custom fonts, daily study suggestions, tracker idempotency, YouTube Music, offline storage, and related migrations.
+
+**Recommendation:** do not merge or rebase blindly. First inspect the 15 main-only commits and reconcile the affected files and API contracts deliberately, preserving both sides' work.
+
+## 2. Architecture inventory
+
+- Framework: Next.js 16 App Router, React 19, TypeScript.
+- Styling/UI: Tailwind CSS 4, custom UI primitives, Framer Motion, Lucide icons, Recharts.
+- Data: PostgreSQL in a dedicated `ossv2` schema, Drizzle ORM, SQL migrations under `drizzle/`.
+- Authentication: server-side session handling, HttpOnly session cookie, password hashing, Google/Supabase OAuth callback flow.
+- Client state/data: shared providers and API helpers; IndexedDB/Dexie offline database and queued actions.
+- Integrations: Spotify PKCE, YouTube Data API search, Android and Windows Music Bridge clients, optional Resend email and Web Push.
+- Native bridge sources: Android Kotlin and Windows C#.
+- CI: GitHub Actions workflow `.github/workflows/ci.yml`.
+- Tests: one API-oriented end-to-end script, `tests/e2e.mjs`.
+
+### Main source areas
+
+- `src/app/(app)/`: dashboard, tasks, habits, focus, study, goals, calendar, analytics, music, themes, settings, profile, review, vault, achievements and other application pages.
+- `src/app/(auth)/`: login, signup, verification, password reset and forgot-password pages.
+- `src/app/api/`: authentication, user preferences/profile, tasks, habits, trackers, focus, study, music, Spotify, analytics, notifications, goals, search and supporting APIs.
+- `src/components/`: application shell, providers, UI primitives, heatmap, habit icons, Spotify and music bridge components.
+- `src/lib/`: client API helpers, date utilities, i18n, preferences, themes, offline database and server-side domain/auth/security/integration helpers.
+- `src/db/` and `drizzle/`: schema, DB connection, migration SQL and Drizzle snapshots/journal.
+- `native/`: Android and Windows music bridge apps.
+- `public/`: app icon, manifest, service worker and font documentation.
+
+## 3. Feature inventory
+
+Status definitions:
+- **WORKING**: implementation and meaningful verification evidence are both available.
+- **PARTIALLY WORKING**: substantial implementation exists, but coverage or integration is incomplete.
+- **BROKEN**: a reproducible failure is confirmed.
+- **MISSING**: no implementation was found for the scoped requirement.
+- **NEEDS VERIFICATION**: source exists, but runtime/browser/device behavior has not been verified in this audit.
+
+No feature is labelled WORKING solely because a component or endpoint exists. No reproducible application failure was confirmed from this remote source-only audit.
+
+| Area | Status | Repository evidence and remaining verification |
+|---|---|---|
+| Application architecture and routing | PARTIALLY WORKING | App Router pages and API routes are present. Full route-by-route runtime verification has not been run. |
+| Authentication and account lifecycle | NEEDS VERIFICATION | Login/signup/verification/reset/callback routes, server auth helpers and E2E cases exist. Execute the suite against a configured database and validate OAuth provider configuration. |
+| User data isolation / IDOR | NEEDS VERIFICATION | README documents owner-scoped queries and server-derived session identity; E2E cases cover cross-user list/read/update/delete and foreign IDs. Tests were not executed in this audit. |
+| Tasks, goals, milestones, notes, journal | NEEDS VERIFICATION | Pages and APIs exist; current E2E script covers task/goal/milestone creation, ownership and task rewards. UI workflows and edge cases remain unverified. |
+| Habits | PARTIALLY WORKING | Habits page, habit templates, server helpers, APIs and quick tracker exist. Current tests cover per-user tracker/habit progress and rewards; browser behavior, editing flows, date/time edge cases and offline reconciliation need verification. |
+| Top-bar Quick Habit Tracker | PARTIALLY WORKING | `HabitQuickPanel` exists in `src/components/shell.tsx`, with Drink Water, Read Books, Learn Something New, standard habits, progress rings and customization/visibility controls. It currently appears immediately after the search button on the left side of the top bar; if the intended final placement differs, adjust only after confirming the current UX requirement. |
+| Water / Reading / Learning trackers | NEEDS VERIFICATION | Dedicated tracker APIs, per-user storage and linked habit progress are implemented. E2E cases cover logging, persistence, user isolation and idempotent retries. Actual browser and offline retry behavior remains untested. |
+| Contribution heatmap | NEEDS VERIFICATION | Heatmap component supports daily levels 0–4 and activity detail; analytics API and E2E assertions cover verified activity and zero-activity users. CSS color mapping, real data aggregation, timezone boundaries and visual rendering need browser verification. |
+| Focus Room / timer | PARTIALLY WORKING | Focus page contains modes, timer, start/pause/resume/end/complete flows, session restoration, keyboard shortcuts, fullscreen/immersive mode and ambient sound. API tests cover early completion and pause/resume ownership. Real timer accuracy, mobile fullscreen and interruption recovery are not verified. |
+| Focus backgrounds | PARTIALLY WORKING | Five video scenes (forest/ocean/rain/sunset/cosmos), five photo presets, user-uploaded background image and persistence API are present. Remote video availability, autoplay restrictions, performance and mobile behavior need verification. |
+| Theme Studio | PARTIALLY WORKING | Theme page supports appearance modes, presets, accent colors, glass/background/gradient controls, fonts, custom fonts and saved themes. Cross-page application, persistence and contrast/accessibility need browser verification. |
+| Global search / command menu | PARTIALLY WORKING | Command menu, keyboard shortcut, navigation actions and server search API exist. It is triggered by the top-bar search icon and Ctrl/Cmd+K. Search placement and keyboard/mobile interaction require UI verification. |
+| Study Planner / flashcards | PARTIALLY WORKING | Study page, subjects, flashcard APIs, due-card listing, review history, scheduling and suggestions exist. E2E tests cover account scoping, review schedule/history and suggestion decisions. Study UI and scheduling edge cases remain unverified. |
+| Study review API contract | NEEDS VERIFICATION | Target branch E2E uses `POST /api/study/review` with `cardId`; main additionally contains `POST /api/study/flashcards/[id]/review`. Reconcile this branch divergence deliberately; do not introduce duplicate review flows or break existing clients. |
+| Spotify Music Hub | PARTIALLY WORKING | Spotify PKCE helpers, encrypted token storage, refresh logic, provider/UI and routes exist. E2E coverage checks auth/config, but live Spotify OAuth, Premium/device playback, rate limits and real account behavior were not exercised. |
+| Music Detection / native bridge | PARTIALLY WORKING | Music Bridge UI/API and Android/Windows native sources exist. E2E script covers pairing, now-playing push, account isolation and revocation. Actual installation, permissions, background behavior and device compatibility require physical-device verification. |
+| YouTube Music search/player | PARTIALLY WORKING | YouTube Music component and server search route exist; Focus integrates the player. Requires configured API key and real browser/API verification. |
+| Offline support | NEEDS VERIFICATION | Dexie/IndexedDB storage, offline snapshots, queued actions and shell synchronization are present. Multi-user isolation, replay conflicts, duplicate prevention and reconnect behavior need browser/network testing. |
+| Notifications / email / push | PARTIALLY WORKING | Notification APIs, UI, service worker and optional Resend/VAPID configuration exist. README explicitly requires external credentials and a scheduled cron request for delivery. Provider configuration and actual delivery are not verified. |
+| Arabic / RTL / i18n | NEEDS VERIFICATION | Language switch, translation dictionary and logical RTL-aware styling exist. README says untranslated strings fall back to English. Full page-by-page Arabic layout and missing translations need visual review. |
+| Security / rate limiting | PARTIALLY WORKING | Session/token handling, validation helpers, ownership checks and encrypted Spotify credentials exist. README notes that rate limiting is in-memory/per-instance and PostgreSQL RLS is not the current enforcement mechanism. Review before scaling or changing DB access. |
+| Database migrations | NEEDS VERIFICATION | Ten migration SQL files and Drizzle journal/snapshots exist. CI workflow includes migration application, but no workflow run was available for the audited head. Verify a clean disposable database migration end-to-end. |
+| Browser / visual E2E coverage | MISSING | The repository contains API-oriented `tests/e2e.mjs`, but no browser automation suite or visual regression suite was found in the branch tree. This does not mean the app lacks UI; it means automated browser verification is absent from this repository snapshot. |
+| Unit/component test coverage | MISSING | No dedicated unit/component test files or test runner script were found in the audited tree. |
+| Duplicate feature implementations | NEEDS VERIFICATION | No confirmed duplicate user-facing system was established. The Study review endpoint divergence and overlapping Spotify/native music surfaces need contract-level review before any consolidation. |
+
+## 4. E2E coverage found
+
+The current `tests/e2e.mjs` contains 33 named API test cases, including:
+- Signup/login/session cookie/protected routes.
+- Cross-user data isolation and IDOR checks.
+- Tasks, goals, milestones, habits, challenges and XP idempotency.
+- Focus early-completion validation and pause/resume ownership.
+- Heatmap aggregation and user isolation.
+- Preferences/profile persistence and avatar lifecycle.
+- CSRF checks and password reset/account deletion.
+- Spotify route authentication/configuration.
+- Study subjects, flashcards, spaced repetition and daily suggestions.
+- Water/reading/learning trackers and idempotent retry handling.
+- Focus image/custom font uploads and account privacy.
+- Music Bridge pairing, now-playing updates and device revocation.
+
+These are test definitions, not proof of a passing run. The audited commit had no GitHub commit status entries and no associated workflow runs returned by the GitHub API. The audit environment did not provide a local checkout or running application, so no npm scripts or E2E tests were executed.
+
+## 5. Configuration and integration dependencies
+
+Required for a meaningful local/CI run:
+- `DATABASE_URL`
+- `APP_SECRET` (at least 32 characters)
+
+Optional integrations documented in `.env.example`:
+- Supabase public URL/publishable key for the configured auth flow.
+- `SPOTIFY_CLIENT_ID` and optional redirect URI.
+- `YOUTUBE_API_KEY`.
+- Resend API key/from address.
+- VAPID public/private keys, subject and cron secret.
+
+Never copy real secrets into this report, source control, logs or chat.
+
+## 6. Confirmed limitations and fragile areas
+
+1. Branch divergence is the highest integration risk: 281 commits ahead and 15 behind.
+2. Main-only changes touch the same high-risk files as the target branch, especially Focus, Habits, Shell, Heatmap, Music Bridge and Spotify.
+3. Study review routes/contracts differ between the branch and main.
+4. README describes a demo entry flow, while the current E2E test asserts the legacy `/api/auth/demo` endpoint is not exposed. Confirm whether documentation refers to a separate current demo flow or is stale.
+5. README documents in-memory rate limiting, which is not shared across horizontally scaled instances.
+6. README documents that the `ossv2` schema is server-side and not protected by per-user Postgres RLS; owner scoping currently relies on server-side authenticated handlers.
+7. External media/API behavior (Focus videos, Spotify, YouTube, push and email) depends on third-party availability and environment configuration.
+8. No automated browser suite was found, so responsive layout, pointer/touch interactions and visual regressions are not covered by the current API test file.
+9. Local uncommitted changes cannot be assessed through the remote GitHub API.
+
+## 7. Prioritized implementation roadmap
+
+### P0 — Protect and reconcile branch state
+- Capture a local working-tree backup/checkpoint before syncing.
+- Review the 15 main-only commits and their patches, especially the shared high-risk files.
+- Prepare a file-by-file integration plan; preserve branch-only features and main-only fixes.
+- Reconcile Study review API contracts and update tests without duplicate endpoints or broken clients.
+- Do not merge/rebase until conflicts and behavior are understood.
+
+### P1 — Establish a reproducible baseline
+- Run install, typecheck, lint, build and database migrations on a local checkout of the exact target commit.
+- Run all 33 API E2E cases against a disposable database.
+- Record exact failures and distinguish code defects from environment/test timing issues.
+- Verify CI on the exact branch head.
+
+### P2 — Verify core data and security flows
+- Auth, user isolation, IDOR, CSRF, ownership, task/habit/goal persistence and deletion cascades.
+- Tracker progress, idempotency, linked habits, timezone handling and heatmap calculations.
+- Review session, rewards and offline queue consistency.
+
+### P3 — Verify Focus and learning experiences
+- Focus timer restoration, pause/resume, completion validation, five video scenes, uploaded image, sound and mobile immersive mode.
+- Study flashcards, due dates, review history, suggestions and review endpoint compatibility.
+
+### P4 — Verify music integrations
+- Spotify OAuth/refresh/playback with a real authorized test account.
+- YouTube search with configured API key.
+- Android/Windows Music Bridge installation, permissions, pairing, push and revocation.
+
+### P5 — UI/UX, responsive and accessibility verification
+- Confirm top-bar search placement and quick tracker UX.
+- Verify themes apply consistently across pages.
+- Check desktop/tablet/mobile, Arabic RTL, keyboard navigation, focus visibility, touch targets and overflow.
+- Add browser E2E coverage for critical user journeys and mobile Focus behavior.
+
+### P6 — Hardening and documentation
+- Review shared rate limiting, security boundaries, migration reproducibility and dependency health.
+- Resolve README/demo-flow inconsistencies.
+- Document external service setup and known limitations accurately.
+
+## 8. Phase 01 completion checklist
+
+- [x] Remote repository and target branch identified.
+- [x] Branch head and main head recorded.
+- [x] Branch divergence measured in both directions.
+- [x] Recursive target-branch file tree inspected.
+- [x] Architecture and key source areas inventoried.
+- [x] Main-only changes identified for careful reconciliation.
+- [x] Key pages, components, APIs, schema, migrations, E2E tests and CI configuration reviewed.
+- [x] Feature inventory and prioritized roadmap created.
+- [ ] Local working-tree status inspected (not available through remote GitHub API).
+- [ ] Typecheck/lint/build/migrations/E2E executed (not run in this remote-only audit).
+- [ ] Browser/mobile behavior verified (not run).
+
+**Phase 01 outcome:** remote source audit and roadmap are documented. Runtime and local-worktree verification remain explicitly open. No application source code was changed in this phase; only this audit report is being added.
+
+
+---
+
+# Phase 02 — Core Functionality & Integration
+
+Phase status: **IN PROGRESS — focused fix implemented; latest CI verification pending**
+Implementation branch: `fix/ukiyo-habits-heatmap-focus`
+Phase 02 commits:
+- `4ece21c6ad7aa58bc6e9347640353d6cb6476969` — atomic, serialized Focus session replacement.
+- `03e83d4c4fbc29f130083dd5c35011c191cf5ff9` — client-side duplicate-start guard.
+- `ceb9ad705b4bdef9a4133a22b0cac8c3e360ddb8` — initial concurrent-start regression test.
+- `7a7a9b022927bd4008da6f0704496e08d1c1939d` — strengthened regression assertion to verify the superseded session rejects further state transitions.
+
+## Confirmed issue fixed
+
+### Focus session start race and partial-write risk
+
+**Evidence before change:** `src/app/api/focus/route.ts` closed all existing running/paused sessions with one database statement, then inserted the replacement session in a separate statement. Concurrent POST requests could interleave, and a failed insert could leave the user's previous session closed without a replacement. The Focus page's `start()` handler also had no in-flight guard, and both the button and Space keyboard shortcut could invoke it.
+
+**Changes:**
+1. Wrapped previous-session closure and new-session insertion in one Drizzle database transaction.
+2. Added a per-user PostgreSQL transaction advisory lock before modifying active sessions, serializing simultaneous start requests for the same user.
+3. Added a client-side `starting` ref guard and `finally` cleanup to prevent repeated click/keyboard submissions in the same page instance.
+4. Added an API E2E regression case that sends two Focus start requests concurrently, checks that the API returns successfully, identifies the active session, and verifies the superseded session rejects an end transition (409), then ends the active session.
+
+**Files changed:**
+- `src/app/api/focus/route.ts`
+- `src/app/(app)/focus/page.tsx`
+- `tests/e2e.mjs`
+
+## Verification
+
+- [x] Source-level pre-change sequence inspected and race identified.
+- [x] API change committed to target branch.
+- [x] Client duplicate-start guard committed.
+- [x] Concurrent-start regression test added.
+- [x] GitHub Actions Typecheck workflow automatically started for the implementation commits; a final run is triggered by the strengthened regression test commit `7a7a9b022927bd4008da6f0704496e08d1c1939d`.
+- [ ] TypeScript check — pending workflow.
+- [ ] ESLint — pending workflow.
+- [ ] Production build — pending workflow.
+- [ ] Database migrations — pending workflow.
+- [ ] Full API E2E suite including new concurrency test — pending workflow.
+- [ ] Browser-level workflows — not covered by current CI; no browser automation framework is configured in this branch.
+
+CI runs: [run #271](https://github.com/eslam-alaa-gg/ossv2/actions/runs/45927860744) (earlier regression-test revision); [latest workflow runs](https://github.com/eslam-alaa-gg/ossv2/actions?query=branch%3Afix%2Fukiyo-habits-heatmap-focus) (includes the strengthened test revision).
+
+No CI pass/fail result is claimed until the run completes. No local browser/device testing was performed. No unrelated frontend/API/database behavior was changed. No merge or deployment was performed.
+
+## Remaining Phase 02 scope
+
+This pass fixed one confirmed high-risk integration defect rather than rewriting already implemented systems. Other workflows (authentication, task/habit forms, preferences, offline queue, tracker persistence, study review, music integrations) still require runtime verification through the CI/API suite and browser/device testing before any further changes are justified. Do not mark them broken based on source inspection alone.
+
+### Phase 02 verification update — 2026-11-27
+
+The GitHub Actions workflow was re-checked against the latest branch head, `e69fa0c6bc1918a82efbc9846488fb64e7b91314`.
+
+- Workflow run [#274](https://github.com/eslam-alaa-gg/ossv2/actions/runs/45927971575): **SUCCESS**.
+- Steps confirmed successful: dependency installation, TypeScript typecheck, ESLint, production build, Drizzle database migrations, application startup, health check, and API end-to-end suite.
+- The E2E log explicitly reports **34/34 passed**, including authentication/session behavior, protected routes, user data isolation/IDOR, tasks/goals/habits, task XP idempotency, Focus early completion and concurrent starts, habit/heatmap aggregation, preferences/profile/avatar, CSRF, Study subjects/flashcards/review scheduling/suggestions, water/reading/learning trackers and tracker retry idempotency, Focus pause/resume and uploads, Music Bridge pairing/revocation, password reset, logout/login persistence, and account deletion.
+- The strengthened concurrent Focus regression test commit `7a7a9b022927bd4008da6f0704496e08d1c1939d` also has a successful workflow run [#273](https://github.com/eslam-alaa-gg/ossv2/actions/runs/45927957587).
+- The production build lists the expected application pages and API routes, and the CI database migrations applied successfully to a fresh PostgreSQL 16 CI database.
+
+### Phase 02 remaining verification boundaries
+
+- Browser automation is still not configured in this repository; no desktop/tablet/mobile browser interaction or visual regression run is claimed.
+- Offline queue replay, IndexedDB behavior across account switching, reconnect/network-loss edge cases, and conflict handling are not exercised by the current 34 API E2E tests.
+- Live third-party integrations (Spotify OAuth/playback, YouTube API responses, email/push delivery) and native Android/Windows bridge behavior are not proven by CI; the current suite verifies only selected authenticated API/configuration and server-side bridge workflows.
+- The Study review route currently reads a flashcard before opening the transaction that updates its schedule and inserts review history. The transaction keeps the update and history insert atomic, but concurrent reviews of the same card are not explicitly covered by the current tests. Treat this as a targeted follow-up review, not a confirmed user-visible failure.
+- A source-only pass confirmed the Study page has an in-flight review guard and that offline snapshots/queued actions are partitioned by user ID. This does not replace browser/network testing.
+
+**Updated Phase 02 outcome:** all 34 existing API E2E cases, typecheck, lint, production build, migrations, and CI health check pass on the latest branch head. Phase 02 remains **IN PROGRESS** until offline/reconnect and browser/mobile workflows are exercised; do not label those surfaces fully verified. No merge, rebase, reset, force-push, or deployment was performed.
+
+
+## Phase 02 follow-up — Study review concurrency
+
+After the Phase 02 summary above, a second concurrency defect was fixed:
+- \`src/app/api/study/review/route.ts\` now locks the owned flashcard row inside the transaction before calculating/updating its schedule and inserting review history.
+- A duplicate/stale review that arrives after the first review has advanced the due date receives HTTP 409.
+- \`tests/e2e.mjs\` now submits two simultaneous reviews for one card and asserts exactly one succeeds, one receives 409, and the card advances only once.
+- CI run [#45984652927](https://github.com/eslam-alaa-gg/ossv2/actions/runs/45984652927) completed successfully for the regression test commit.
+- Phase 02 remains **IN PROGRESS** only for browser/mobile and offline/reconnect verification.
+
+## Phase 03 — Habits, trackers and contribution heatmap
+
+Implementation branch: \`fix/ukiyo-habits-heatmap-focus\`
+
+### Source audit findings
+
+- Preserved the existing Habits page, APIs, three linked trackers (Drink Water, Read Books, Learn Something New), and the top-bar water-drop \`HabitQuickPanel\`. No second habit system was created.
+- Standard habits already support target editing, daily amount logging, historical logging within the last 30 days, and persisted history.
+- Water uses the existing user water-goal preference; reading and learning targets are taken from their linked special habit when configured, with existing defaults otherwise.
+- Tracker entries are stored in dedicated per-user tables and dated using \`todayIn(a.tz)\`.
+- The analytics heatmap previously counted only completed \`habit_logs\`; tracker entries below their linked target could therefore be persisted but absent from the contribution count.
+- Date validation previously checked only the YYYY-MM-DD shape; impossible calendar dates could pass the regex.
+- The top-bar quick panel and Habits page had independent client fetch state and no explicit refresh event, so a successful update in one surface could leave the other showing stale progress until a reload.
+
+### Changes committed
+
+- \`ed25fa212bb195408dcb42982398a88d7ab3026f\` — count real water/reading/learning activity in heatmap contributions. Each tracker kind contributes at most once per user-local day; a completed linked special habit is not double-counted.
+- \`2e0518318d6cbabb6f8d169bee2e3135ce50bc35\` — make \`isDateStr\` reject impossible calendar dates by round-trip validation.
+- \`c721d4ac498b52c09f56a9fcd03790d2ec81f131\` — apply real-calendar-date validation to historical habit logging.
+- \`224dccaeb85eb25456c337b4b84061cf857ce8f3\` — add API regression coverage for editing targets, logging/re-reading historical progress, rejecting impossible dates, tracker persistence, and tracker-driven heatmap contributions/intensity calculation.
+- \`eb262cace7edf836e8689f5efa4eda2c48339eea\` — add a shared \`ukiyo:habit-progress-updated\` event so the quick panel refreshes after changes from the Habits page and vice versa.
+- \`bac36019148eaa2e5ba45f5649231d878e2b6bca\` — dispatch the shared refresh event whenever the Habits page reloads both habit and tracker data.
+
+### Heatmap intensity and date rules verified from source
+
+- Score: task 1 point, completed habit 1 point, challenge 2 points, focus session 2 points, milestone 2 points.
+- Level 0: no activity; level 1: score > 0; level 2: at least one-third of the daily goal; level 3: at least two-thirds; level 4: reaches/exceeds the daily goal.
+- CSS maps levels 0–4 to neutral, 30%, 55%, 80%, and full accent intensity respectively; level 4 also receives an accent glow.
+- Date-only values are handled as UTC calendar dates in date helpers and heatmap rendering. Tracker log dates are assigned from the authenticated user's timezone, avoiding browser-local timezone drift for daily tracker aggregation.
+- Historical standard habit logs are accepted only from the previous 30 days through today. Future dates and impossible calendar dates are rejected.
+
+### Verification status
+
+- [x] Existing Habits/Quick Habit Tracker and tracker implementation inspected; no duplicate system introduced.
+- [x] Tracker contribution aggregation corrected for below-target activity and duplicate linked-habit counting.
+- [x] Calendar-date validation hardened for historical habit logs.
+- [x] Quick panel and Habits page refresh synchronization wired in source.
+- [x] E2E regression cases added for create/edit/log/refresh/history and tracker heatmap contribution/intensity.
+- [x] CI passed for the isolated heatmap aggregation commit [#45985550581](https://github.com/eslam-alaa-gg/ossv2/actions/runs/45985550581), calendar-date helper commit [#45985579957](https://github.com/eslam-alaa-gg/ossv2/actions/runs/45985579957), and historical-log validation commit [#45985586593](https://github.com/eslam-alaa-gg/ossv2/actions/runs/45985586593).
+- [x] Full Phase 03 CI passed after the synchronization changes: [run #45985941802](https://github.com/eslam-alaa-gg/ossv2/actions/runs/45985941802). TypeScript, ESLint, production build, PostgreSQL migrations, app startup/health check, and API E2E all succeeded.
+- [ ] Browser-level verification of the top-bar quick panel, cross-component refresh, mobile layout, offline optimistic updates, and timezone boundary behavior has not been performed; this repository still has no browser automation suite.
+
+**Phase 03 status: IN PROGRESS — source fixes and regression tests committed; final CI and browser/offline verification pending.** No merge, rebase, reset, force-push, or deployment was performed.
+
+
+### Phase 03 final CI confirmation — 2026-11-27
+
+- Latest implementation CI run [#45985941802](https://github.com/eslam-alaa-gg/ossv2/actions/runs/45985941802) completed with **SUCCESS**. Every workflow step succeeded: install, TypeScript, lint, production build, database migrations, app startup, health check, and API E2E.
+- The E2E log reports **36/36 passed**, including the new habit target edit/history persistence and tracker heatmap contribution/intensity regression cases, plus existing water/reading/learning tracker persistence and retry idempotency.
+- The subsequent documentation-only branch-head run [#45986064683](https://github.com/eslam-alaa-gg/ossv2/actions/runs/45986064683) also completed with **SUCCESS**.
+- Phase 03's automated CI/API verification is complete. Real browser/device, mobile visual, offline/reconnect, and timezone-boundary manual/browser verification remain outstanding; these are not represented as passed.
+- No merge or deployment was performed.
+
+
+---
+
+# Phase 04 — Focus Zone Redesign & Functionality
+
+Phase status: **IMPLEMENTED — CI and manual responsive verification pending**
+Implementation branch: `fix/ukiyo-habits-heatmap-focus`
+
+## Existing functionality preserved
+
+The Focus Zone was inspected before editing. The existing implementation already contains:
+- Focus, short-break, long-break and custom session modes.
+- Start, pause, resume, end/reset and automatic completion flows.
+- Server-persisted sessions and restoration after a page reload.
+- Five selectable video scenes: forest, ocean, rain, sunset and cosmos.
+- Five photo presets and private user-uploaded background images.
+- Five timer presentations: ring, digital, minimal, progress bar and orbit.
+- Ambient sound controls, volume, YouTube Music panel, theme selection, keyboard shortcuts and immersive/fullscreen mode.
+- Focus task linking, daily/weekly statistics and session history.
+
+No duplicate Focus Room or background system was introduced.
+
+## Changes implemented
+
+1. **Timer clock reliability**
+   - The live countdown now uses the monotonic browser clock (`performance.now()`) rather than the adjustable device wall clock.
+   - Restored-session elapsed time is calculated against the API's `serverNow` timestamp, rather than the local device clock.
+   - Pausing now uses the server-returned `actualSeconds` as the source of truth for remaining time.
+2. **Session transition safety**
+   - Added a client-side transition lock to prevent repeated pause/resume/end actions from racing.
+   - Completion is prevented from racing with a pause/resume/end transition.
+   - Existing server-side conditional state transitions remain authoritative.
+3. **Readability customization**
+   - Added a persisted 0–80% background readability overlay control to the Focus background panel.
+   - Added the Arabic translation for the new readability control and helper text.
+   - Applied the overlay consistently in immersive mode and the regular Focus page.
+   - Existing theme, reduced-motion, background and timer-style preferences remain supported.
+4. **Regression coverage**
+   - Added an API E2E case that sends duplicate concurrent pause and resume requests and expects exactly one success and one conflict for each transition.
+
+## Media and licensing status
+
+The five existing video scene choices and their fallback CSS animations were retained. The source currently references external preview media URLs; the repository does not record the individual asset IDs or each asset's applicable license class. Since the applicable terms distinguish different license classes per video, the five specific clips are **not marked as license-cleared** by this phase. No additional video files were introduced and no licensing claim is made.
+
+## Verification status
+
+- [x] Existing Focus page, API, preference schema, styles and E2E coverage inspected.
+- [x] Timer changed to monotonic timing for live countdown.
+- [x] Session restoration uses server time.
+- [x] Pause uses server-recorded elapsed seconds.
+- [x] Client transition race guards added.
+- [x] Readability overlay preference and UI added.
+- [x] Concurrent pause/resume regression test added.
+- [ ] CI typecheck, lint, production build, migrations and API E2E run for the final Phase 04 head.
+- [ ] Desktop, tablet and mobile visual/touch QA.
+- [ ] Fullscreen behavior verified in real browsers and mobile devices.
+- [ ] Background video playback/fallback verified on real devices and network conditions.
+- [ ] Individual video asset license classes verified.
+- [ ] Drag/resize behavior: no draggable/resizable control was found in the Focus page itself; no new drag/resize interaction was invented. Existing fullscreen behavior was preserved but still needs browser QA.
+
+**Deployment/integration:** no merge, rebase, production deployment or preview deployment was performed.
+
+
+---
+
+# Phase 05 — Study & Learning System
+
+Phase status: **IMPLEMENTED — full automated CI passed (38/38 API E2E); browser/mobile QA not performed**
+Implementation branch: `fix/ukiyo-habits-heatmap-focus`
+
+## Existing system preserved
+
+The existing Study Planner was audited before changes. It already includes:
+- Study subjects with per-user ownership and color metadata.
+- Flashcard create/list/delete workflows and subject association.
+- Spaced-repetition scheduling with Again, Hard, Good and Easy ratings.
+- A server-side due-card query based on `due_at <= now`.
+- Transactional review updates and persisted `flashcard_reviews` history.
+- A daily suggestion engine connected to open Study tasks, due reviews and weekly Focus activity.
+- Study task creation in the shared Tasks system and handoff to the existing Focus Room.
+- User-scoped IndexedDB snapshots and queued offline actions for supported Study mutations.
+
+No parallel flashcard, task, or learning system was created. Existing records and table structures were retained; no data migration was required.
+
+## Confirmed improvements implemented
+
+1. **Review state is now returned consistently**
+   - The existing flashcard list endpoint now includes the persisted `easeFactor` and `lastReviewedAt` fields.
+   - The Study UI can distinguish never-reviewed cards from cards with a saved review without inventing progress from client-only state.
+
+2. **Learning progress summary**
+   - The Study Planner now shows total cards, reviewed cards, new cards and the reviewed-card percentage.
+   - The progress indicator is derived from persisted flashcard fields returned by the API.
+   - The metric is explicitly a reviewed-card count, not an unsupported mastery score.
+
+3. **Offline review preview matches the server scheduler**
+   - The previous optimistic offline update used fixed intervals that did not match the server's actual Hard/Good/Easy algorithm and did not update ease factor or lapses consistently.
+   - Offline optimistic state now mirrors the same interval, ease-factor, repetition, lapse and retry-delay rules as the API. The server remains authoritative when the queued action syncs.
+
+4. **Due queue freshness**
+   - The due-card list refreshes when the Study page regains focus and every 60 seconds while visible and online.
+   - This allows Again cards to re-enter the queue after their ten-minute retry time without requiring a full page reload.
+
+5. **Loading and error recovery**
+   - Subject, flashcard and due-review panels now distinguish initial loading from empty state.
+   - Failed initial requests show the error and a retry action rather than incorrectly displaying an empty collection.
+
+## Regression coverage added
+
+- Added API E2E coverage for all four review ratings.
+- Verifies Again schedules a ten-minute retry and increments lapses while resetting repetitions.
+- Verifies Hard, Good and Easy interval values for a new card.
+- Verifies updated repetitions, lapses, ease factor, last-reviewed timestamp and interval survive a fresh GET.
+- Verifies future-due cards are excluded from the due-only query.
+- Existing tests continue to cover account isolation, review-history transaction behavior, concurrent duplicate-review rejection, daily suggestion persistence and task/Focus handoff.
+
+## Verification boundaries
+
+- [x] Existing Study page, APIs, schema, review transaction, suggestions, offline queue and E2E tests inspected.
+- [x] Existing data model and workflows preserved; no duplicate Study system or schema migration added.
+- [x] API exposes persisted review metadata needed for progress.
+- [x] Progress summary and accessible progress bar added to the Study dashboard.
+- [x] Offline optimistic scheduling aligned with the server algorithm.
+- [x] Due queue refreshes on focus and at a one-minute interval while visible.
+- [x] Loading/error/retry states added for subjects, flashcards and due reviews.
+- [x] Regression tests added for all four rating schedules and persisted results.
+- [x] TypeScript, ESLint, production build, database migrations, application startup/health check and API E2E all passed on commit `ad78cb08228a7f1cad33230e013768c6ee091ff1`.
+- [x] API end-to-end suite: **38/38 passed**, including all four spaced-repetition rating schedules, persisted review metadata, due queue filtering and concurrent duplicate-review protection.
+- [x] Initial CI exposed an unsupported Button variant in the new retry states; replaced it with the supported `glass` variant before the latest run. Earlier failed CI runs are not treated as successful verification.
+- [ ] Real desktop/tablet/mobile browser QA, including touch navigation and narrow-screen review controls.
+- [ ] Offline queue replay/reconnect and IndexedDB account-switching behavior require browser/network verification; not claimed as passed.
+- [ ] Real-world timezone boundary testing remains outstanding.
+
+Implementation commits:
+- `df75ebb4dfc5b26f0c52ece7cbcd173accf06d3b` — expose persisted review metadata in flashcard reads.
+- `751817153bad5a83eb4e04a29361ed82db71d651` — learning progress summary, review UX states, due refresh and matching offline schedule preview.
+- `3906676bb43e699d9a8f3c422fe48b8d666962e3` — regression coverage for all rating schedules and persistence.
+
+CI: [#45988972752](https://github.com/eslam-alaa-gg/ossv2/actions/runs/45988972752) — **completed successfully**. All workflow steps passed, including typecheck, lint, production build, database migrations, application health and **38/38 API E2E tests**. Earlier failed runs were superseded by the corrected successful run.
+
+No merge, rebase, reset, force-push, preview deployment or production deployment was performed.
+
+
+---
+
+# Phase 06 — Music Hub & Spotify
+
+Phase status: **IMPLEMENTED — final web CI passed (38/38 API E2E); native/live-account verification remains pending**
+
+Implementation branch: `fix/ukiyo-habits-heatmap-focus`
+
+## Existing music functionality preserved
+
+The existing Music Hub remains in place with its three sections:
+- Spotify: connection status, now-playing metadata, recent tracks, artist/album details, device listing/transfer, Premium playback controls, dynamic album ambience and preferences.
+- YouTube Music: search/open workflow, including the compact player/search panel inside Focus.
+- Music Detection: paired Android/Windows metadata bridge, device listing, now-playing and revocation.
+
+The Spotify provider remains mounted at the application shell level. Focus now reuses the existing provider and `NowPlayingWidget` to show Spotify's current track inside its Music panel, alongside the existing YouTube Music player. No second music player or parallel preferences store was introduced.
+
+## Security and reliability findings addressed
+
+1. **OAuth and callback**
+   - Existing PKCE uses a random verifier, SHA-256 challenge, random state and a short-lived HttpOnly/SameSite=Lax cookie.
+   - The cookie is bound to the authenticated user ID; callback state comparison uses constant-time comparison after a length check.
+   - Callback token-exchange network errors and token-persistence errors now return clear Music Hub error states instead of an unhandled generic failure.
+   - Secure-cookie detection now derives the Secure flag from the canonical application origin, including when HTTPS is configured behind a proxy.
+
+2. **Spotify token storage**
+   - Access and refresh tokens remain encrypted at rest using AES-256-GCM; the encryption key is derived from the server-only APP_SECRET, which must be at least 32 characters.
+   - Tokens are not returned by status/device/profile APIs and are sent to Spotify only from server-side code.
+   - No secrets or token values were added to source control or this report.
+
+3. **Refresh-token rotation concurrency**
+   - Previously, simultaneous requests could observe the same expired refresh token and race through refresh-token rotation.
+   - Refresh now acquires a per-user PostgreSQL transaction advisory lock, re-reads the connection row under `SELECT ... FOR UPDATE`, checks expiry again, and persists the rotated access/refresh tokens in the same transaction.
+   - Invalid/revoked refresh credentials (HTTP 400/401) remove the unusable connection; transient provider/network failures retain the stored connection and return a retryable error.
+   - Expired-connection and rate-limit errors now carry explicit codes consumed by the client UI.
+
+4. **Playback and unavailable devices**
+   - Existing play/pause/next/previous/seek and transfer controls are preserved.
+   - UI gates playback controls by the Spotify Premium profile and does not offer restricted devices as playable targets.
+   - Server-side Demo Mode restrictions remain in place.
+   - Spotify 401, 429 and other provider errors are surfaced as actionable/retryable messages; no playback success is inferred from a rendered control.
+
+5. **OSSv2 device-token workflow**
+   - Pairing creates a cryptographically random one-time bearer token; only its SHA-256 hash is stored in the database.
+   - The raw token is returned only in the pairing response and held in the Music Detection page state for copying; device-list responses expose neither the token nor its hash.
+   - Device pushes require the bearer token, are rate-limited, and are scoped to the paired device's owning account. Revocation deletes the pairing, after which the old token is rejected.
+   - A confirmed native-client weakness was fixed: Android previously persisted the bearer token in plaintext SharedPreferences. Android now encrypts the URL and token using AES-256-GCM with a non-exportable Android Keystore key, masks the token field, migrates and clears the old plaintext preferences, and refuses non-HTTPS server URLs.
+   - The Windows helper now rejects non-HTTPS URLs and reads the token from process-scoped environment variables rather than a committed config file.
+
+6. **Music preferences and Focus**
+   - Dynamic Album Ambience and Spotify auto-refresh continue using the existing persisted `prefs.spotify` settings.
+   - Focus's Music panel now shows Spotify now-playing information through the existing shared provider and retains the existing YouTube Music player.
+   - Focus continues to use the shared Spotify album ambience; no new token or preference store was created.
+
+## Regression coverage
+
+- Existing Spotify E2E coverage verifies authenticated status access, disconnected-state behavior, rejection of untrusted artwork hosts and callback state mismatch.
+- Added per-user Spotify preference assertions for Dynamic Album Ambience and auto-refresh, including persistence after logout/login and isolation from another account.
+- The disconnected now-playing assertion now also verifies the explicit `expired` error code used by the reconnect UI.
+- Existing Music Detection E2E coverage exercises pair → authenticated metadata push → now-playing retrieval → account isolation → revoke → rejection of the revoked token.
+- Added assertions that the device token is not exposed in the device-list response and that an invalid bearer token is rejected.
+- These tests exercise the OSSv2 API contract; they do not simulate Spotify's real OAuth/token endpoints or prove real Spotify playback.
+
+## Verification boundaries
+
+- [x] Existing Music Hub, Spotify routes/provider, token helper, DB schema, Music Bridge API/UI, native source and Focus integration inspected.
+- [x] OAuth PKCE/state/user-binding and encrypted server-side token storage verified from source.
+- [x] Refresh-token concurrency serialization and retryable failure behavior implemented.
+- [x] Explicit expired/rate-limit error codes wired to client handling.
+- [x] Android device token protected with Android Keystore; legacy plaintext preferences cleared.
+- [x] Android and Windows native clients require HTTPS before sending bearer tokens.
+- [x] Focus Music panel now includes Spotify now-playing alongside YouTube Music.
+- [x] E2E assertions added for private device-token responses, invalid bearer rejection and expired-connection classification.
+- [x] Final CI on the final Phase 06 implementation/test commit: [run #45990863339](https://github.com/eslam-alaa-gg/ossv2/actions/runs/45990863339) completed successfully for commit `b97f6f2f4b2460b4ced9c0c603de7dc80984350e`.
+- [ ] Android Gradle build/APK install and real notification-listener permission test: not run in this remote GitHub-only session. The repository CI does not build the native Android project.
+- [ ] Windows .NET build and real Spotify media-session test: not run. The repository CI does not build the native Windows project.
+- [ ] Live Spotify OAuth authorization, refresh against Spotify, Premium playback, transfer, unavailable-device and rate-limit scenarios: not run; no real authorized Spotify account/device was available.
+- [ ] Browser verification of Music Hub, Focus panel, Arabic/RTL and mobile states: not run.
+
+**CI result:** run [#45990863339](https://github.com/eslam-alaa-gg/ossv2/actions/runs/45990863339) passed dependency installation, TypeScript, ESLint, production build, database migrations, application health and **38/38 API E2E tests** on the final Phase 06 implementation/test commit.
+
+**Important:** Spotify playback is **not claimed as verified**. The code paths and API contracts were audited, but only a real authorized Spotify account plus an available Spotify device can establish actual playback behavior. The native bridge projects are source code and are not packaged installers in this repository snapshot.
+
+No merge, rebase, reset, force-push, preview deployment or production deployment was performed.
+
+
+---
+
+# Phase 07 — Global Design & Navigation
+
+Phase status: **IMPLEMENTED — CI passed on the final UI implementation commit (39/39 API E2E); visual browser/device QA remains outstanding**
+
+Implementation branch: `fix/ukiyo-habits-heatmap-focus`
+
+## Application-wide audit
+
+Reviewed the shared application shell, global CSS tokens, theme generation/provider, navigation and mobile drawer, command/search menu, shared UI primitives, authenticated layouts, search API and all **17 authenticated route pages**:
+- Achievements, Analytics, Calendar, Daily Challenge, Dashboard, Focus, Goals, Habits, Music Bridge redirect, Music, Profile, Weekly Review, Settings, Study, Tasks, Theme Studio and Memory Vault.
+- The existing shared PageHeader/Card/Button/Modal patterns are already used consistently by the majority of pages. Dashboard retains its intentional custom hero/dashboard composition.
+- Existing desktop sidebar and mobile navigation drawer already expose active-route states with `aria-current="page"`; these were preserved rather than replaced.
+- Focus wallpapers, subject colors and Theme Studio preview colors are intentional feature-specific colors; they were not flattened into a generic theme or removed.
+
+## Changes implemented
+
+1. **Theme mode correctness**
+   - Fixed a real System-mode issue: the generated theme variables previously selected the dark palette whenever the saved mode was `system`, even when the operating system resolved to light.
+   - System mode now emits the dark base palette plus a light-mode override. The existing media-query listener continues to update `data-mode` when the OS appearance changes.
+   - The browser `theme-color` metadata now follows the active preset and resolved light/dark mode, including preset changes.
+   - Existing saved themes, accent colors, glass settings, fonts, gradients, density, motion and other preferences remain in the existing preference model; no preference reset or migration was introduced.
+
+2. **Light-theme details**
+   - Native select options now use readable light foreground/background colors when Light mode is active.
+   - Existing shared CSS variables continue to drive surfaces, cards, borders, text, inputs, popovers, buttons and navigation highlights.
+
+3. **Global search placement and experience**
+   - The search control remains at the inline-start edge of the top bar, which places it in the upper-right in the Arabic RTL interface.
+   - Changed the icon-only desktop control into a compact labelled search control, with the keyboard shortcut shown on larger screens. Existing Ctrl/Cmd+K handling remains.
+   - Refined the command menu with a clearer search field, quick-action/navigation grouping, keyboard guidance, active-result styling, and explicit loading, empty and error states.
+   - Added stale-response protection so a slower earlier query cannot overwrite results for a newer query.
+   - Added result de-duplication and guarded arrow/Enter navigation when the result list is empty.
+   - Added Arabic translations for the new search states.
+
+4. **Search coverage and privacy**
+   - Global search now matches note titles **and note content**, in addition to tasks, goals and habits.
+   - Existing authenticated-user scoping, query length bounds and wildcard sanitization are preserved.
+   - Search results continue to navigate to the existing feature pages; no duplicate search index or parallel data store was added.
+
+5. **Navigation and visual consistency**
+   - Preserved the existing navigation hierarchy and active states across desktop and mobile.
+   - Retained shared design tokens and component primitives rather than performing unnecessary page-by-page redesigns.
+   - No existing feature page, widget, theme preset or navigation destination was removed.
+
+## Regression coverage
+
+- Added API E2E coverage proving global search finds an owned task and a note by matching its content.
+- Added account-isolation coverage proving another account receives no matching private note results.
+- Added a protected-route assertion for unauthenticated search requests.
+- The final implementation CI run includes these new cases and reports **39/39 API E2E tests passed**.
+
+## Verification boundaries
+
+- [x] Shared shell, theme provider/generator, global CSS, navigation, search API, shared UI primitives and all 17 authenticated route pages reviewed.
+- [x] System mode now resolves the correct light/dark palette and updates with operating-system appearance changes.
+- [x] Browser chrome theme color follows the selected preset and resolved appearance.
+- [x] Search remains upper-right in the Arabic RTL top bar and supports Ctrl/Cmd+K.
+- [x] Search loading/error/empty states, stale query protection, result de-duplication and keyboard selection implemented.
+- [x] Search now matches note content while retaining per-user authorization.
+- [x] Light-mode native select readability corrected.
+- [x] Arabic translations added for new global-search states.
+- [x] Final implementation CI: [run #45992231164](https://github.com/eslam-alaa-gg/ossv2/actions/runs/45992231164) completed successfully on commit `34d0fd0489d47aa00fc735018520b24718977b85`. Dependency installation, TypeScript, ESLint, production build, database migrations, app startup/health and **39/39 API E2E tests** passed.
+- [ ] Real browser visual QA across desktop/tablet/mobile, including Arabic RTL and English LTR: not run in this GitHub-only session.
+- [ ] Manual light/dark/system switching with OS appearance changes, saved custom themes and contrast review: not run in a real browser/device.
+- [ ] Manual verification of the top-right search control, focus behavior, keyboard selection and mobile command-menu layout: not run in a real browser/device.
+- [ ] Screen-reader and automated visual-regression checks: not available in the current CI workflow.
+
+**Important:** Source review and API CI do not prove visual appearance or interaction quality on actual devices. Those checks remain explicitly outstanding; no visual QA pass is claimed.
+
+No merge, rebase, reset, force-push, preview deployment or production deployment was performed.
+
+
+## Phase 07 — Follow-up source verification (2026-11-27)
+
+A follow-up review was performed against the current target-branch source after the original Phase 07 implementation entry above.
+
+### Re-verified source areas
+- `src/lib/theme.ts`: existing preset palette definitions and saved Theme shape are retained. System mode emits the dark base palette plus a light-mode CSS override, while explicit Light and Dark modes continue to select their matching preset palettes.
+- `src/components/providers.tsx`: the active resolved mode is applied to `html[data-mode]`; System mode listens for operating-system color-scheme changes. Browser `theme-color` metadata follows the selected preset and resolved appearance. Existing server-loaded preferences remain the source of truth; no preference reset or schema migration was introduced.
+- `src/app/globals.css`: shared tokens continue to drive common surfaces, cards, popovers, forms, buttons, focus rings and navigation states. Light-mode native select options have explicit readable foreground/background colors. RTL typography and logical layout rules remain present.
+- `src/components/shell.tsx`: the desktop/mobile navigation hierarchy remains intact; both navigation surfaces retain route-aware active states and `aria-current="page"`. In Arabic RTL, the first top-bar control (global search) is positioned at the upper-right. The command menu retains Ctrl/Cmd+K, quick actions, authenticated search results, keyboard selection, loading/error/empty states and stale-response protection.
+- `package.json` and `.github/workflows/ci.yml`: the documented validation scripts and CI steps remain configured (typecheck, lint, production build, migrations, health check and API E2E).
+
+### Current branch and verification boundary
+- Current comparison against `main`: **348 commits ahead, 15 commits behind; status = diverged**. This is a remote comparison only; no merge/rebase or branch mutation was performed.
+- The earlier Phase 07 CI result remains documented above: run [#45992231164](https://github.com/eslam-alaa-gg/ossv2/actions/runs/45992231164), commit `34d0fd0489d47aa00fc735018520b24718977b85`, with TypeScript, ESLint, production build, migrations, health check and **39/39 API E2E** reported passing.
+- A fresh status/workflow lookup for that historical commit returned no current status entries; the prior CI result is therefore retained as historical evidence, not represented as a fresh run on the current branch tip.
+- Browser-control capabilities for navigation/clicking/screenshots were not available in this execution. Consequently, actual desktop/tablet/mobile visual QA, manual Light/Dark/System switching, OS theme-change behavior, contrast review and screen-reader verification remain **NOT VERIFIED**. Source inspection is not substituted for those checks.
+- No application source code was changed during this follow-up review. No merge, rebase, reset, force-push or deployment was performed.
+
+**Phase 07 follow-up outcome:** source-level consistency checks confirm the previously implemented theme, RTL search and navigation behavior remain present. Phase 07 implementation remains recorded as complete with explicit browser/device visual QA outstanding; it must not be marked fully visually verified until those checks are performed.
+
+
+## Phase 08 — Responsive and accessibility audit (2026-11-27)
+
+### Actual browser test setup
+- Tested the latest available READY Vercel preview for branch `fix/ukiyo-habits-heatmap-focus`: [preview deployment](https://ossv2-rnqxrt77g-vyn9.vercel.app), deployed application commit `87742f4745b0f942a3d5f3dac4b538959a2c064c`.
+- Executed real Chromium browser automation (Playwright) against the preview, not a static source-only estimate.
+- Ran the public entry/login surface at five viewport profiles: Desktop 1440×900, Laptop 1280×800, Tablet 820×1180, Mobile portrait 390×844, and Mobile landscape 844×390.
+
+### Results — 5 viewport smoke checks
+| Profile | HTTP | Horizontal overflow | Browser page errors | First keyboard focus |
+|---|---:|---|---|---|
+| Desktop 1440×900 | 200 | None | None | Visible 2px focus outline |
+| Laptop 1280×800 | 200 | None | None | Visible 2px focus outline |
+| Tablet 820×1180 | 200 | None | None | Visible 2px focus outline |
+| Mobile portrait 390×844 | 200 | None | None | Visible 2px focus outline |
+| Mobile landscape 844×390 | 200 | None | None | Visible 2px focus outline |
+
+- All five viewport runs loaded the login screen successfully; document/body width matched the viewport in every run.
+- Mobile landscape correctly allowed vertical scrolling (content height 742px in a 390px-high viewport); this is not horizontal overflow.
+- Email and password inputs exposed accessible labels ("Email" and "Password").
+- The skip-to-content link received keyboard focus first and displayed a solid 2px outline in all five runs.
+- No uncaught browser page errors were observed in these runs.
+
+### Findings / failures
+- **Touch-target follow-up required:** on the tested login surface, the visible "Forgot password?" link measured 98×14px and "Create an account" measured 115×17px. Their measured hit boxes are below the 44×44px touch-target benchmark. The skip link is visually hidden until focused and is not counted as an ordinary touch action. These link hit areas need to be enlarged without hiding or removing either action.
+- The viewport checks cover the public entry/login surface only. The preview redirected unauthenticated requests to `/login`; authenticated product pages could not be exercised without an authorized test account/session.
+- Consequently, authenticated navigation menus, modal/dialog flows, Focus Zone fullscreen and orientation behavior, dashboard drag/resize, touch gestures, and in-app keyboard/screen-reader paths are **NOT VERIFIED** by this run. No passing result is claimed for these flows.
+- The existing CI workflow currently runs typecheck, lint, build, migrations, health and API E2E, but has no browser-responsiveness suite configured.
+
+### Outcome and next required verification
+- Public entry/login responsive smoke test: **5/5 viewport profiles passed** for HTTP load, horizontal-overflow check and absence of uncaught page errors.
+- Accessibility/touch audit: **not fully passed** because two visible links have undersized hit areas.
+- Full Phase 08: **PARTIAL — NOT COMPLETE**. Do not mark the entire responsive/accessibility phase complete until the touch-target issue is fixed and authenticated browser tests cover desktop/tablet/mobile navigation, dialogs, Focus Zone, drag/resize, and keyboard/touch interactions.
+- No application source code was changed during this audit. No production deployment, merge, rebase or branch reset was performed.
+
+
+## Phase 09 — Security and performance audit (2026-11-27)
+
+### Confirmed issues fixed
+
+1. **Host-header-derived application URLs:** Authentication email links and Spotify redirects previously fell back to `Host` / `X-Forwarded-Host`; the Google OAuth callback used the request URL origin. Added `src/lib/server/origin.ts`, which resolves `NEXT_PUBLIC_SITE_URL` or trusted platform `VERCEL_URL`, requires HTTPS for non-local origins, permits localhost only in development, and fails closed in production when configuration is missing or invalid. Password reset, email verification, Spotify OAuth and Google OAuth callback now use this trusted origin. Email fallback links are HTML-escaped.
+2. **Single-use authentication tokens:** Reset and verification tokens were checked and marked used in separate operations. Both now atomically claim an unexpired, unused token with a conditional update inside a transaction. Password reset, token consumption and session revocation commit together. Invalid reset tokens are rejected before password hashing.
+3. **Cookie and request boundaries:** Session cookies always set `Secure` in production. Unsafe cookie-authenticated API mutations validate any supplied `Origin` against the request `Host`, reject cross-site requests, and fail closed if both `Origin` and Fetch Metadata are absent; bearer-only device requests remain supported. The shared JSON body parser streams and caps request bodies at 1,000,000 bytes and returns HTTP 413 for oversized input. Unexpected API errors are logged with a sanitized name/code rather than raw error objects or query details.
+4. **Brute-force and memory bounds:** Login enforces both the existing 8-attempt per-IP/email limit and a 30-attempt per-IP limit per 15 minutes, preventing email rotation from bypassing the IP limit. The in-memory rate-limit map is bounded to 10,000 buckets and periodically removes expired entries. It remains per-instance, not a globally consistent distributed limiter.
+5. **Dependencies and repository hygiene:** Next.js was updated from 16.4.2 to 16.4.6. Scoped npm overrides pin vulnerable esbuild copies (including the nested `@esbuild-kit/core-utils` copy) to 0.25.12. Unused direct dependencies (`date-fns` and `@supabase/supabase-js`) were removed, build-time tooling/types moved to devDependencies, and `eslint-config-next` was aligned. CI now generates an ephemeral lockfile, audits it, then uses `npm ci` for the same resolved dependency tree; the lockfile is not committed, so cross-run reproducibility remains a limitation.
+
+### Review results
+- Session identity is derived server-side from the hashed session token. Reviewed private API reads/writes and raw SQL aggregates scope by the authenticated user ID. UUID route parameters and payloads use Zod / `uuidParam`; foreign task, goal and milestone references are checked against the current user.
+- Session and device tokens are stored as hashes; Spotify OAuth tokens are encrypted server-side with AES-256-GCM. The public VAPID key is intentionally exposed; private VAPID, database, email, Spotify encryption and cron secrets remain server-side environment variables. No committed `.env` or credential file was found; only `.env.example` is tracked.
+- The `ossv2` schema has no per-user PostgreSQL RLS policies in the migrations. Current isolation relies on server-side session checks and owner-scoped queries through the server-only `DATABASE_URL`. The connected Supabase project list did not include an OSSv2 database, so live production grants / exposed-schema settings could not be inspected. Do not expose this schema through a client-facing Data API until a per-user JWT/RLS migration is completed and verified.
+- No secret values are embedded in source, and no `.env` file is tracked. Production Vercel environment-variable values were not inspected in this audit; verify `DATABASE_URL`, `APP_SECRET`, `RESEND_API_KEY`, `VAPID_PRIVATE_KEY`, `CRON_SECRET`, Spotify credentials, and Supabase keys in the deployment dashboard.
+- No broad architectural rewrite or speculative dependency removal was made. Dashboard overview queries already use parallel requests; no production load profile was run and no measured latency improvement is claimed.
+
+### Verification
+- `npm run typecheck`: passed.
+- `npm run lint`: passed with 0 errors; 54 existing warnings remain.
+- `npm run build`: passed on Next.js 16.4.6 using placeholder build-time environment values; this verifies build output, not a live database connection.
+- `npm audit`: 0 vulnerabilities across production and development dependencies after the Next.js update and scoped esbuild override.
+- `npx drizzle-kit --version`: passed (Drizzle Kit 0.31.11; Drizzle ORM 0.45.2).
+- `drizzle-kit check`: did not pass; Drizzle Kit reports legacy snapshots `0000_snapshot.json` through `0002_snapshot.json` as malformed, although each file parses as JSON. No migration files or snapshots were rewritten; this pre-existing migration-metadata compatibility issue needs a separate controlled repair.
+- Production-mode HTTP smoke tests against the built app: attacker-controlled `Host` and `X-Forwarded-Host` headers still redirected to the configured trusted application origin; cross-site and metadata-free cookie mutation requests both returned HTTP 403; oversized JSON returned HTTP 413 and malformed JSON returned HTTP 400.
+- Full production-mode API E2E suite against a disposable local PostgreSQL 18 database: **44/44 passed**. Coverage includes two-user IDOR and foreign-reference checks, session/auth behavior, cross-site, metadata-free and mismatched-Origin CSRF rejection, oversized/malformed JSON, password-reset token single-use under concurrent requests, login throttling across rotating emails, bearer-only Music Bridge requests, secure session cookies, and account deletion cascades.
+
+### Outcome and remaining work
+- Confirmed Host-header URL injection, concurrent token consumption, permissive CSRF metadata handling, unbounded JSON request bodies and unbounded rate-limit bucket growth have been addressed in source.
+- **Phase 09: PARTIAL — NOT COMPLETE.** Code-level security fixes and local authenticated E2E verification are complete. Remaining gates: inspect production database grants / Supabase exposed-schema settings and deployment secret configuration; decide whether RLS is required before any direct Data API exposure; run authenticated load and memory profiling against representative production-like data; and repair the legacy Drizzle snapshot metadata in a separate controlled change. The rate limiter remains per-instance and PostgreSQL RLS remains absent.
+- No production deployment, merge, rebase, reset or force-push was performed during this phase.
+
+
+## Phase 10 — Complete project verification (2026-11-27)
+
+### Final verification scope and outcome
+
+The audit was run against branch `fix/ukiyo-habits-heatmap-focus`, based on the latest pre-audit branch tip `48b2f571e8104d79d47976da57df5a702c6557b8`. The full production build, local PostgreSQL migrations, authenticated API suite and Chromium responsive suite were executed after syncing the branch's latest Phase 09 security/CI changes.
+
+**Final test totals: 89 passed, 0 failed, 4 areas blocked or not fully verifiable.**
+
+| Check | Result | Evidence |
+|---|---:|---|
+| TypeScript | PASS | `npm run typecheck` |
+| ESLint | PASS | `npm run lint`; 0 errors, 54 existing warnings |
+| Production build | PASS | `npm run build` on Next.js 16.4.6 |
+| Database migrations | PASS | `npx drizzle-kit migrate` applied successfully |
+| API integration / authenticated E2E | **44/44 PASS** | `node tests/e2e.mjs` against local PostgreSQL and production-mode server |
+| Desktop / mobile responsive browser checks | **45/45 PASS** | Playwright Chromium: 5 viewport profiles × 9 authenticated routes |
+| Dependency audit | PASS | `npm audit --package-lock=false`; 0 vulnerabilities |
+| Git whitespace validation | PASS | `git diff --check` |
+| Drizzle snapshot consistency check | FAIL (tooling metadata) | `npx drizzle-kit check` flags legacy snapshots `0000_snapshot.json`, `0001_snapshot.json`, `0002_snapshot.json` as malformed; database migrations themselves apply successfully |
+
+### Responsive matrix
+
+The 45 browser checks covered these viewport profiles:
+
+- Desktop: 1440×900
+- Laptop: 1280×800
+- Tablet: 820×1180
+- Mobile portrait: 390×844
+- Mobile landscape: 844×390
+
+Each profile exercised `/dashboard`, `/tasks`, `/habits`, `/focus`, `/study`, `/music`, `/music-bridge`, `/analytics` and `/settings` after completing the authenticated onboarding flow. All 45 navigations returned HTTP 200, had no horizontal overflow, and produced no uncaught browser page errors.
+
+Keyboard and login accessibility smoke checks confirmed that the first Tab focus reaches the visible Skip to content link with a solid 2px outline. The Forgot password and Create an account links now have 44px minimum hit areas. The Skip to content link remains visually hidden until keyboard focus by design.
+
+### Bugs fixed during final verification
+
+1. **Focus Zone mobile overflow:** long segmented controls and timer presets were forcing the Focus card beyond the mobile content width. The shared Card primitive now permits shrinking with `min-w-0`, allowing the segmented controls to scroll within their own bounds.
+2. **Settings mobile overflow:** the implicit single-column grid track could expand to the min-content width of its cards. Settings now declares an explicit one-column mobile grid before switching to two columns at large breakpoints; cards can shrink within the track.
+3. **Login touch targets:** Forgot password and Create an account links were below the 44px touch target benchmark. Both now expose 44px minimum-height hit areas.
+4. **E2E rate-limit interference:** all test clients previously shared one synthetic IP, causing the intended per-IP login throttle test to rate-limit unrelated authentication tests. Each E2E client now receives a distinct reserved test IP; the dedicated throttle test continues to reuse its own client's IP and still proves the IP-level limit works. This was a test-harness isolation issue, not an application authentication failure.
+5. **CI origin configuration:** the latest CI branch configuration supplies a trusted HTTPS `NEXT_PUBLIC_SITE_URL`, so production-mode auth email-link creation has a valid origin during CI tests.
+
+### Feature coverage
+
+- **Authentication / authorization:** signup, login, logout, session cookie attributes, weak/duplicate credentials, protected API/page access, password reset, concurrent single-use reset tokens, account deletion, trusted OAuth callback origin, CSRF and request-size validation.
+- **User isolation / IDOR:** two independent users cannot list, read, modify, delete or cross-link each other's private records; client-supplied `user_id` is ignored.
+- **Habits / heatmap / trackers:** habit targets and history, once-per-day reward behavior, heatmap scoring and per-user isolation, water/reading/learning trackers and idempotent retry handling.
+- **Focus Zone:** early completion rejection, XP validation, concurrent session starts, pause/resume accounting, duplicate state-transition rejection, session ownership, private background/font upload validation.
+- **Study / spaced repetition:** account-scoped subjects/cards, atomic review/history updates, exact schedules for all review ratings, duplicate concurrent review rejection, study suggestion ranking and accept/dismiss persistence.
+- **Music Hub / Spotify / device bridge:** Spotify route authentication/configuration behavior and Music Detection pairing, now-playing update and device revocation isolation. These tests do not substitute for a real Spotify OAuth session or physical native bridge hardware.
+- **Responsive routes:** all nine authenticated product routes listed above across all five viewport profiles.
+
+### Blocked or unverified areas (4)
+
+1. **Dedicated unit tests:** the repository has no standalone unit-test files or `test` script. The available automated functional coverage is the API E2E suite; no unit-test pass is claimed.
+2. **Live Spotify provider integration:** real OAuth authorization, playback control and token refresh were not exercised because no authorized Spotify test account / client credentials were available.
+3. **Native bridge on physical devices:** Android/Windows native bridge build and real device pairing/playback were not exercised on physical hardware. The API-side pairing and revocation integration tests passed.
+4. **Physical-device accessibility and gestures:** Chromium viewport emulation passed, but physical iOS/Android device testing, screen-reader review, OS-level orientation/fullscreen behavior and hardware touch/drag gestures remain unverified.
+
+### Remaining known issues
+
+- `npx drizzle-kit check` continues to flag the three legacy snapshot JSON files as malformed. This is distinct from migration execution: `npx drizzle-kit migrate` passed. Do not rewrite historical snapshots as part of this report without a controlled migration-metadata repair.
+- ESLint reports 54 warnings (0 errors), including existing image optimization and React effect-state warnings.
+- PostgreSQL RLS is not defined for the `ossv2` schema. Current private-data isolation depends on server-side session validation and owner-scoped queries. Keep direct client-facing Data API access disabled unless per-user RLS policies and grants are added and tested.
+- The in-memory rate limiter is bounded but remains per server instance; it is not a globally consistent distributed limiter.
+- Live third-party OAuth, email delivery, push delivery and native device integrations still require deployment credentials and provider/device-specific verification.
+
+### Files modified in Phase 10
+
+- `src/components/ui.tsx` — allow Card content to shrink safely inside narrow grid tracks.
+- `src/app/(app)/settings/page.tsx` — explicit single-column mobile grid.
+- `src/app/(auth)/login/page.tsx` — 44px login link hit areas.
+- `tests/e2e.mjs` — isolated synthetic client IPs while retaining the per-IP throttling test.
+- `OSS_PROGRESS.md` — this final verification report.
+
+### Commands executed
+
+```bash
+npm run typecheck
+npm run lint
+npm run build
+npx drizzle-kit migrate
+node tests/e2e.mjs
+node /tmp/oss-responsive/phase10-responsive.cjs
+npm audit --package-lock=false
+npx drizzle-kit check
+git diff --check
+```
+
+### Final status
+
+- Test cases: **89 passed / 0 failed**.
+- Blocked or unverified areas: **4**, listed above.
+- Separate diagnostic failure: Drizzle snapshot consistency check (3 legacy snapshots); migration application passed.
+- Current branch: `fix/ukiyo-habits-heatmap-focus`.
+- Verification base commit: `48b2f571e8104d79d47976da57df5a702c6557b8`; the final Phase 10 report/fixes are committed separately after that base.
+- No merge into `main`, Preview deployment, Production deployment, rebase, reset or force-push was performed.
+- **Phase 10: PARTIAL — NOT COMPLETE.** The available automated checks pass, but the four unverified areas and the Drizzle metadata issue must be resolved before claiming complete project verification.
+
+
+## Phase 06 follow-up — YouTube in-app playback integration (2026-11-27)
+
+### Implemented on `feat/ossv2-youtube-music-integration`
+
+- Replaced the Dashboard YouTube Music external-link placeholder with the existing shared YouTube player component. Selecting `YouTube Music` in the Dashboard Music source selector now exposes in-app search, result selection and the official embedded player.
+- Promoted the Focus Room music control to a clearly labelled **Search music** action in the top-right PageHeader actions. Its popover contains the YouTube search/player; immersive Focus mode places the same control at the top-right.
+- Selecting a result requests autoplay in the official YouTube embed after the user's selection. Browser autoplay rules may still require pressing Play in the embedded player.
+- Search requests prioritize YouTube's official Music video category (`videoCategoryId=10`) while filtering for embeddable videos.
+- Hardened persisted player state by validating YouTube video IDs and thumbnail hosts, capped restored results, and prevented stale search responses from replacing newer results.
+- Added authenticated YouTube search request limits per user and IP. These use the existing bounded in-memory limiter and therefore remain per server instance, not globally distributed.
+- Removed the retired Demo Mode walkthrough from README and updated setup/feature documentation to describe the actual embedded YouTube behavior and its limitations.
+- Added an API E2E assertion that authenticated YouTube search rejects one-character queries before calling the external API.
+
+### Verification still required
+
+- Run CI on this branch after the final commit: TypeScript, ESLint, production build, migrations, health check and API E2E.
+- Configure the server-only `YOUTUBE_API_KEY` in the deployment environment; this change does not add or expose a key.
+- Verify real Google Cloud YouTube Data API v3 access/quota and test search plus playback in Chromium and a real mobile browser.
+- Confirm that results selected for playback are embeddable in the user's region; YouTube can still block individual videos, age-restricted content, autoplay or playback in some contexts.
+- Verify that switching Dashboard source between Spotify, Music Detection and YouTube Music preserves the existing preferences and that the YouTube player is usable at desktop/tablet/mobile widths.
+- This is official YouTube embedded-video playback, not a private YouTube Music API or a promise of background-only audio playback.
+
+**Status: IMPLEMENTED IN SOURCE — AUTOMATED AND LIVE PROVIDER VERIFICATION PENDING.** No merge, rebase, reset, force-push, Preview deployment or Production deployment was performed.

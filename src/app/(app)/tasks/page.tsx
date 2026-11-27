@@ -7,6 +7,7 @@ import { useApp } from "@/components/providers";
 import { PriorityBadge, STATUS_LABEL, TaskModal, type Task } from "@/components/task-form";
 import { Badge, Button, Card, Checkbox, EmptyState, ErrorState, ListSkeleton, PageHeader, Segmented, cn, useUI } from "@/components/ui";
 import { api, useFetch } from "@/lib/client";
+import { queueOfflineAction, readOfflineSnapshot, saveOfflineSnapshot } from "@/lib/offline-db";
 import { fmtShort, todayIn } from "@/lib/dates";
 
 const PRI = { low: 1, medium: 2, high: 3, urgent: 4 };
@@ -26,6 +27,23 @@ function Inner() {
   const [modal, setModal] = useState<{ task?: Task | null } | null>(null);
   const [dragId, setDragId] = useState<string | null>(null);
   const today = todayIn(user?.timezone);
+  useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
+    if (!navigator.onLine) void readOfflineSnapshot<{ tasks: Task[] }>(user.id, "tasks").then((cached) => {
+      if (!cancelled && !data && cached) setData(cached);
+    });
+    const onSync = () => { void reload(); };
+    window.addEventListener("ukiyo:offline-sync", onSync);
+    return () => { cancelled = true; window.removeEventListener("ukiyo:offline-sync", onSync); };
+  }, [user?.id]);
+  useEffect(() => { if (user?.id && data) void saveOfflineSnapshot(user.id, "tasks", data); }, [user?.id, data]);
+  useEffect(() => {
+    if (!user?.id || !error || data) return;
+    let cancelled = false;
+    void readOfflineSnapshot<{ tasks: Task[] }>(user.id, "tasks").then((cached) => { if (!cancelled && cached) setData(cached); });
+    return () => { cancelled = true; };
+  }, [user?.id, error, data]);
   useEffect(() => { if (sp.get("new") === "1") setModal({}); }, [sp]);
 
   const tasks = data?.tasks ?? [];
@@ -40,6 +58,13 @@ function Inner() {
   }, [tasks, q, status, cat, pri, sort]);
 
   async function patch(task: Task, body: Partial<Task>, msg?: string) {
+    if (!navigator.onLine && user?.id) {
+      const queued = await queueOfflineAction(user.id, `/api/tasks/${task.id}`, "PATCH", body as Record<string, unknown>);
+      if (!queued) { toast("info", t("Offline save is unavailable on this device.")); return; }
+      setData((d) => d && { tasks: d.tasks.map((item) => item.id === task.id ? { ...item, ...body } : item) });
+      toast("info", t("Saved offline. It will sync when you're online."));
+      return;
+    }
     const r = await run(() => api<{ task: Task; xp: number; unlocked: string[] }>(`/api/tasks/${task.id}`, { method: "PATCH", body }), msg);
     if (!r) return;
     setData((d) => d && { tasks: d.tasks.map((x) => (x.id === task.id ? r.task : x)) });
@@ -49,6 +74,14 @@ function Inner() {
   }
   async function del(task: Task) {
     if (!(await confirm(t("Delete {title} permanently?").replace("{title}", task.title), t("Delete")))) return;
+    if (!navigator.onLine && user?.id) {
+      const queued = await queueOfflineAction(user.id, `/api/tasks/${task.id}`, "DELETE");
+      if (!queued) { toast("info", t("Offline save is unavailable on this device.")); return; }
+      setData((d) => d && { tasks: d.tasks.filter((item) => item.id !== task.id) });
+      setModal(null);
+      toast("info", t("Saved offline. It will sync when you're online."));
+      return;
+    }
     if (await run(() => api(`/api/tasks/${task.id}`, { method: "DELETE" }), t("Task deleted"))) { setModal(null); reload(); }
   }
 

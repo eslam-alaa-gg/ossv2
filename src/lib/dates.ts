@@ -43,7 +43,8 @@ export function dow(d: string): number {
   return parseD(d).getUTCDay();
 }
 export function isDateStr(s: unknown): s is string {
-  return typeof s === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(parseD(s).getTime());
+  if (typeof s !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+  return parseD(s).toISOString().slice(0, 10) === s;
 }
 export function addMonths(d: string, n: number): string {
   const dt = parseD(d);

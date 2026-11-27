@@ -7,6 +7,7 @@ import { db } from "@/db";
 import { users } from "@/db/schema";
 import { createSession, hashPassword } from "@/lib/server/auth";
 import { DEFAULT_PREFS } from "@/lib/prefs";
+import { getAppOrigin } from "@/lib/server/origin";
 
 function safeNext(value: string | null) {
   if (!value || !value.startsWith("/") || value.startsWith("//") || value.includes(String.fromCharCode(92))) return "/dashboard";
@@ -15,11 +16,12 @@ function safeNext(value: string | null) {
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
+  const appOrigin = getAppOrigin();
   const code = requestUrl.searchParams.get("code");
   const next = safeNext(requestUrl.searchParams.get("next"));
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-  if (!code || !url || !key) return NextResponse.redirect(new URL("/login?error=google", requestUrl.origin));
+  if (!code || !url || !key) return NextResponse.redirect(new URL("/login?error=google", appOrigin));
 
   const cookieStore = await cookies();
   const supabase = createServerClient(url, key, {
@@ -36,7 +38,7 @@ export async function GET(request: Request) {
   const email = data.user?.email?.trim().toLowerCase();
   if (error || !data.user || !identity || !email || !data.user.email_confirmed_at) {
     await supabase.auth.signOut({ scope: "local" }).catch(() => undefined);
-    return NextResponse.redirect(new URL("/login?error=google", requestUrl.origin));
+    return NextResponse.redirect(new URL("/login?error=google", appOrigin));
   }
 
   let appUser = (await db.select().from(users).where(eq(users.googleAuthId, data.user.id)).limit(1))[0];
@@ -45,7 +47,7 @@ export async function GET(request: Request) {
     if (existing) {
       if (!existing.emailVerified || (existing.googleAuthId && existing.googleAuthId !== data.user.id)) {
         await supabase.auth.signOut({ scope: "local" }).catch(() => undefined);
-        return NextResponse.redirect(new URL("/login?error=account-link", requestUrl.origin));
+        return NextResponse.redirect(new URL("/login?error=account-link", appOrigin));
       }
       [appUser] = await db.update(users).set({ googleAuthId: data.user.id, emailVerified: true, updatedAt: new Date() }).where(and(eq(users.id, existing.id), eq(users.email, email))).returning();
     } else {
@@ -65,10 +67,10 @@ export async function GET(request: Request) {
 
   if (!appUser) {
     await supabase.auth.signOut({ scope: "local" }).catch(() => undefined);
-    return NextResponse.redirect(new URL("/login?error=google", requestUrl.origin));
+    return NextResponse.redirect(new URL("/login?error=google", appOrigin));
   }
 
   await createSession(appUser.id);
   await supabase.auth.signOut({ scope: "local" }).catch(() => undefined);
-  return NextResponse.redirect(new URL(appUser.onboarded ? (next === "/onboarding" ? "/dashboard" : next) : "/onboarding", requestUrl.origin));
+  return NextResponse.redirect(new URL(appUser.onboarded ? (next === "/onboarding" ? "/dashboard" : next) : "/onboarding", appOrigin));
 }

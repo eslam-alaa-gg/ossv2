@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable react-hooks/refs -- textarea ref is read only by toolbar event callbacks. */
 import { Archive, Bold, BookMarked, Check, Eye, Heading1, Heading2, Link2, List, ListChecks, ListOrdered, Loader2, Pin, Plus, Search, Star, Trash2 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useApp } from "@/components/providers";
@@ -74,6 +75,8 @@ function Editor({ note, onChange, onDeleted }: { note: Note; onChange: (n: Note)
     </Card>
   );
 }
+
+/* eslint-enable react-hooks/refs */
 
 function Journal() {
   const { t } = useApp();

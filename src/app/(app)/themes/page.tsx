@@ -1,14 +1,14 @@
 "use client";
 import { Check, Plus, RotateCcw, Save, Trash2, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Area, AreaChart, Bar, BarChart, ResponsiveContainer } from "recharts";
 import { useApp } from "@/components/providers";
 import { Badge, Button, Card, Checkbox, Field, PageHeader, Progress, Ring, Segmented, Switch, cn, useUI } from "@/components/ui";
 import { ACCENT_PALETTE, DEFAULT_THEME, GRADIENT_PRESETS, PRESETS, TARGET_KEYS, chartColors, gradientCss, normalizeHex, type GradientCfg, type Theme, type TargetKey } from "@/lib/theme";
 
 const TARGET_LABEL: Record<TargetKey, string> = { app: "App background", dashboard: "Dashboard hero", cards: "Cards (subtle tint)", buttons: "Primary buttons", accent: "Accent elements & logo text", progress: "Progress bars", charts: "Charts", nav: "Navigation highlight", profile: "Profile avatar ring" };
-const FONTS = [["sniglet", "Sniglet"], ["inter", "Inter — LIFE OS"], ["kavoon", "Kavoon"], ["merienda", "Merienda"], ["shantell", "Shantell Sans"], ["plex", "IBM Plex Sans"], ["cairo", "Cairo"], ["manrope", "Manrope"], ["serif", "Source Serif 4"], ["system", "System UI"]] as const;
-const FONT_CSS: Record<string, string> = { sniglet: "'Sniglet',cursive", inter: "'Inter',sans-serif", kavoon: "'Kavoon',serif", merienda: "'Merienda',cursive", shantell: "'Shantell Sans',cursive", plex: "'IBM Plex Sans',sans-serif", cairo: "'Cairo',sans-serif", manrope: "'Manrope',sans-serif", serif: "'Source Serif 4',serif", system: "system-ui,sans-serif" };
+const FONTS = [["sniglet", "Sniglet"], ["inter", "Inter — Ukiyo"], ["kavoon", "Kavoon"], ["merienda", "Merienda"], ["shantell", "Shantell Sans"], ["plex", "IBM Plex Sans"], ["cairo", "Cairo"], ["manrope", "Manrope"], ["serif", "Source Serif 4"], ["system", "System UI"]] as const;
+const FONT_CSS: Record<string, string> = { sniglet: "'Sniglet',cursive", inter: "'Inter',sans-serif", kavoon: "'Kavoon',serif", merienda: "'Merienda',cursive", shantell: "'Shantell Sans',cursive", plex: "'IBM Plex Sans',sans-serif", cairo: "'Cairo',sans-serif", manrope: "'Manrope',sans-serif", serif: "'Source Serif 4',serif", system: "system-ui,sans-serif", custom: "'UkiyoCustom',sans-serif" };
 
 function Slider({ label, value, min = 0, max = 100, unit = "", onChange, hint }: { label: string; value: number; min?: number; max?: number; unit?: string; onChange: (n: number) => void; hint?: string }) {
   const { t } = useApp();
@@ -46,8 +46,57 @@ export default function ThemesPage() {
   const [tab, setTab] = useState("presets");
   const [hex, setHex] = useState<string | null>(null);
   const [name, setName] = useState("");
+  const [customFont, setCustomFont] = useState<{ name: string } | null>(null);
+  const [fontBusy, setFontBusy] = useState(false);
+  const [fontMessage, setFontMessage] = useState("");
   const set = (p: Partial<Theme>) => setDraft({ ...theme, ...p });
   const setG = (p: Partial<GradientCfg>) => set({ gradient: { ...theme.gradient, ...p }, gradientPreset: "custom" });
+  useEffect(() => {
+    let cancelled = false;
+    void fetch("/api/me/font?meta=1", { cache: "no-store" }).then(async (response) => response.ok ? response.json() as Promise<{ name: string }> : null).then((font) => {
+      if (!cancelled) setCustomFont(font);
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
+  async function uploadCustomFont(file: File) {
+    setFontBusy(true);
+    setFontMessage("");
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const response = await fetch("/api/me/font", { method: "POST", body: form });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(payload?.error || t("Font upload failed."));
+      setCustomFont({ name: payload.name });
+      set({ font: "custom" });
+      setFontMessage(t("Font uploaded. Apply Theme to use it across Ukiyo."));
+    } catch (error) {
+      setFontMessage(error instanceof Error ? error.message : t("Font upload failed."));
+    } finally {
+      setFontBusy(false);
+    }
+  }
+
+  async function removeCustomFont() {
+    setFontBusy(true);
+    setFontMessage("");
+    try {
+      const response = await fetch("/api/me/font", { method: "DELETE" });
+      if (!response.ok) throw new Error(t("Could not remove the custom font."));
+      setCustomFont(null);
+      if (theme.font === "custom") set({ font: "inter" });
+      setFontMessage(t("Custom font removed."));
+    } catch (error) {
+      setFontMessage(error instanceof Error ? error.message : t("Could not remove the custom font."));
+    } finally {
+      setFontBusy(false);
+    }
+  }
+
+  const fontOptions: readonly (readonly [string, string])[] = customFont
+    ? [...FONTS, ["custom", `${t("Custom")}: ${customFont.name}`]]
+    : FONTS;
   const cur = PRESETS.find((p) => p.id === theme.preset);
   const g = theme.gradient;
 
@@ -59,9 +108,10 @@ export default function ThemesPage() {
       <PageHeader title={t("Theme Studio")} subtitle={t("Changes preview live across the whole app. Press Apply to save them to your account.")} actions={<>
         <Button onClick={async () => { if (await confirm(t("Load the default theme? (You still need to press Apply to save it.)"), t("Load defaults"))) { setDraft(DEFAULT_THEME); toast("info", t("Defaults loaded — press Apply to save.")); } }}><RotateCcw className="size-4" /> {t("Reset Theme")}</Button>
         {hasDraft && <Button onClick={() => setDraft(null)}><X className="size-4" /> {t("Discard")}</Button>}
-        <Button variant="primary" disabled={!hasDraft} onClick={() => run(() => savePrefs({ theme }), "Theme applied and saved")}><Check className="size-4" /> {t("Apply Theme")}</Button>
+        <Button variant="primary" disabled={!hasDraft} onClick={async () => { const saved = await run(() => savePrefs({ theme }), t("Theme applied and saved")); if (saved && theme.font === "custom") window.location.reload(); }}><Check className="size-4" /> {t("Apply Theme")}</Button>
       </>} />
       {hasDraft && <p role="status" className="mb-4 rounded-xl border border-amber-400/30 bg-amber-500/10 px-4 py-2 text-sm text-amber-300">{t("Previewing unsaved changes.")}</p>}
+      {customFont && <style>{`@font-face{font-family:"UkiyoCustom";src:url("/api/me/font");font-style:normal;font-weight:400;font-display:swap;}`}</style>}
       <div className="grid gap-[var(--gap)] lg:grid-cols-[1fr_380px]">
         <div className="min-w-0 space-y-4">
           <Segmented value={tab} onChange={setTab} label={t("Theme sections")} options={[{ value: "presets", label: t("Presets") }, { value: "color", label: t("Color") }, { value: "glass", label: t("Glass") }, { value: "background", label: t("Background") }, { value: "gradients", label: t("Gradients") }, { value: "fonts", label: t("Fonts") }, { value: "interface", label: t("Interface") }, { value: "saved", label: t("My themes") }]} />
@@ -156,14 +206,29 @@ export default function ThemesPage() {
           {tab === "fonts" && (
             <Card className="space-y-4">
               <div><h2 className="text-base font-semibold">{t("Fonts")}</h2><p className="mt-1 text-sm text-muted">{t("Choose the font that feels right. Arabic uses Playpen Sans Arabic automatically for clear shaping and spacing.")}</p></div>
+              <div className="rounded-xl border border-line bg-card p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div><p className="text-sm font-medium">{t("Upload your own font")}</p><p className="mt-1 text-xs text-muted">{t("Private to your account. Supported: WOFF2, WOFF, TTF and OTF · max 2 MB.")}</p></div>
+                  {customFont && <Badge tone="green">{t("Uploaded")}</Badge>}
+                </div>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <label className={cn("glass-btn btn-secondary cursor-pointer", fontBusy && "pointer-events-none opacity-50")}>
+                    {fontBusy ? t("Uploading…") : t(customFont ? "Replace font" : "Choose font file")}
+                    <input type="file" className="sr-only" accept=".woff2,.woff,.ttf,.otf,font/woff2,font/woff,font/ttf,font/otf" disabled={fontBusy} onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadCustomFont(file); event.currentTarget.value = ""; }} />
+                  </label>
+                  {customFont && <Button variant="ghost" disabled={fontBusy} onClick={() => void removeCustomFont()}><Trash2 className="size-4" /> {t("Remove font")}</Button>}
+                  {customFont && <span className="text-xs text-muted">{customFont.name}</span>}
+                </div>
+                {fontMessage && <p role="status" className="mt-3 text-xs text-muted">{fontMessage}</p>}
+              </div>
               <div className="grid gap-3 sm:grid-cols-2">
-                {FONTS.map(([key, label]) => <button key={key} type="button" onClick={() => set({ font: key as Theme["font"] })} aria-pressed={theme.font === key} className={cn("rounded-2xl border p-4 text-start transition-all", theme.font === key ? "border-accent bg-accent/10" : "border-line bg-card hover:bg-card-hover")}>
+                {fontOptions.map(([key, label]) => <button key={key} type="button" onClick={() => set({ font: key as Theme["font"] })} aria-pressed={theme.font === key} className={cn("rounded-2xl border p-4 text-start transition-all", theme.font === key ? "border-accent bg-accent/10" : "border-line bg-card hover:bg-card-hover")}>
                   <span className="flex items-center justify-between gap-2"><span className="text-sm font-semibold">{label}</span>{theme.font === key && <Check className="size-4 text-accent" />}</span>
                   <span className="mt-3 block text-xl leading-relaxed" style={{ fontFamily: FONT_CSS[key] }}>{lang === "ar" ? "نص عربي تجريبي · ٠١٢٣٤٥" : "The quick brown fox · 012345"}</span>
-                  <span className="mt-1 block text-xs text-muted">{lang === "ar" ? "أب · LIFE OS" : "Aa · LIFE OS"}</span>
+                  <span className="mt-1 block text-xs text-muted">{lang === "ar" ? "أب · Ukiyo" : "Aa · Ukiyo"}</span>
                 </button>)}
               </div>
-              <div className="rounded-xl border border-line bg-card p-4"><p className="text-sm font-medium">{t("Arabic font · Playpen Sans Arabic")}</p><p className="mt-2 text-lg leading-loose" style={{ fontFamily: "'Playpen Sans Arabic','Cairo',sans-serif" }}>أهلاً بيك في LIFE OS — رتّب يومك وحقق أهدافك</p><p className="mt-2 text-xs text-muted">{t("Arabic font applies automatically when Arabic is selected, independently from the English font.")}</p></div>
+              <div className="rounded-xl border border-line bg-card p-4"><p className="text-sm font-medium">{t("Arabic font · Playpen Sans Arabic")}</p><p className="mt-2 text-lg leading-loose" style={{ fontFamily: "'Playpen Sans Arabic','Cairo',sans-serif" }}>أهلاً بيك في Ukiyo — رتّب يومك وحقق أهدافك</p><p className="mt-2 text-xs text-muted">{t("Arabic font applies automatically when Arabic is selected, independently from the English font.")}</p></div>
             </Card>
           )}
 
@@ -194,7 +259,7 @@ export default function ThemesPage() {
         <div className="lg:sticky lg:top-20 lg:self-start">
           <h2 className="mb-3 text-sm font-medium text-muted">{t("Live preview")}</h2>
           <Preview theme={theme} />
-          <div className="mt-4 flex gap-2"><Button variant="primary" className="flex-1" disabled={!hasDraft} onClick={() => run(() => savePrefs({ theme }), "Theme applied and saved")}>{t("Apply Theme")}</Button></div>
+          <div className="mt-4 flex gap-2"><Button variant="primary" className="flex-1" disabled={!hasDraft} onClick={async () => { const saved = await run(() => savePrefs({ theme }), t("Theme applied and saved")); if (saved && theme.font === "custom") window.location.reload(); }}>{t("Apply Theme")}</Button></div>
         </div>
       </div>
     </>

@@ -48,6 +48,99 @@ html[dir="rtl"] .text-base { line-height: 1.85; }
 .grad-layer { position: fixed; inset: 0; z-index: -28; pointer-events: none; background-image: var(--grad); opacity: var(--grad-op); mix-blend-mode: var(--grad-blend); }
 .grad-layer.anim { background-size: var(--grad-size); animation: gradShift var(--grad-dur) ease-in-out infinite; animation-direction: var(--grad-dir); }
 @keyframes gradShift { 0% { background-position: 0% 30%; } 50% { background-position: 100% 70%; } 100% { background-position: 0% 30%; } }
+
+.now-playing-widget { container-type: inline-size; }
+@container (max-width: 380px) {
+  .now-playing-row { gap: .65rem; }
+  .now-playing-artwork { width: 3.5rem; height: 3.5rem; border-radius: .85rem; }
+  .now-playing-title { font-size: .9rem; }
+  .now-playing-artist { font-size: .75rem; }
+}
+@container (min-width: 520px) {
+  .now-playing-artwork { width: 6rem; height: 6rem; }
+}
+
+.dashboard-widget { transition: opacity .18s ease, transform .18s ease, outline-color .18s ease, box-shadow .18s ease; }
+.dashboard-widget-dragging { opacity: .48; transform: scale(.985); }
+.dashboard-widget-drop-target { outline: 2px dashed var(--accent); outline-offset: 4px; box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent) 10%, transparent); }
+@media (prefers-reduced-motion: reduce) { .dashboard-widget { transition: none; } }
+
+/* Focus Room live wallpapers — lightweight CSS motion, no autoplay media requests. */
+.focus-wallpaper {
+  position: absolute; inset: 0; overflow: hidden; isolation: isolate;
+  background-size: 190% 190%; animation: focusWallpaperDrift 34s ease-in-out infinite alternate;
+  will-change: background-position;
+}
+.focus-wallpaper::before, .focus-wallpaper::after {
+  content: ""; position: absolute; inset: -22%; pointer-events: none;
+  background-size: 180% 180%; animation: focusWallpaperGlow 26s ease-in-out infinite alternate;
+}
+.focus-wallpaper::after { animation-duration: 38s; animation-direction: alternate-reverse; mix-blend-mode: screen; opacity: .6; }
+.focus-wallpaper-forest {
+  background-image: radial-gradient(ellipse at 20% 25%, #315e48 0%, transparent 46%), radial-gradient(ellipse at 82% 72%, #173b38 0%, transparent 48%), linear-gradient(135deg, #071b1b, #102d2b 48%, #09171a);
+}
+.focus-wallpaper-forest::before {
+  background-image: radial-gradient(ellipse at 28% 60%, rgba(178,211,165,.28), transparent 34%), radial-gradient(ellipse at 70% 25%, rgba(98,151,121,.22), transparent 38%);
+  filter: blur(38px);
+}
+.focus-wallpaper-forest::after {
+  background-image: linear-gradient(112deg, transparent 34%, rgba(215,236,193,.12) 48%, transparent 61%);
+  filter: blur(20px);
+}
+.focus-wallpaper-ocean {
+  background-image: radial-gradient(ellipse at 75% 20%, #246a83 0%, transparent 42%), radial-gradient(ellipse at 20% 85%, #123f62 0%, transparent 48%), linear-gradient(145deg, #061a2c, #0b3650 52%, #061625);
+}
+.focus-wallpaper-ocean::before {
+  background-image: repeating-radial-gradient(ellipse at 48% 115%, transparent 0 28px, rgba(132,210,226,.14) 30px 34px, transparent 38px 62px);
+  transform: rotate(-8deg); filter: blur(7px);
+}
+.focus-wallpaper-ocean::after {
+  background-image: linear-gradient(110deg, transparent 28%, rgba(171,231,236,.16) 47%, transparent 62%);
+  filter: blur(24px);
+}
+.focus-wallpaper-rain {
+  background-color: #101b2b;
+  background-image: radial-gradient(ellipse at 76% 22%, rgba(90,123,165,.45), transparent 35%), radial-gradient(ellipse at 22% 72%, rgba(53,76,115,.48), transparent 42%), linear-gradient(135deg, #080f1c, #1b2940 52%, #0a1422);
+}
+.focus-wallpaper-rain::before {
+  background-image: repeating-linear-gradient(105deg, transparent 0 18px, rgba(199,218,240,.13) 19px, transparent 21px 38px);
+  animation: focusRainFall 1.8s linear infinite; filter: blur(1px);
+}
+.focus-wallpaper-rain::after {
+  background-image: radial-gradient(circle at 18% 35%, rgba(236,195,136,.3) 0 3%, transparent 11%), radial-gradient(circle at 82% 62%, rgba(134,165,220,.25) 0 4%, transparent 13%);
+  filter: blur(28px);
+}
+.focus-wallpaper-sunset {
+  background-image: radial-gradient(ellipse at 68% 34%, #e7a45f 0%, transparent 28%), radial-gradient(ellipse at 18% 82%, #9d5364 0%, transparent 48%), linear-gradient(150deg, #321e3e, #78445a 52%, #1c263f);
+}
+.focus-wallpaper-sunset::before {
+  background-image: radial-gradient(ellipse at 52% 48%, rgba(255,213,143,.38), transparent 32%), linear-gradient(165deg, transparent 40%, rgba(30,33,58,.34) 76%);
+  filter: blur(30px);
+}
+.focus-wallpaper-sunset::after {
+  background-image: linear-gradient(100deg, transparent 24%, rgba(255,223,169,.18) 50%, transparent 74%);
+  filter: blur(26px);
+}
+.focus-wallpaper-cosmos {
+  background-color: #080817;
+  background-image: radial-gradient(ellipse at 28% 32%, rgba(94,61,160,.65), transparent 40%), radial-gradient(ellipse at 78% 68%, rgba(32,78,132,.5), transparent 42%), linear-gradient(145deg, #080817, #17142e 52%, #070d1b);
+}
+.focus-wallpaper-cosmos::before {
+  background-image: radial-gradient(circle, rgba(255,255,255,.7) 0 1px, transparent 1.8px), radial-gradient(circle, rgba(174,190,255,.55) 0 1px, transparent 1.8px);
+  background-size: 73px 73px, 113px 113px; animation: focusStars 48s linear infinite; filter: none;
+}
+.focus-wallpaper-cosmos::after {
+  background-image: radial-gradient(ellipse at 52% 45%, rgba(144,102,216,.28), transparent 38%);
+  filter: blur(35px);
+}
+.focus-wallpaper-preview { height: 68px; position: relative; overflow: hidden; background-size: 190% 190%; animation: focusWallpaperDrift 34s ease-in-out infinite alternate; isolation: isolate; }
+@keyframes focusWallpaperDrift { 0% { background-position: 0% 35%; } 100% { background-position: 100% 65%; } }
+@keyframes focusWallpaperGlow { 0% { transform: translate3d(-3%, 1%, 0) scale(.96); } 100% { transform: translate3d(4%, -2%, 0) scale(1.08); } }
+@keyframes focusRainFall { from { transform: translate3d(-2%, -8%, 0); } to { transform: translate3d(2%, 8%, 0); } }
+@keyframes focusStars { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(-4%, 3%, 0); } }
+@media (prefers-reduced-motion: reduce) { .focus-wallpaper, .focus-wallpaper::before, .focus-wallpaper::after { animation: none !important; } }
+html[data-motion="off"] .focus-wallpaper, html[data-motion="off"] .focus-wallpaper::before, html[data-motion="off"] .focus-wallpaper::after { animation: none !important; }
+
 .noise { position: fixed; inset: 0; z-index: -27; pointer-events: none; opacity: .07; mix-blend-mode: overlay;
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); }
 .album-glow { position: fixed; inset: 0; z-index: -26; pointer-events: none; opacity: .17; transition: --amb1 1.6s ease, --amb2 1.6s ease, opacity 1s ease;
@@ -63,7 +156,7 @@ html[data-mode="light"] .album-glow { opacity: .22; }
 .card-pad { padding: var(--pad); }
 .card-hover { transition: transform var(--dur) ease, background-color var(--dur) ease, border-color var(--dur) ease; }
 .card-hover:hover { transform: translateY(calc(var(--lift) * -1)); background-color: var(--card-hover); border-color: var(--border-strong); }
-.popover { background: var(--pop); -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); box-shadow: 0 20px 60px rgba(0,0,0,.35); }
+.popover { background: var(--pop); -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(16px); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); box-shadow: 0 20px 60px rgba(0,0,0,.35); }
 
 /* ---------- buttons w/ directional edge light ---------- */
 .glass-btn { --lc: 255,255,255; position: relative; isolation: isolate; display: inline-flex; align-items: center; justify-content: center; gap: .5rem; cursor: pointer;
@@ -95,6 +188,7 @@ html[data-mode="light"] .btn-danger { color: #c62828; }
 select.input { appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%); background-position: calc(100% - 18px) 55%, calc(100% - 13px) 55%; background-size: 5px 5px; background-repeat: no-repeat; padding-inline-end: 2rem; }
 html[dir="rtl"] select.input { background-position: 18px 55%, 13px 55%; }
 select.input option { background: #1c1c22; color: #f5f5f7; }
+html[data-mode="light"] select.input option { background: #ffffff; color: #171824; }
 input[type="range"] { accent-color: var(--accent); width: 100%; }
 input[type="color"] { width: 42px; height: 38px; border-radius: 10px; border: 1px solid var(--border); background: transparent; padding: 2px; cursor: pointer; }
 
@@ -140,8 +234,8 @@ html[data-motion="off"] .pointer-light { display: none; }
   border: 1px solid color-mix(in srgb, var(--border-strong) 68%, transparent);
   border-radius: 999px;
   background: color-mix(in srgb, var(--bg) 38%, transparent);
-  -webkit-backdrop-filter: blur(32px) saturate(175%);
-  backdrop-filter: blur(32px) saturate(175%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  backdrop-filter: blur(18px) saturate(150%);
   box-shadow: 0 10px 30px rgba(0,0,0,.13), inset 0 1px 0 rgba(255,255,255,.09);
 }
 .header-icon-btn { transition: background-color var(--dur) ease, border-color var(--dur) ease, transform var(--dur) ease; }

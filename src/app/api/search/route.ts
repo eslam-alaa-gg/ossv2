@@ -1,4 +1,4 @@
-import { and, desc, eq, ilike } from "drizzle-orm";
+import { and, desc, eq, ilike, or } from "drizzle-orm";
 import { db } from "@/db";
 import { goals, habits, notes, tasks } from "@/db/schema";
 import { handle } from "@/lib/server/api";
@@ -13,7 +13,7 @@ export const GET = handle(async (req) => {
   const like = `%${q}%`;
   const [t, n, g, h] = await Promise.all([
     db.select({ id: tasks.id, title: tasks.title }).from(tasks).where(and(eq(tasks.userId, a.id), ilike(tasks.title, like))).orderBy(desc(tasks.createdAt)).limit(5),
-    db.select({ id: notes.id, title: notes.title, content: notes.content }).from(notes).where(and(eq(notes.userId, a.id), ilike(notes.title, like))).limit(5),
+    db.select({ id: notes.id, title: notes.title, content: notes.content }).from(notes).where(and(eq(notes.userId, a.id), or(ilike(notes.title, like), ilike(notes.content, like)))).limit(5),
     db.select({ id: goals.id, title: goals.title }).from(goals).where(and(eq(goals.userId, a.id), ilike(goals.title, like))).limit(5),
     db.select({ id: habits.id, title: habits.name }).from(habits).where(and(eq(habits.userId, a.id), ilike(habits.name, like))).limit(5),
   ]);

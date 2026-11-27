@@ -11,6 +11,11 @@ if (string.IsNullOrWhiteSpace(server) || string.IsNullOrWhiteSpace(token))
     Console.Error.WriteLine("Set OSSV2_BRIDGE_URL and OSSV2_BRIDGE_TOKEN before starting the bridge.");
     return;
 }
+if (!Uri.TryCreate(server, UriKind.Absolute, out var serverUri) || serverUri.Scheme != Uri.UriSchemeHttps)
+{
+    Console.Error.WriteLine("OSSV2_BRIDGE_URL must be an absolute HTTPS URL so the device token is never sent in cleartext.");
+    return;
+}
 
 using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
 http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);

@@ -56,6 +56,81 @@ export const avatars = ossv2.table("avatars", {
   updatedAt: ts("updated_at").notNull().defaultNow(),
 });
 
+export const focusBackgrounds = ossv2.table("focus_backgrounds", {
+  userId: uuid("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  mime: text("mime").notNull(),
+  data: bytea("data").notNull(),
+  updatedAt: ts("updated_at").notNull().defaultNow(),
+});
+
+export const customFonts = ossv2.table("custom_fonts", {
+  userId: uuid("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  mime: text("mime").notNull(),
+  data: bytea("data").notNull(),
+  updatedAt: ts("updated_at").notNull().defaultNow(),
+});
+
+export const studySubjects = ossv2.table("study_subjects", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: userRef(),
+  name: text("name").notNull(),
+  color: text("color").notNull().default("#8b7cff"),
+  createdAt: createdAt(),
+  updatedAt: ts("updated_at").notNull().defaultNow(),
+}, (t) => ({
+  userIdx: index("study_subjects_user_idx").on(t.userId),
+}));
+
+export const flashcards = ossv2.table("flashcards", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: userRef(),
+  subjectId: uuid("subject_id").references(() => studySubjects.id, { onDelete: "set null" }),
+  front: text("front").notNull(),
+  back: text("back").notNull(),
+  dueAt: ts("due_at").notNull().defaultNow(),
+  intervalDays: integer("interval_days").notNull().default(0),
+  easeFactor: integer("ease_factor").notNull().default(2500),
+  repetitions: integer("repetitions").notNull().default(0),
+  lapses: integer("lapses").notNull().default(0),
+  lastReviewedAt: ts("last_reviewed_at"),
+  createdAt: createdAt(),
+  updatedAt: ts("updated_at").notNull().defaultNow(),
+}, (t) => ({
+  userDueIdx: index("flashcards_user_due_idx").on(t.userId, t.dueAt),
+  subjectIdx: index("flashcards_subject_idx").on(t.subjectId),
+}));
+
+export const flashcardReviews = ossv2.table("flashcard_reviews", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: userRef(),
+  flashcardId: uuid("flashcard_id").notNull().references(() => flashcards.id, { onDelete: "cascade" }),
+  rating: text("rating").notNull(),
+  intervalBefore: integer("interval_before").notNull(),
+  intervalAfter: integer("interval_after").notNull(),
+  reviewedAt: ts("reviewed_at").notNull().defaultNow(),
+}, (t) => ({
+  userReviewedIdx: index("flashcard_reviews_user_reviewed_idx").on(t.userId, t.reviewedAt),
+}));
+
+
+export const dailyStudySuggestionDecisions = ossv2.table("daily_study_suggestion_decisions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: userRef(),
+  date: date("date").notNull(),
+  suggestionKey: text("suggestion_key").notNull(),
+  status: text("status").notNull(), // accepted | dismissed
+  createdAt: createdAt(),
+  updatedAt: ts("updated_at").notNull().defaultNow(),
+}, (t) => ({
+  userDateKeyUnique: uniqueIndex("daily_study_suggestion_decisions_unique").on(t.userId, t.date, t.suggestionKey),
+  userDateIdx: index("daily_study_suggestion_decisions_user_date_idx").on(t.userId, t.date),
+}));
+
 export const sessions = ossv2.table(
   "sessions",
   {
@@ -186,9 +261,13 @@ export const waterLogs = ossv2.table(
     userId: userRef(),
     date: date("date").notNull(),
     ml: integer("ml").notNull(),
+    clientActionId: uuid("client_action_id"),
     createdAt: createdAt(),
   },
-  (t) => [index("water_user_date_idx").on(t.userId, t.date)],
+  (t) => [
+    index("water_user_date_idx").on(t.userId, t.date),
+    uniqueIndex("water_logs_user_action_unique").on(t.userId, t.clientActionId),
+  ],
 );
 
 export const readingLogs = ossv2.table(
@@ -199,9 +278,13 @@ export const readingLogs = ossv2.table(
     date: date("date").notNull(),
     book: text("book").notNull(),
     pages: integer("pages").notNull(),
+    clientActionId: uuid("client_action_id"),
     createdAt: createdAt(),
   },
-  (t) => [index("reading_user_date_idx").on(t.userId, t.date)],
+  (t) => [
+    index("reading_user_date_idx").on(t.userId, t.date),
+    uniqueIndex("reading_logs_user_action_unique").on(t.userId, t.clientActionId),
+  ],
 );
 
 export const learningEntries = ossv2.table(
@@ -212,9 +295,13 @@ export const learningEntries = ossv2.table(
     date: date("date").notNull(),
     title: text("title").notNull(),
     explanation: text("explanation").notNull().default(""),
+    clientActionId: uuid("client_action_id"),
     createdAt: createdAt(),
   },
-  (t) => [index("learning_user_date_idx").on(t.userId, t.date)],
+  (t) => [
+    index("learning_user_date_idx").on(t.userId, t.date),
+    uniqueIndex("learning_entries_user_action_unique").on(t.userId, t.clientActionId),
+  ],
 );
 
 /* -------------------------------- challenges --------------------------------- */
@@ -247,6 +334,8 @@ export const focusSessions = ossv2.table(
     mode: text("mode").notNull().default("focus"), // focus | short_break | long_break | custom
     plannedSeconds: integer("planned_seconds").notNull(),
     startedAt: ts("started_at").notNull().defaultNow(),
+    lastResumedAt: ts("last_resumed_at"),
+    pausedAt: ts("paused_at"),
     endedAt: ts("ended_at"),
     actualSeconds: integer("actual_seconds").notNull().default(0),
     status: text("status").notNull().default("running"), // running | completed | ended

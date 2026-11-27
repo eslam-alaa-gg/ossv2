@@ -15,7 +15,7 @@ export type Theme = {
   preset: string; mode: "dark" | "light" | "system"; accent: string;
   glassOpacity: number; blur: number; borderOpacity: number; brightness: number; glow: number; cardOpacity: number;
   background: "solid" | "soft" | "ambient"; noise: boolean; mouseLight: boolean; radius: number;
-  density: "compact" | "comfortable" | "spacious"; font: "inter" | "plex" | "cairo" | "manrope" | "serif" | "system" | "sniglet" | "kavoon" | "merienda" | "shantell";
+  density: "compact" | "comfortable" | "spacious"; font: "inter" | "plex" | "cairo" | "manrope" | "serif" | "system" | "sniglet" | "kavoon" | "merienda" | "shantell" | "custom";
   animation: number; speed: number; reducedMotion: boolean; gradientPreset: string; gradient: GradientCfg;
   targets: Record<TargetKey, boolean>;
 };
@@ -31,7 +31,7 @@ export const PRESETS = [
  {id:"mono",name:"Monochrome",accent:"#a3a3b3",light:false,d:{...dark,g1:"#555566",g2:"#333344"},l:{...light,g1:"#b8bac9",g2:"#9295a8"}},
 ] as const;
 export const DEFAULT_THEME: Theme = {
- preset:"midnight",mode:"dark",accent:"#8b7cff",glassOpacity:7,blur:22,borderOpacity:11,brightness:100,glow:15,cardOpacity:7,
+ preset:"midnight",mode:"dark",accent:"#8b7cff",glassOpacity:7,blur:16,borderOpacity:11,brightness:100,glow:15,cardOpacity:7,
  background:"ambient",noise:true,mouseLight:false,radius:20,density:"comfortable",font:"sniglet",animation:70,speed:100,reducedMotion:false,
  gradientPreset:"aurora",gradient:{kind:"linear",angle:135,stops:[{color:"#6d5dfc",pos:0},{color:"#2f6bff",pos:100}],intensity:35,opacity:18,blend:"soft-light",animated:false,animSpeed:30,animIntensity:25,animDirection:"alternate"},
  targets:{app:false,dashboard:false,cards:false,buttons:false,accent:false,progress:false,charts:false,nav:false,profile:false},
@@ -57,14 +57,19 @@ export function gradientCss(g:GradientCfg,intensity=100) {
 }
 export function chartColors(t:Theme) { return [t.accent, PRESETS.find(p=>p.id===t.preset)?.d.g2??"#2f6bff", "#4dbb9a", "#e6a04a", "#df789b"]; }
 export function themeCss(t:Theme) {
- const p = (t.mode==="light" ? PRESETS.find(x=>x.id===t.preset)?.l : PRESETS.find(x=>x.id===t.preset)?.d) ?? dark;
+ const preset = PRESETS.find(x=>x.id===t.preset) ?? PRESETS[0];
+ const p = t.mode==="light" ? preset.l : preset.d;
  const [ar,ag,ab]=rgb(t.accent);
  const luminance=(.2126*ar+.7152*ag+.0722*ab)/255;
  const onAccent=luminance>.68?"#171824":"#ffffff";
- const font=t.font==="plex"?"'IBM Plex Sans',sans-serif":t.font==="cairo"?"'Cairo',sans-serif":t.font==="manrope"?"'Manrope',sans-serif":t.font==="serif"?"'Source Serif 4',serif":t.font==="system"?"ui-sans-serif,system-ui,sans-serif":t.font==="kavoon"?"'Kavoon',serif":t.font==="merienda"?"'Merienda',cursive":t.font==="shantell"?"'Shantell Sans',cursive":t.font==="inter"?"'Inter',sans-serif":"'Sniglet',cursive";
+ const font=t.font==="plex"?"'IBM Plex Sans',sans-serif":t.font==="cairo"?"'Cairo',sans-serif":t.font==="manrope"?"'Manrope',sans-serif":t.font==="serif"?"'Source Serif 4',serif":t.font==="system"?"ui-sans-serif,system-ui,sans-serif":t.font==="kavoon"?"'Kavoon',serif":t.font==="merienda"?"'Merienda',cursive":t.font==="shantell"?"'Shantell Sans',cursive":t.font==="custom"?"'UkiyoCustom',sans-serif":t.font==="inter"?"'Inter',sans-serif":"'Sniglet',cursive";
  const grad=t.targets.app?gradientCss(t.gradient,t.gradient.intensity):"none";
  const dur=Math.round(22000/Math.max(1,t.gradient.animSpeed));
- return `:root{--accent:${t.accent};--accent-rgb:${ar},${ag},${ab};--on-accent:${onAccent};--bg:${p.bg};--bg2:${p.bg2};--g1:${p.g1};--g2:${p.g2};--fg:${p.fg};--muted:${p.muted};--faint:${p.faint};--surface:${rgba(p.surface===""?"#ffffff":t.accent,t.glassOpacity/100)};--card:${rgba(t.mode==="light"?"#ffffff":"#ffffff",t.cardOpacity/100)};--card-hover:${rgba(t.mode==="light"?"#ffffff":"#ffffff",Math.min(1,t.cardOpacity/100+.04))};--border:${rgba(t.mode==="light"?"#20243a":"#ffffff",t.borderOpacity/100)};--border-strong:${rgba(t.mode==="light"?"#20243a":"#ffffff",Math.min(1,t.borderOpacity/100+.12))};--hl:${rgba(t.mode==="light"?"#ffffff":"#ffffff",.09)};--shadow:0 10px 40px rgba(0,0,0,${t.mode==="light"?.12:.38});--glow-o:${t.glow/100};--input:${rgba(t.mode==="light"?"#e6e8f0":"#000000",.28)};--overlay:rgba(0,0,0,.6);--pop:${t.mode==="light"?"rgba(255,255,255,.96)":"rgba(22,22,28,.92)"};--radius:${t.radius}px;--radius-sm:${Math.round(t.radius*.6)}px;--radius-lg:${Math.round(t.radius*1.35)}px;--pad:${t.density==="compact"?"14px":t.density==="spacious"?"26px":"20px"};--gap:${t.density==="compact"?"12px":t.density==="spacious"?"24px":"18px"};--blur:${t.blur}px;--dur:${Math.round(220*t.speed/100)}ms;--lift:${1.8*t.animation/100}px;--font-sans:${font};--font-arabic:'Playpen Sans Arabic','Cairo',sans-serif;--grad:${grad};--grad-op:${t.gradient.opacity/100};--grad-blend:${t.gradient.blend};--grad-size:200% 200%;--grad-dur:${dur}ms;--grad-dir:${t.gradient.animDirection};}
+ const paletteVars=(palette:Palette,mode:"dark"|"light")=>`--bg:${palette.bg};--bg2:${palette.bg2};--g1:${palette.g1};--g2:${palette.g2};--fg:${palette.fg};--muted:${palette.muted};--faint:${palette.faint};--surface:${rgba(t.accent,t.glassOpacity/100)};--card:${rgba("#ffffff",t.cardOpacity/100)};--card-hover:${rgba("#ffffff",Math.min(1,t.cardOpacity/100+.04))};--border:${rgba(mode==="light"?"#20243a":"#ffffff",t.borderOpacity/100)};--border-strong:${rgba(mode==="light"?"#20243a":"#ffffff",Math.min(1,t.borderOpacity/100+.12))};--hl:${rgba("#ffffff",.09)};--shadow:0 10px 40px rgba(0,0,0,${mode==="light"?.12:.38});--input:${rgba(mode==="light"?"#e6e8f0":"#000000",.28)};--overlay:rgba(0,0,0,.6);--pop:${mode==="light"?"rgba(255,255,255,.96)":"rgba(22,22,28,.92)"};`;
+ const shared=`--accent:${t.accent};--accent-rgb:${ar},${ag},${ab};--on-accent:${onAccent};--radius:${t.radius}px;--radius-sm:${Math.round(t.radius*.6)}px;--radius-lg:${Math.round(t.radius*1.35)}px;--pad:${t.density==="compact"?"14px":t.density==="spacious"?"26px":"20px"};--gap:${t.density==="compact"?"12px":t.density==="spacious"?"24px":"18px"};--blur:${t.blur}px;--dur:${Math.round(220*t.speed/100)}ms;--lift:${1.8*t.animation/100}px;--font-sans:${font};--font-arabic:'Playpen Sans Arabic','Cairo',sans-serif;--grad:${grad};--grad-op:${t.gradient.opacity/100};--grad-blend:${t.gradient.blend};--grad-size:200% 200%;--grad-dur:${dur}ms;--grad-dir:${t.gradient.animDirection};`;
+ const base=`:root{${shared}${paletteVars(p,t.mode==="light"?"light":"dark")}}`;
+ const systemLight=t.mode==="system"?`html[data-mode="light"]{${paletteVars(preset.l,"light")}}`:"";
+ return `${base}${systemLight}
 html[data-mode="light"]{color-scheme:light}html[data-mode="dark"]{color-scheme:dark}
 `;
 }

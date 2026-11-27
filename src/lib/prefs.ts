@@ -34,7 +34,7 @@ export const themeSchema = z.object({
   mouseLight: b,
   radius: z.number().min(6).max(32),
   density: z.enum(["compact", "comfortable", "spacious"]),
-  font: z.enum(["inter", "plex", "cairo", "manrope", "serif", "system", "sniglet", "kavoon", "merienda", "shantell"]),
+  font: z.enum(["inter", "plex", "cairo", "manrope", "serif", "system", "sniglet", "kavoon", "merienda", "shantell", "custom"]),
   animation: pct,
   speed: z.number().min(50).max(200),
   reducedMotion: b,
@@ -46,11 +46,11 @@ export const themeSchema = z.object({
 export type Prefs = {
   theme: Theme;
   customThemes: { id: string; name: string; theme: Theme }[];
-  dashboard: { widgets: Record<string, boolean>; order: string[]; sizes: Record<string, "compact" | "standard" | "wide"> };
+  dashboard: { widgets: Record<string, boolean>; order: string[]; sizes: Record<string, "compact" | "standard" | "wide">; musicSource: "spotify" | "detection" | "youtube" };
   notifications: { inApp: boolean; push: boolean; email: boolean; quietStart: string; quietEnd: string; challengeTime: string; habitTime: string };
   spotify: { ambience: boolean; autoRefresh: boolean };
   waterGoal: number;
-  focus: { sound: string; volume: number; preset: number };
+  focus: { sound: string; volume: number; preset: number; background: "none" | "forest" | "ocean" | "rain" | "sunset" | "cosmos" | "photo-mountains" | "photo-lake" | "photo-coast" | "photo-sunset" | "photo-forest"; timerStyle: "ring" | "digital" | "minimal" | "bar" | "orbit"; overlay: number };
   onboarding: { goals: string[]; habits: string[] };
 };
 
@@ -59,22 +59,22 @@ export const WIDGETS = ["progress", "streak", "focus", "challenge", "habits", "r
 export const DEFAULT_PREFS: Prefs = {
   theme: DEFAULT_THEME,
   customThemes: [],
-  dashboard: { widgets: Object.fromEntries(WIDGETS.map((w) => [w, true])), order: [...WIDGETS], sizes: Object.fromEntries(WIDGETS.map((w) => [w, "standard" as const])) },
+  dashboard: { widgets: Object.fromEntries(WIDGETS.map((w) => [w, true])), order: [...WIDGETS], sizes: Object.fromEntries(WIDGETS.map((w) => [w, "standard" as const])), musicSource: "spotify" },
   notifications: { inApp: true, push: false, email: false, quietStart: "22:00", quietEnd: "07:00", challengeTime: "09:00", habitTime: "18:00" },
   spotify: { ambience: true, autoRefresh: true },
   waterGoal: 2000,
-  focus: { sound: "none", volume: 0.5, preset: 25 },
+  focus: { sound: "none", volume: 0.5, preset: 25, background: "none", timerStyle: "ring", overlay: 45 },
   onboarding: { goals: [], habits: [] },
 };
 
 export const prefSchemas: { [K in keyof Prefs]: z.ZodType<Prefs[K]> } = {
   theme: themeSchema,
   customThemes: z.array(z.object({ id: z.string().max(60), name: z.string().trim().min(1).max(40), theme: themeSchema })).max(20),
-  dashboard: z.object({ widgets: z.record(z.string(), z.boolean()), order: z.array(z.string().max(40)).max(30).optional().default([...WIDGETS]), sizes: z.record(z.string(), z.enum(["compact", "standard", "wide"])).optional().default({}) }),
+  dashboard: z.object({ widgets: z.record(z.string(), z.boolean()), order: z.array(z.string().max(40)).max(30).optional().default([...WIDGETS]), sizes: z.record(z.string(), z.enum(["compact", "standard", "wide"])).optional().default({}), musicSource: z.enum(["spotify", "detection", "youtube"]).optional().default("spotify") }),
   notifications: z.object({ inApp: b, push: b, email: b, quietStart: hhmm, quietEnd: hhmm, challengeTime: hhmm, habitTime: hhmm }),
   spotify: z.object({ ambience: b, autoRefresh: b }),
   waterGoal: z.number().int().min(500).max(10000),
-  focus: z.object({ sound: z.string().max(20), volume: z.number().min(0).max(1), preset: z.number().int().min(1).max(240) }),
+  focus: z.object({ sound: z.string().max(20), volume: z.number().min(0).max(1), preset: z.number().int().min(1).max(240), background: z.enum(["none", "forest", "ocean", "rain", "sunset", "cosmos", "photo-mountains", "photo-lake", "photo-coast", "photo-sunset", "photo-forest"]).default("none"), timerStyle: z.enum(["ring", "digital", "minimal", "bar", "orbit"]).default("ring"), overlay: z.number().min(0).max(80).default(45) }),
   onboarding: z.object({ goals: z.array(z.string().max(60)).max(20), habits: z.array(z.string().max(60)).max(20) }),
 };
 

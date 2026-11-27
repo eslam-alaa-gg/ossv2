@@ -1,0 +1,127 @@
+import Dexie, { type Table } from "dexie";
+import { api, ApiErr } from "@/lib/client";
+
+type Snapshot = { userId: string; key: string; value: unknown; updatedAt: number };
+type PendingAction = { id?: number; userId: string; path: string; method: "POST" | "PATCH" | "DELETE"; body?: Record<string, unknown>; createdAt: number };
+
+class UkiyoOfflineDatabase extends Dexie {
+  snapshots!: Table<Snapshot, [string, string]>;
+  pending!: Table<PendingAction, number>;
+
+  constructor() {
+    super("ukiyo-offline-v1");
+    this.version(1).stores({
+      snapshots: "[userId+key], userId, updatedAt",
+      pending: "++id, userId, createdAt",
+    });
+  }
+}
+
+let instance: UkiyoOfflineDatabase | null = null;
+const activeSyncs = new Map<string, Promise<boolean>>();
+
+function database() {
+  if (typeof window === "undefined" || typeof indexedDB === "undefined") return null;
+  return instance ??= new UkiyoOfflineDatabase();
+}
+
+export async function saveOfflineSnapshot(userId: string, key: string, value: unknown) {
+  const db = database();
+  if (!db || !userId) return;
+  try { await db.snapshots.put({ userId, key, value, updatedAt: Date.now() }); } catch { /* Private cache is best-effort. */ }
+}
+
+export async function readOfflineSnapshot<T>(userId: string, key: string): Promise<T | null> {
+  const db = database();
+  if (!db || !userId) return null;
+  try {
+    const row = await db.snapshots.get([userId, key]);
+    return row ? row.value as T : null;
+  } catch { return null; }
+}
+
+export async function queueOfflineAction(userId: string, path: string, method: PendingAction["method"], body?: Record<string, unknown>) {
+  const db = database();
+  if (!db || !userId) return false;
+  try {
+    const queuedBody = method === "POST" && path.startsWith("/api/trackers/")
+      ? { ...body, clientActionId: typeof body?.clientActionId === "string" ? body.clientActionId : crypto.randomUUID() }
+      : body;
+    await db.pending.add({ userId, path, method, body: queuedBody, createdAt: Date.now() });
+    return true;
+  } catch { return false; }
+}
+
+export async function cancelQueuedAction(userId: string, path: string, bodyMatch: Record<string, unknown>) {
+  const db = database();
+  if (!db || !userId) return;
+  try {
+    const actions = await db.pending.where("userId").equals(userId).toArray();
+    await Promise.all(actions.filter((action) => action.path === path && action.method === "POST" && JSON.stringify(action.body) === JSON.stringify(bodyMatch))
+      .map((action) => action.id === undefined ? Promise.resolve() : db.pending.delete(action.id)));
+  } catch { /* Best-effort cancellation of a local-only item. */ }
+}
+
+async function runOfflineSync(db: UkiyoOfflineDatabase, userId: string): Promise<boolean> {
+  if (!navigator.onLine) return false;
+
+  // Re-read after each batch so actions queued during a sync are not stranded.
+  while (navigator.onLine) {
+    const actions = await db.pending.where("userId").equals(userId).sortBy("createdAt");
+    if (!actions.length) return true;
+
+    for (const action of actions) {
+      if (!navigator.onLine || action.id === undefined) return false;
+      try {
+        await api(action.path, { method: action.method, ...(action.body ? { body: action.body } : {}) });
+        await db.pending.delete(action.id);
+      } catch (error) {
+        // A queued DELETE is already fulfilled if the target disappeared before a retry.
+        // This covers a lost response after the server committed the deletion.
+        if (action.method === "DELETE" && error instanceof ApiErr && error.status === 404) {
+          await db.pending.delete(action.id);
+          continue;
+        }
+        return false;
+      }
+    }
+  }
+  return false;
+}
+
+export function syncOfflineQueue(userId: string): Promise<boolean> {
+  const db = database();
+  if (!db || !userId || !navigator.onLine) return Promise.resolve(false);
+
+  // The shell can request a sync on mount and on the browser's online event.
+  // Share one in-flight run per account to prevent duplicate POSTs.
+  const active = activeSyncs.get(userId);
+  if (active) return active;
+
+  const sync = runOfflineSync(db, userId).finally(() => {
+    if (activeSyncs.get(userId) === sync) activeSyncs.delete(userId);
+  });
+  activeSyncs.set(userId, sync);
+  return sync;
+}
+
+export async function isolateOfflineUser(userId: string | null) {
+  const db = database();
+  if (!db) return;
+  try {
+    await db.transaction("rw", db.snapshots, db.pending, async () => {
+      if (userId) {
+        await db.snapshots.where("userId").notEqual(userId).delete();
+      } else {
+        await db.snapshots.clear();
+        await db.pending.clear();
+      }
+    });
+  } catch { /* Offline data cleanup must not block sign-in. */ }
+}
+
+export async function clearOfflineData() {
+  const db = database();
+  if (!db) return;
+  try { await db.snapshots.clear(); } catch { /* Pending sync actions remain partitioned by account. */ }
+}
