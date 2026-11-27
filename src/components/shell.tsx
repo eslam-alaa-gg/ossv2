@@ -254,7 +254,7 @@ function CommandMenu({ open, onClose }: { open: boolean; onClose: () => void }) 
     <Modal open={open} onClose={onClose} title={t("Command menu")} wide>
       <div className="relative">
         <Search className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-faint" aria-hidden />
-        <input className="input ps-10" placeholder={t("Search or jump to…")} aria-label={t("Search")} aria-controls="command-results" aria-expanded={all.length > 0} aria-autocomplete="list" value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => {
+        <input className="input ps-10" placeholder={t("Search or jump to…")} aria-label={t("Search")} role="combobox" aria-controls="command-results" aria-expanded={!!(all.length || searchState !== "idle")} aria-autocomplete="list" aria-activedescendant={all.length ? `command-option-${sel}` : undefined} value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => {
           if (e.key === "ArrowDown" && all.length) { e.preventDefault(); setSel((s) => Math.min(s + 1, all.length - 1)); }
           if (e.key === "ArrowUp" && all.length) { e.preventDefault(); setSel((s) => Math.max(s - 1, 0)); }
           if (e.key === "Enter" && all[sel]) { e.preventDefault(); go(all[sel].href); }
@@ -267,7 +267,7 @@ function CommandMenu({ open, onClose }: { open: boolean; onClose: () => void }) 
       <ul id="command-results" className="mt-2 max-h-[min(55vh,420px)] space-y-0.5 overflow-y-auto" role="listbox" aria-label={t("Search results")}>
         {all.map((a, i) => (
           <li key={a.kind + a.href + a.title}>
-            <button role="option" aria-selected={i === sel} onMouseEnter={() => setSel(i)} onClick={() => go(a.href)} className={cn("flex min-h-10 w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-start text-sm transition-colors", i === sel ? "bg-card text-fg" : "text-muted hover:bg-card hover:text-fg")}>
+            <button id={`command-option-${i}`} role="option" aria-selected={i === sel} onMouseEnter={() => setSel(i)} onClick={() => go(a.href)} className={cn("flex min-h-10 w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-start text-sm transition-colors", i === sel ? "bg-card text-fg" : "text-muted hover:bg-card hover:text-fg")}>
               <span className="min-w-0 truncate">{a.kind === "Action" || a.kind === "Go to" || a.kind === "Account" ? t(a.title) : a.title}</span>
               <span className="chip shrink-0">{t(a.kind)}</span>
             </button>
@@ -504,7 +504,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <button onClick={() => setCmd(true)} className="header-icon-btn glass-btn btn-ghost h-9 shrink-0 gap-2 px-2.5 sm:px-3" aria-label={t("Open command menu")} title={t("Search")}>
             <Search className="size-[18px]" />
             <span className="hidden text-xs font-medium sm:inline">{t("Search")}</span>
-            <kbd className="kbd hidden lg:inline">⌘ K</kbd>
+            <kbd className="kbd hidden lg:inline">Ctrl / ⌘ K</kbd>
           </button>
           <HabitQuickPanel />
           <div className="ms-auto flex min-w-0 items-center gap-1.5 sm:gap-2">
