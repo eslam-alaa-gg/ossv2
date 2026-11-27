@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Music2, Search, SkipBack, SkipForward, ExternalLink } from "lucide-react";
 import { useApp } from "@/components/providers";
 import { api } from "@/lib/client";
@@ -15,7 +15,23 @@ export function YouTubeMusicPlayer({ compact = false }: { compact?: boolean }) {
   const [selected, setSelected] = useState<Video | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const search = async (event: React.FormEvent) => {
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("ukiyo.youtube.player");
+      if (saved) {
+        const value = JSON.parse(saved) as { selected?: Video | null; results?: Video[] };
+        if (Array.isArray(value.results)) setResults(value.results.filter((item) => item && typeof item.id === "string" && typeof item.title === "string"));
+        if (value.selected && typeof value.selected.id === "string" && typeof value.selected.title === "string") setSelected(value.selected);
+      }
+    } catch { /* Ignore unavailable or invalid local playback state. */ }
+    setHydrated(true);
+  }, []);
+  useEffect(() => {
+    if (!hydrated) return;
+    try { localStorage.setItem("ukiyo.youtube.player", JSON.stringify({ selected, results })); } catch { /* Playback still works without persistence. */ }
+  }, [hydrated, selected, results]);
+  const search = async (event: FormEvent) => {
     event.preventDefault();
     const q = query.trim();
     if (q.length < 2) return;
