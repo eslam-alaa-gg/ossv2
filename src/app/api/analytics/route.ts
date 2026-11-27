@@ -1,6 +1,6 @@
 import { and, eq, gte, inArray, lte } from "drizzle-orm";
 import { db } from "@/db";
-import { focusSessions, goalMilestones, goals, habitLogs, habits, learningEntries, tasks } from "@/db/schema";
+import { focusSessions, goalMilestones, goals, habitLogs, habits, learningEntries, tasks, users } from "@/db/schema";
 import { addDays, diffDays, dow, todayIn, weekStart } from "@/lib/dates";
 import { handle } from "@/lib/server/api";
 import { requireUser } from "@/lib/server/auth";
@@ -18,6 +18,10 @@ export const GET = handle(async (req) => {
   const goal = a.user.dailyGoal;
   const yearAct = await activityByDay(a.id, a.tz, `${year}-01-01`, `${year}-12-31`, goal);
   const recent = await activityByDay(a.id, a.tz, addDays(today, -400), today, goal);
+  // Longest streak is account-wide, not limited to the 400-day trend window.
+  const [account] = await db.select({ createdAt: users.createdAt }).from(users).where(eq(users.id, a.id)).limit(1);
+  const accountStart = account?.createdAt ? todayIn(a.tz, account.createdAt) : addDays(today, -400);
+  const allTime = await activityByDay(a.id, a.tz, accountStart, today, goal);
   const [focusRows, learningYearRows, learningRecentRows] = await Promise.all([
     db.select({
       taskId: focusSessions.taskId,
@@ -60,7 +64,8 @@ export const GET = handle(async (req) => {
   const learningByDay = new Map<string, number>();
   for (const entry of learningRecentRows) learningByDay.set(String(entry.date), (learningByDay.get(String(entry.date)) ?? 0) + 1);
   const get = (d: string) => recent[d] ?? emptyDay(d);
-  const activeAll = Object.values(recent).filter((d) => d.score > 0).map((d) => d.date);
+  const activeRecent = Object.values(recent).filter((d) => d.score > 0).map((d) => d.date);
+  const activeAll = Object.values(allTime).filter((d) => d.score > 0).map((d) => d.date);
   const streak = computeStreaks(activeAll, today);
   const yr = Object.values(yearAct);
   const sum = (k: "tasks" | "habits" | "challenges" | "focus" | "focusMinutes" | "score") => yr.reduce((s, d) => s + d[k], 0);
@@ -103,7 +108,7 @@ export const GET = handle(async (req) => {
   if (!firstDay || diffDays(today, firstDay) < 6 || activeAll.length < 5) insights.push("Not enough activity yet for trends — insights appear once you have at least 5 active days across a week.");
   else {
     const byDow = Array.from({ length: 7 }, () => ({ s: 0, n: 0 }));
-    for (const d of activeAll) { const k = dow(d); byDow[k].s += get(d).score; byDow[k].n++; }
+    for (const d of activeAll) { const k = dow(d); byDow[k].s += allTime[d]?.score ?? 0; byDow[k].n++; }
     const bestDow = byDow.map((v, i) => ({ i, avg: v.n ? v.s / v.n : 0, n: v.n })).filter((v) => v.n >= 2).sort((p, q) => q.avg - p.avg)[0];
     if (bestDow) insights.push(`Your highest average activity is on ${DAYS[bestDow.i]}s (${bestDow.avg.toFixed(1)} points, from ${bestDow.n} active days).`);
     const last = weeks[11].score, prevW = weeks[10].score;
@@ -119,7 +124,7 @@ export const GET = handle(async (req) => {
     scoring: SCORE,
     heatmap: yr.map((d) => ({ date: d.date, score: d.score, level: d.level, tasks: d.tasks, habits: d.habits, challenges: d.challenges, focus: d.focus, focusMinutes: d.focusMinutes, milestones: d.milestones })),
     annual: { activeDays: yr.filter((d) => d.score > 0).length, score: sum("score"), tasks: sum("tasks"), habits: sum("habits"), challenges: sum("challenges"), focusMinutes: sum("focusMinutes"), learningEntries: learningYearRows.length, bestDay: best && best.score > 0 ? { date: best.date, score: best.score } : null, goalDays: yr.filter((d) => d.level === 4).length },
-    streak: { ...streak, weekly: weeklyStreak(activeAll, today) },
+    streak: { ...streak, weekly: weeklyStreak(activeRecent, today) },
     today30: { daily: get(today).score, weekly: weeks[11].score, monthly: trend.reduce((s, d) => s + d.score, 0) },
     trend,
     weeks,
