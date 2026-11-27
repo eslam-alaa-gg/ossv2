@@ -1,6 +1,6 @@
 import "server-only";
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { headers } from "next/headers";
 import { db } from "@/db";
 import { spotifyConnections } from "@/db/schema";
@@ -109,28 +109,66 @@ export async function saveConnection(userId: string, tokens: SpotifyTokenRespons
 }
 
 export async function getConnection(userId: string) {
-  const [row] = await db.select().from(spotifyConnections).where(eq(spotifyConnections.userId, userId)).limit(1);
-  if (!row) return null;
+  const [initial] = await db.select().from(spotifyConnections).where(eq(spotifyConnections.userId, userId)).limit(1);
+  if (!initial) return null;
+
   try {
-    let accessToken = decrypt(row.accessTokenEnc);
-    const refreshToken = decrypt(row.refreshTokenEnc);
-    if (row.expiresAt.getTime() <= Date.now() + 60_000) {
-      const refreshed = await tokenRequest({ grant_type: "refresh_token", refresh_token: refreshToken });
+    const initialAccessToken = decrypt(initial.accessTokenEnc);
+    const initialRefreshToken = decrypt(initial.refreshTokenEnc);
+    if (initial.expiresAt.getTime() > Date.now() + 60_000) {
+      return { ...initial, accessToken: initialAccessToken, refreshToken: initialRefreshToken };
+    }
+
+    // Refresh-token rotation must be serialized across server instances. Re-read the row
+    // only after acquiring the per-user transaction lock so a waiting request uses the
+    // newly refreshed token instead of replaying a stale refresh token.
+    return await db.transaction(async (tx) => {
+      await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`spotify-refresh:${userId}`}))`);
+      const [current] = await tx.select().from(spotifyConnections)
+        .where(eq(spotifyConnections.userId, userId)).limit(1).for("update");
+      if (!current) return null;
+
+      const accessToken = decrypt(current.accessTokenEnc);
+      const refreshToken = decrypt(current.refreshTokenEnc);
+      if (current.expiresAt.getTime() > Date.now() + 60_000) {
+        return { ...current, accessToken, refreshToken };
+      }
+
+      let refreshed: TokenResult;
+      try {
+        refreshed = await tokenRequest({ grant_type: "refresh_token", refresh_token: refreshToken });
+      } catch {
+        throw new ApiError(502, "Spotify token refresh is temporarily unavailable. Please retry.");
+      }
       if (!refreshed.ok) {
         if (refreshed.status === 400 || refreshed.status === 401) {
-          await db.delete(spotifyConnections).where(eq(spotifyConnections.userId, userId));
+          await tx.delete(spotifyConnections).where(eq(spotifyConnections.userId, userId));
           return null;
         }
         throw new ApiError(502, "Spotify token refresh failed. Please try again.");
       }
-      await saveConnection(userId, { ...refreshed.data, refresh_token: refreshed.data.refresh_token || refreshToken });
-      accessToken = refreshed.data.access_token;
-    }
-    return {
-      ...row,
-      accessToken,
-      refreshToken,
-    };
+      if (!refreshed.data.access_token || !Number.isFinite(refreshed.data.expires_in)) {
+        throw new ApiError(502, "Spotify returned an invalid refreshed token. Please retry.");
+      }
+
+      const nextRefreshToken = refreshed.data.refresh_token || refreshToken;
+      const expiresAt = new Date(Date.now() + Math.max(60, refreshed.data.expires_in) * 1000);
+      await tx.update(spotifyConnections).set({
+        accessTokenEnc: encrypt(refreshed.data.access_token),
+        refreshTokenEnc: encrypt(nextRefreshToken),
+        expiresAt,
+        scope: refreshed.data.scope || current.scope,
+        updatedAt: new Date(),
+      }).where(eq(spotifyConnections.userId, userId));
+
+      return {
+        ...current,
+        accessToken: refreshed.data.access_token,
+        refreshToken: nextRefreshToken,
+        expiresAt,
+        scope: refreshed.data.scope || current.scope,
+      };
+    });
   } catch (error) {
     if (error instanceof ApiError) throw error;
     console.error("[spotify] stored token could not be decrypted");
