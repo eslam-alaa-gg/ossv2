@@ -100,6 +100,7 @@ export default function FocusPage() {
   const endAt = useRef(0);
   const amb = useRef<AmbientHandle | null>(null);
   const finishing = useRef(false);
+  const starting = useRef(false);
   const restored = useRef(false);
 
   useEffect(() => {
@@ -271,9 +272,21 @@ export default function FocusPage() {
   }
 
   async function start() {
-    const r = await run(() => api<{ session: Session }>("/api/focus", { body: { mode, minutes, taskId: taskId || null } }));
-    if (!r) return;
-    finishing.current = false; setSid(r.session.id); setPlanned(minutes * 60); setRemaining(minutes * 60); endAt.current = Date.now() + minutes * 60000; setPhase("running");
+    // Guard click + keyboard shortcut races before the request reaches the API.
+    if (starting.current || phase !== "idle") return;
+    starting.current = true;
+    try {
+      const r = await run(() => api<{ session: Session }>("/api/focus", { body: { mode, minutes, taskId: taskId || null } }));
+      if (!r) return;
+      finishing.current = false;
+      setSid(r.session.id);
+      setPlanned(minutes * 60);
+      setRemaining(minutes * 60);
+      endAt.current = Date.now() + minutes * 60000;
+      setPhase("running");
+    } finally {
+      starting.current = false;
+    }
   }
   const pause = async () => {
     if (!sid || phase !== "running") return;
