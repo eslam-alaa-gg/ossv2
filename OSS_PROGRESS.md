@@ -539,7 +539,7 @@ The Spotify provider remains mounted at the application shell level. Focus now r
 - [x] Android and Windows native clients require HTTPS before sending bearer tokens.
 - [x] Focus Music panel now includes Spotify now-playing alongside YouTube Music.
 - [x] E2E assertions added for private device-token responses, invalid bearer rejection and expired-connection classification.
-- [x] Final CI on the Phase 06 head: [run #45990863339](https://github.com/eslam-alaa-gg/ossv2/actions/runs/45990863339) completed successfully for commit `b97f6f2f4b2460b4ced9c0c603de7dc80984350e`.
+- [x] Final CI on the final Phase 06 implementation/test commit: [run #45990863339](https://github.com/eslam-alaa-gg/ossv2/actions/runs/45990863339) completed successfully for commit `b97f6f2f4b2460b4ced9c0c603de7dc80984350e`.
 - [ ] Android Gradle build/APK install and real notification-listener permission test: not run in this remote GitHub-only session. The repository CI does not build the native Android project.
 - [ ] Windows .NET build and real Spotify media-session test: not run. The repository CI does not build the native Windows project.
 - [ ] Live Spotify OAuth authorization, refresh against Spotify, Premium playback, transfer, unavailable-device and rate-limit scenarios: not run; no real authorized Spotify account/device was available.
