@@ -483,7 +483,21 @@ await test("Music Detection pairing, now-playing updates and device revocation a
   assert.ok(paired.json.device?.id && paired.json.token);
   const deviceId = paired.json.device.id;
   const token = paired.json.token;
+  assert.equal(typeof token, "string");
+  assert.ok(token.length >= 32);
+  const ownerDevices = await A.req("GET", "/api/music-bridge/devices");
+  assert.equal(ownerDevices.status, 200);
+  assert.equal(ownerDevices.json.devices.length, 1);
+  assert.equal("token" in ownerDevices.json.devices[0], false);
+  assert.equal("tokenHash" in ownerDevices.json.devices[0], false);
   assert.equal((await B.req("GET", "/api/music-bridge/devices")).json.devices.length, 0);
+
+  const invalidToken = await fetch(BASE + "/api/music-bridge/push", {
+    method: "POST",
+    headers: { Authorization: "Bearer invalid-device-token", "Content-Type": "application/json" },
+    body: JSON.stringify({ title: "Should be rejected" }),
+  });
+  assert.equal(invalidToken.status, 401);
 
   const pushed = await fetch(BASE + "/api/music-bridge/push", {
     method: "POST",
