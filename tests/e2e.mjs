@@ -1,4 +1,4 @@
-// End-to-end API tests: auth, cross-user isolation (IDOR), reward validation, demo mode, profile.
+// End-to-end API tests: auth, cross-user isolation (IDOR), reward validation, profile.
 // Usage: BASE_URL=http://127.0.0.1:3000 node tests/e2e.mjs
 import assert from "node:assert/strict";
 
@@ -34,7 +34,7 @@ async function test(name, fn) {
 }
 
 const rnd = () => Math.random().toString(36).slice(2, 10);
-const A = new Client(), B = new Client(), anon = new Client(), D = new Client();
+const A = new Client(), B = new Client(), anon = new Client();
 const emailA = `a_${rnd()}@test.local`, emailB = `b_${rnd()}@test.local`, pw = "correct-horse-battery";
 let taskA, noteA, goalA, habitA, msA;
 
@@ -68,9 +68,13 @@ await test("protected pages redirect to /login", async () => {
   assert.ok([307, 308].includes(r.status), `status ${r.status}`);
   assert.match(r.headers.get("location") ?? "", /\/login/);
 });
-await test("login page renders with demo button", async () => {
+await test("login page renders standard email sign-in without demo mode", async () => {
   const r = await anon.req("GET", "/login");
-  assert.equal(r.status, 200); assert.match(r.text, /Try Demo/); assert.match(r.text, /or explore without an account/);
+  assert.equal(r.status, 200);
+  assert.match(r.text, /Welcome back/);
+  assert.match(r.text, /you@example\.com/);
+  assert.match(r.text, /Sign In/);
+  assert.doesNotMatch(r.text, /Try Demo|explore without an account/i);
 });
 
 await test("A creates task, note, goal, milestone, habit", async () => {
@@ -146,7 +150,8 @@ await test("habit completion rewards once per day; heatmap counts verified recor
   const today = an.heatmap.find((d) => d.date === an.today);
   assert.ok(today.tasks >= 1 && today.habits >= 1 && today.challenges >= 1);
   const bn = (await B.req("GET", "/api/analytics")).json;
-  assert.equal(bn.heatmap.length, 0, "B (no completions) has an empty heatmap");
+  assert.ok(bn.heatmap.length > 0, "heatmap contains the calendar days for the selected year");
+  assert.ok(bn.heatmap.every((d) => d.score === 0 && d.tasks === 0 && d.habits === 0 && d.challenges === 0 && d.focus === 0 && d.focusMinutes === 0 && d.milestones === 0), "B has no activity in any heatmap day");
 });
 await test("opening the app does not create activity (B stays at zero)", async () => {
   await B.req("GET", "/api/dashboard");
@@ -197,49 +202,6 @@ await test("Spotify routes: auth required, status reflects config", async () => 
   assert.equal((await A.req("GET", "/api/spotify/art?url=https://evil.example/x.png")).status, 400);
   const cb = await A.req("GET", "/api/spotify/callback?code=x&state=y", undefined, true);
   assert.match(cb.headers.get("location") ?? "", /error=invalid_state/);
-});
-
-/* ---------------- demo ---------------- */
-await test("demo login creates authenticated, seeded, isolated session", async () => {
-  const r = await D.req("POST", "/api/auth/demo", { timezone: "UTC" });
-  assert.equal(r.status, 200, r.text); assert.ok(D.jar.lifeos_session);
-  const me = (await D.req("GET", "/api/me")).json.user;
-  assert.equal(me.isDemo, true); assert.ok(me.email.endsWith("@demo.lifeos.invalid"));
-  assert.ok(!JSON.stringify(me).includes("passwordHash"));
-  const d = (await D.req("GET", "/api/dashboard")).json;
-  assert.ok(d.xp > 100 && d.streak.current >= 1 && d.upcoming.length > 0 && d.recent.length > 0);
-  assert.ok((await D.req("GET", "/api/tasks")).json.tasks.length > 20);
-  assert.ok((await D.req("GET", "/api/goals")).json.goals.length >= 3);
-  assert.ok((await D.req("GET", "/api/notes")).json.notes.length >= 5);
-  assert.ok((await D.req("GET", "/api/focus")).json.sessions.length >= 10);
-  const tasks = (await D.req("GET", "/api/tasks")).json.tasks.map((t) => t.title).join();
-  assert.ok(!tasks.includes("Secret task A"));
-});
-await test("demo restrictions enforced server-side", async () => {
-  for (const [m, p, b] of [["POST", "/api/me/account", { current: "x", next: "12345678" }], ["DELETE", "/api/me/account", { password: "x" }], ["POST", "/api/push", { test: true }], ["POST", "/api/auth/resend", {}], ["POST", "/api/spotify/control", { action: "play" }]]) {
-    const r = await D.req(m, p, b);
-    assert.equal(r.status, 403, `${m} ${p} -> ${r.status}`); assert.equal(r.json.code, "demo");
-  }
-  assert.equal((await D.req("GET", "/api/spotify/connect", undefined, true)).headers.get("location")?.includes("error=demo"), true);
-});
-await test("demo user cannot log in with password; no shared state between demo visitors", async () => {
-  const me = (await D.req("GET", "/api/me")).json.user;
-  assert.equal((await anon.req("POST", "/api/auth/login", { email: me.email, password: "anything" })).status, 401);
-  const D2 = new Client();
-  assert.equal((await D2.req("POST", "/api/auth/demo", { timezone: "UTC" })).status, 200);
-  const me2 = (await D2.req("GET", "/api/me")).json.user;
-  assert.notEqual(me.id, me2.id);
-  await D.req("POST", "/api/tasks", { title: "only-in-demo-1" });
-  assert.equal((await D2.req("GET", "/api/tasks")).json.tasks.some((t) => t.title === "only-in-demo-1"), false);
-  const reuse = await D.req("POST", "/api/auth/demo", { timezone: "UTC" });
-  assert.equal(reuse.json.reused, true, "same visitor reuses their session (no duplicate accounts)");
-  await D2.req("POST", "/api/auth/logout", {});
-});
-await test("exit demo destroys session and the sandbox user", async () => {
-  const me = (await D.req("GET", "/api/me")).json.user;
-  assert.equal((await D.req("POST", "/api/auth/logout", {})).status, 200);
-  assert.equal((await D.req("GET", "/api/me")).status, 401);
-  void me;
 });
 
 /* ---------------- logout / persistence / regular auth still works ---------------- */
