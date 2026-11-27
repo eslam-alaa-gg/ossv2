@@ -332,13 +332,13 @@ function HabitQuickPanel() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    try {
-      const [h, tr] = await Promise.all([
-        api<{ habits: QuickHabit[] }>("/api/habits"),
-        api<QuickTrackers>("/api/trackers"),
-      ]);
-      setHabits(h.habits);
-      setTracker(tr);
+    setMessage("");
+    const [habitsResult, trackersResult] = await Promise.allSettled([
+      api<{ habits: QuickHabit[] }>("/api/habits"),
+      api<QuickTrackers>("/api/trackers"),
+    ]);
+    if (habitsResult.status === "fulfilled") {
+      setHabits(Array.isArray(habitsResult.value.habits) ? habitsResult.value.habits : []);
       try {
         const saved = localStorage.getItem("ukiyo.habit-quick.hidden");
         if (saved === null) {
@@ -346,16 +346,21 @@ function HabitQuickPanel() {
           localStorage.setItem("ukiyo.habit-quick.hidden", "[]");
         } else {
           const parsed: unknown = JSON.parse(saved);
-          setHiddenIds(Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === "string" && h.habits.some((item) => item.id === id)) : []);
+          setHiddenIds(Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === "string" && habitsResult.value.habits.some((item) => item.id === id)) : []);
         }
       } catch { setHiddenIds([]); }
-      setMessage("");
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : t("Could not load habit progress."));
-    } finally {
-      setLoading(false);
+    } else {
+      setMessage(habitsResult.reason instanceof Error ? `Habits: ${habitsResult.reason.message}` : "Habits could not be loaded.");
     }
-  }, [t]);
+    if (trackersResult.status === "fulfilled") {
+      setTracker(trackersResult.value);
+    } else {
+      setTracker(null);
+      const detail = trackersResult.reason instanceof Error ? trackersResult.reason.message : "Tracker data could not be loaded.";
+      setMessage((current) => current ? `${current} · Trackers: ${detail}` : `Trackers: ${detail}`);
+    }
+    setLoading(false);
+  }, []);
 
   useEffect(() => { void load(); }, [load]);
   useEffect(() => {
@@ -443,8 +448,9 @@ function HabitQuickPanel() {
               </div>
             </div>
             {customizing && <div className="mb-3 grid grid-cols-2 gap-2 rounded-xl border border-line bg-card p-2">{habits.map((habit) => <label key={habit.id} className="flex min-w-0 items-center gap-2 text-xs"><input type="checkbox" checked={!hiddenIds.includes(habit.id)} onChange={() => toggleVisible(habit.id)} /><span className="truncate">{t(habit.name)}</span></label>)}</div>}
-            {loading && !tracker ? <p className="py-5 text-center text-xs text-muted">{t("Loading…")}</p> : message ? <p role="alert" className="text-xs text-muted">{message}</p> : (
+            {loading && !tracker && !habits.length ? <p className="py-5 text-center text-xs text-muted">{t("Loading…")}</p> : !habits.length && !tracker && message ? <div className="space-y-2 py-3"><p role="alert" className="text-xs text-muted">{message}</p><button type="button" onClick={() => void load()} className="w-full rounded-lg bg-card px-3 py-2 text-xs text-accent">{t("Try again")}</button></div> : (
               <>
+                {message && <p role="status" className="mb-2 text-[10px] text-amber-400">{message}</p>}
                 <div className="grid max-h-[min(55vh,320px)] grid-cols-3 gap-1 overflow-y-auto">
                   {tracker && waterVisible && <HabitProgressButton label={t("Drink Water")} icon="water" amount={waterCups} target={Math.max(1, waterGoal)} disabled={busy || waterCups >= waterGoal} onClick={() => void addWater()} />}
                   {readingVisible && tracker && <HabitProgressButton label={t("Read Books")} icon="reading" amount={tracker.reading.todayPages} target={reading?.target ?? tracker.reading.target} onClick={() => setActiveEntry((value) => value === "reading" ? null : "reading")} />}
@@ -501,11 +507,11 @@ export function AppShell({ children }: { children: ReactNode }) {
       <Sidebar collapsed={collapsed} setCollapsed={toggle} />
       <div className={cn("min-h-dvh transition-[padding] duration-300", collapsed ? "lg:ps-[92px]" : "lg:ps-[272px]")}>
         <header className="app-topbar glass-panel sticky top-2 z-30 mx-auto mt-2 flex h-[54px] w-[calc(100%-1.25rem)] max-w-[1120px] items-center gap-2 px-3 py-1.5 sm:gap-3 sm:px-4 lg:px-5">
-          <button onClick={() => setCmd(true)} className="header-icon-btn glass-btn btn-ghost h-9 shrink-0 gap-2 px-2.5 sm:px-3" aria-label={t("Open command menu")} title={t("Search")}>
+          {path !== "/focus" && (<button onClick={() => setCmd(true)} className="header-icon-btn glass-btn btn-ghost h-9 shrink-0 gap-2 px-2.5 sm:px-3" aria-label={t("Open command menu")} title={t("Search")}>
             <Search className="size-[18px]" />
             <span className="hidden text-xs font-medium sm:inline">{t("Search")}</span>
             <kbd className="kbd hidden lg:inline">Ctrl / ⌘ K</kbd>
-          </button>
+          </button>)}
           <HabitQuickPanel />
           <div className="ms-auto flex min-w-0 items-center gap-1.5 sm:gap-2">
             <button type="button" onClick={() => patchUser({ language: lang === "ar" ? "en" : "ar" })} className="header-icon-btn glass-btn btn-ghost btn-icon h-9 w-9" aria-label={lang === "ar" ? t("Switch to English") : t("Switch to Arabic")} title={lang === "ar" ? t("English") : t("Arabic")}><Languages className="size-[19px]" /></button>
