@@ -8,6 +8,7 @@ import { Badge, Button, Card, EmptyState, Field, PageHeader, Segmented, cn, useU
 import { api, minutesLabel, useFetch } from "@/lib/client";
 import { SOUNDS, startAmbient, type AmbientHandle } from "@/lib/ambient";
 import { useProgress, useSpotify } from "@/components/spotify";
+import { YouTubeMusicPlayer } from "@/components/youtube-music";
 
 type Session = { id: string; mode: string; plannedSeconds: number; actualSeconds: number; status: string; startedAt: string; lastResumedAt?: string | null; pausedAt?: string | null; taskTitle?: string | null };
 type FocusData = { todayMinutes: number; weekMinutes: number; totalSessions: number; sessions: Session[]; running: (Session & { serverNow: number }) | null; tasks: { id: string; title: string; priority: Task["priority"] }[]; prefs: { sound: string; volume: number; preset: number } };
@@ -146,6 +147,7 @@ function FocusNowPlaying({ immersive = false }: { immersive?: boolean }) {
           </div>
         </> : <div className="py-2 text-center"><Music2 className="mx-auto mb-2 size-6 text-white/55" /><p className="text-sm font-medium">{status?.connected ? t("Nothing playing") : t("Connect Spotify")}</p><p className="mt-1 text-xs text-white/55">{status?.connected ? t("Start playback in Spotify and it will show up here.") : t("Connect Spotify to see what you're listening to.")}</p><a href="/music" className="mt-3 inline-flex rounded-full bg-white/10 px-4 py-2 text-xs font-medium hover:bg-white/15">{t("Open Music Hub")}</a></div>}
         {message && <p role="status" className="mt-2 text-center text-xs text-amber-300">{message}</p>}
+        <div className="mt-3 border-t border-white/10 pt-3"><YouTubeMusicPlayer compact /></div>
       </div>}
     </div>
   );
