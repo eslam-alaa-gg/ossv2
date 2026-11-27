@@ -3,25 +3,24 @@ import { clientIp, rateLimit, requireUser } from "@/lib/server/auth";
 
 export const dynamic = "force-dynamic";
 
-type MusicItem = {
-  musicResponsiveListItemRenderer?: {
-    flexColumns?: Array<{ musicResponsiveListItemFlexColumnRenderer?: { text?: { runs?: Array<{ text?: string }> } } }>;
-    thumbnail?: { musicThumbnailRenderer?: { thumbnail?: { thumbnails?: Array<{ url?: string }> } } };
-    thumbnailRenderer?: { musicThumbnailRenderer?: { thumbnail?: { thumbnails?: Array<{ url?: string }> } } };
-    playlistItemData?: { videoId?: string };
-    overlay?: { musicItemThumbnailOverlayRenderer?: { content?: { musicPlayButtonRenderer?: { playNavigationEndpoint?: { watchEndpoint?: { videoId?: string } } } } } };
-    navigationEndpoint?: { watchEndpoint?: { videoId?: string } };
-  };
+type MusicResult = { id: string; title: string; channel: string; thumbnail: string; publishedAt: string };
+type MusicRenderer = {
+  flexColumns?: Array<{ musicResponsiveListItemFlexColumnRenderer?: { text?: { runs?: Array<{ text?: string }> } } }>;
+  thumbnail?: { musicThumbnailRenderer?: { thumbnail?: { thumbnails?: Array<{ url?: string }> } } };
+  thumbnailRenderer?: { musicThumbnailRenderer?: { thumbnail?: { thumbnails?: Array<{ url?: string }> } } };
+  playlistItemData?: { videoId?: string };
+  overlay?: { musicItemThumbnailOverlayRenderer?: { content?: { musicPlayButtonRenderer?: { playNavigationEndpoint?: { watchEndpoint?: { videoId?: string } } } } } };
+  navigationEndpoint?: { watchEndpoint?: { videoId?: string } };
 };
 
-function collectMusicItems(value: unknown, output: MusicItem[], seen: Set<string>) {
+function collectMusicResults(value: unknown, output: MusicResult[], seen: Set<string>) {
   if (!value || typeof value !== "object") return;
   if (Array.isArray(value)) {
-    for (const item of value) collectMusicItems(item, output, seen);
+    for (const item of value) collectMusicResults(item, output, seen);
     return;
   }
   const record = value as Record<string, unknown>;
-  const renderer = record.musicResponsiveListItemRenderer as MusicItem["musicResponsiveListItemRenderer"] | undefined;
+  const renderer = record.musicResponsiveListItemRenderer as MusicRenderer | undefined;
   if (renderer) {
     const id = renderer.playlistItemData?.videoId
       ?? renderer.overlay?.musicItemThumbnailOverlayRenderer?.content?.musicPlayButtonRenderer?.playNavigationEndpoint?.watchEndpoint?.videoId
@@ -37,7 +36,7 @@ function collectMusicItems(value: unknown, output: MusicItem[], seen: Set<string
       output.push({ id, title: title.slice(0, 500), channel: channel.slice(0, 300), thumbnail: thumbnail?.startsWith("https://") ? thumbnail : `https://i.ytimg.com/vi/${id}/mqdefault.jpg`, publishedAt: "" });
     }
   }
-  for (const child of Object.values(record)) collectMusicItems(child, output, seen);
+  for (const child of Object.values(record)) collectMusicResults(child, output, seen);
 }
 
 export const GET = handle(async (req) => {
@@ -79,7 +78,7 @@ export const GET = handle(async (req) => {
   });
   if (!response.ok) throw new ApiError(502, "YouTube Music search could not be completed. Try again shortly.", "music_search_failed");
   const payload: unknown = await response.json();
-  const items: MusicItem[] = [];
-  collectMusicItems(payload, items, new Set());
+  const items: MusicResult[] = [];
+  collectMusicResults(payload, items, new Set());
   return { results: items.slice(0, 15) };
 });
