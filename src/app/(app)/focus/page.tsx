@@ -474,7 +474,7 @@ export default function FocusPage() {
   return (
     <>
       <PageHeader title={t("Focus Room")} subtitle={t("Deep work, one session at a time.")} actions={
-        <div className="flex items-center gap-1.5 sm:gap-2">\n          <FocusNowPlaying />
+          <div className="flex items-center gap-1.5 sm:gap-2">
           <div className="relative">
             <Button variant="ghost" size="icon" className="size-9 rounded-full border border-line bg-card/70 backdrop-blur-xl" onClick={() => { setThemeOpen((value) => !value); setBackgroundOpen(false); setSoundOpen(false); }} aria-label={t("Focus theme")} aria-haspopup="dialog" aria-expanded={themeOpen}><Palette className="size-4" /></Button>
             {themeOpen && <div role="dialog" aria-label={t("Focus theme")} className="absolute end-0 top-[calc(100%+10px)] z-50 w-[min(90vw,300px)] rounded-2xl border border-white/15 bg-[#11131b]/90 p-3 text-white shadow-2xl backdrop-blur-2xl">
@@ -530,7 +530,6 @@ export default function FocusPage() {
         <div className="absolute inset-0 bg-gradient-to-b from-[color-mix(in_srgb,var(--bg)_48%,transparent)] via-[color-mix(in_srgb,var(--bg)_72%,transparent)] to-[var(--bg)]" />
       </div>}
       <div className="relative z-10">
-      <div className="mb-4 flex justify-end"><FocusNowPlaying /></div>
       <div className="grid gap-[var(--gap)] lg:grid-cols-[1fr_340px]">
         <Card className="flex flex-col items-center py-8">
           <div className="mb-6 flex w-full flex-col items-center gap-3">
