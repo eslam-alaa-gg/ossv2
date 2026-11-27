@@ -61,13 +61,16 @@ jobs:
       - name: Build
         run: npm run build
       - name: Existing API tests (this branch)
-        continue-on-error: true
         run: |
           npx next start -p 3000 > /tmp/server-e2e.log 2>&1 &
           timeout 60 bash -c 'until curl -sf -o /dev/null http://127.0.0.1:3000/login; do sleep 1; done'
-          BASE_URL=http://127.0.0.1:3000 node tests/e2e.mjs; code=$?
+          set +e
+          BASE_URL=http://127.0.0.1:3000 node tests/e2e.mjs
+          code=$?
+          set -e
+          echo "API_TEST_EXIT=$code" >> "$GITHUB_ENV"
           pkill -f "next-server" || true
-          exit $code
+          exit 0
       - name: Existing API tests (main, for comparison)
         continue-on-error: true
         working-directory: ../base
@@ -89,6 +92,14 @@ jobs:
           npx next start -p 3100 > /tmp/server.log 2>&1 &
           timeout 60 bash -c 'until curl -sf -o /dev/null http://127.0.0.1:3100/login; do sleep 1; done'
           BASE_URL=http://127.0.0.1:3100 node tests/browser.mjs
+      - name: Enforce branch API test result
+        if: always()
+        run: |
+          if [ "${API_TEST_EXIT:-0}" != "0" ]; then
+            echo "Branch API integration tests failed (exit ${API_TEST_EXIT})."
+            exit 1
+          fi
+          echo "Branch API integration tests passed."
       - name: Server errors
         if: always()
         run: grep -n -i -A6 "error" /tmp/server.log | head -80 || echo "no server errors logged"
