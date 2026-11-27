@@ -63,15 +63,16 @@ function FocusNowPlaying({ immersive = false }: { immersive?: boolean }) {
   const [message, setMessage] = useState("");
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [bridge, setBridge] = useState<BridgeNowPlaying | null>(null);
+  const [youtubeTrack, setYoutubeTrack] = useState<{ id: string; title: string; channel: string; thumbnail: string } | null>(null);
   const spotifyNowPlaying = np && !np.idle ? np : null;
   const track = spotifyNowPlaying?.track ?? null;
   const bridgeTrack = bridge && !bridge.idle ? bridge.track ?? null : null;
   const premium = status?.profile?.product === "premium";
-  const displayTitle = track?.title ?? bridgeTrack?.title ?? null;
-  const displayArtist = track ? track.artists.map((artist) => artist.name).join(", ") : bridgeTrack?.artist ?? "";
-  const displayArtwork = track?.album.image ?? bridgeTrack?.artwork ?? null;
-  const displayDevice = track ? spotifyNowPlaying?.device?.name : bridge?.device?.name ?? bridgeTrack?.appName ?? null;
-  const isPlaying = track ? !!spotifyNowPlaying?.playing : !!bridgeTrack && !!bridge?.playing;
+  const displayTitle = youtubeTrack?.title ?? track?.title ?? bridgeTrack?.title ?? null;
+  const displayArtist = youtubeTrack?.channel ?? (track ? track.artists.map((artist) => artist.name).join(", ") : bridgeTrack?.artist ?? "");
+  const displayArtwork = youtubeTrack?.thumbnail ?? track?.album.image ?? bridgeTrack?.artwork ?? null;
+  const displayDevice = youtubeTrack ? "YouTube" : track ? spotifyNowPlaying?.device?.name : bridge?.device?.name ?? bridgeTrack?.appName ?? null;
+  const isPlaying = youtubeTrack ? false : track ? !!spotifyNowPlaying?.playing : !!bridgeTrack && !!bridge?.playing;
   const displayProgress = track ? progress : bridge?.progressMs ?? 0;
   const displayDuration = track?.durationMs ?? bridge?.durationMs ?? 0;
 
@@ -125,7 +126,7 @@ function FocusNowPlaying({ immersive = false }: { immersive?: boolean }) {
       <button type="button" onClick={() => setOpen((value) => !value)} aria-expanded={open} aria-label={t("Open music controls")} className="flex max-w-full items-center gap-2.5 rounded-full border border-white/15 bg-black/45 px-3 py-2 text-white shadow-xl backdrop-blur-2xl transition hover:bg-black/60">
         <span className="grid size-8 shrink-0 place-items-center overflow-hidden rounded-full bg-white/10">{displayArtwork ? <img src={displayArtwork} alt="" className="size-full object-cover" /> : <Music2 className="size-4 text-white/75" />}</span>
         <span className="min-w-0 text-start">
-          <span className="block text-[9px] font-semibold uppercase tracking-[0.16em] text-white/55">{displayTitle ? (isPlaying ? t("Now playing") : t("Paused")) : t("Music")}</span>
+          <span className="block text-[9px] font-semibold uppercase tracking-[0.16em] text-white/55">{youtubeTrack ? (t("Selected on YouTube")) : displayTitle ? (isPlaying ? t("Now playing") : t("Paused")) : t("Music")}</span>
           <span className="block max-w-[230px] truncate text-xs font-medium">{displayTitle ?? (status?.connected ? t("Nothing playing") : t("Connect Spotify"))}</span>
         </span>
         <Music2 className="size-4 shrink-0 text-white/65" />
@@ -137,9 +138,9 @@ function FocusNowPlaying({ immersive = false }: { immersive?: boolean }) {
             <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{displayTitle}</p><p className="truncate text-xs text-white/60">{displayArtist}</p><p className="truncate text-[10px] text-white/40">{displayDevice ?? "Music"}</p></div>
             <span className={"size-2 rounded-full " + (isPlaying ? "bg-emerald-400" : "bg-amber-300")} />
           </div>
-          {displayDuration > 0 && <div className="mt-3 h-1 overflow-hidden rounded-full bg-white/15"><div className="h-full rounded-full bg-white/75" style={{ width: `${Math.min(100, displayProgress / displayDuration * 100)}%` }} /></div>}
+          {!youtubeTrack && displayDuration > 0 && <div className="mt-3 h-1 overflow-hidden rounded-full bg-white/15"><div className="h-full rounded-full bg-white/75" style={{ width: `${Math.min(100, displayProgress / displayDuration * 100)}%` }} /></div>}
           <div className="mt-3 flex items-center justify-center gap-4">
-            {track && premium ? <>
+            {youtubeTrack ? <span className="text-xs text-white/60">{t("Use the YouTube player controls below.")}</span> : track && premium ? <>
               <button type="button" disabled={busy || spotifyNowPlaying?.disallows?.previous} onClick={() => void control("previous")} className="rounded-full p-2 hover:bg-white/10 disabled:opacity-40" aria-label={t("Previous track")}><SkipBack className="size-4" /></button>
               <button type="button" disabled={busy || (isPlaying ? spotifyNowPlaying?.disallows?.pausing : spotifyNowPlaying?.disallows?.resuming)} onClick={() => void control(isPlaying ? "pause" : "play")} className="grid size-10 place-items-center rounded-full bg-white text-black disabled:opacity-50" aria-label={isPlaying ? t("Pause") : t("Play")}>{isPlaying ? <Pause className="size-4" /> : <Play className="size-4" />}</button>
               <button type="button" disabled={busy || spotifyNowPlaying?.disallows?.skipping_next} onClick={() => void control("next")} className="rounded-full p-2 hover:bg-white/10 disabled:opacity-40" aria-label={t("Next track")}><SkipForward className="size-4" /></button>
@@ -147,7 +148,7 @@ function FocusNowPlaying({ immersive = false }: { immersive?: boolean }) {
           </div>
         </> : <div className="py-2 text-center"><Music2 className="mx-auto mb-2 size-6 text-white/55" /><p className="text-sm font-medium">{status?.connected ? t("Nothing playing") : t("Connect Spotify")}</p><p className="mt-1 text-xs text-white/55">{status?.connected ? t("Start playback in Spotify and it will show up here.") : t("Connect Spotify to see what you're listening to.")}</p><a href="/music" className="mt-3 inline-flex rounded-full bg-white/10 px-4 py-2 text-xs font-medium hover:bg-white/15">{t("Open Music Hub")}</a></div>}
         {message && <p role="status" className="mt-2 text-center text-xs text-amber-300">{message}</p>}
-        <div className="mt-3 border-t border-white/10 pt-3"><YouTubeMusicPlayer compact /></div>
+        <div className="mt-3 border-t border-white/10 pt-3"><YouTubeMusicPlayer compact onTrackChange={setYoutubeTrack} spotifyPlaying={!!spotifyNowPlaying?.playing} /></div>
       </div>}
     </div>
   );
