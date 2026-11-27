@@ -55,19 +55,39 @@ function Inner() {
   const urlError = sp.get("error");
 
   if (tab === "detection") return <><div className="mb-4">{tabControl}</div><MusicBridgePanel /></>;
-  if (tab === "youtube") return <>
-    <PageHeader title={t("Music")} subtitle={t("Search and open music from the official YouTube Music service.")} actions={tabControl} />
-    <Card className="mx-auto max-w-2xl py-8">
-      <div className="mx-auto grid size-14 place-items-center rounded-2xl bg-card text-muted"><Music2 className="size-7" /></div>
-      <h2 className="mt-4 text-center text-lg font-semibold">{t("YouTube Music")}</h2>
-      <p className="mx-auto mt-2 max-w-md text-center text-sm text-muted">{t("Search tracks, artists or albums and open the results in YouTube Music. Playback stays in the official YouTube Music app or website.")}</p>
-      <form className="mt-6 flex flex-col gap-2 sm:flex-row" onSubmit={(event) => event.preventDefault()}>
-        <input className="input min-w-0 flex-1" value={youtubeQuery} onChange={(event) => setYoutubeQuery(event.target.value)} placeholder={t("Search YouTube Music")} maxLength={120} aria-label={t("Search YouTube Music")} />
-        <a className={cn("glass-btn btn-primary justify-center", !youtubeQuery.trim() && "pointer-events-none opacity-50")} href={youtubeQuery.trim() ? `https://music.youtube.com/search?q=${encodeURIComponent(youtubeQuery.trim())}` : undefined} target="_blank" rel="noreferrer noopener">{t("Search on YouTube Music")}</a>
-      </form>
-      <div className="mt-5 text-center"><a href="https://music.youtube.com" target="_blank" rel="noreferrer noopener" className="text-xs text-accent underline">{t("Open YouTube Music")}</a></div>
-    </Card>
-  </>;
+  if (tab === "youtube") {
+    const searchYoutube = (query: string) => {
+      const value = query.trim();
+      if (!value) return;
+      window.open(`https://music.youtube.com/search?q=${encodeURIComponent(value)}`, "_blank", "noopener,noreferrer");
+    };
+    const suggestions = lang === "ar"
+      ? ["موسيقى للتركيز", "موسيقى للمذاكرة", "موسيقى هادئة", "Lo-fi"]
+      : ["Focus music", "Study music", "Ambient music", "Lo-fi"];
+    return <>
+      <PageHeader title={t("Music")} subtitle={t("Search and open music from the official YouTube Music service.")} actions={tabControl} />
+      <Card className="mx-auto max-w-2xl py-8">
+        <div className="mx-auto grid size-14 place-items-center rounded-2xl bg-card text-muted"><Music2 className="size-7" /></div>
+        <h2 className="mt-4 text-center text-lg font-semibold">{t("YouTube Music")}</h2>
+        <p className="mx-auto mt-2 max-w-md text-center text-sm text-muted">{t("Search tracks, artists or albums and open the results in YouTube Music. Playback stays in the official YouTube Music app or website.")}</p>
+        <form className="mt-6 flex flex-col gap-2 sm:flex-row" onSubmit={(event) => { event.preventDefault(); searchYoutube(youtubeQuery); }}>
+          <input className="input min-w-0 flex-1" value={youtubeQuery} onChange={(event) => setYoutubeQuery(event.target.value)} placeholder={t("Search YouTube Music")} maxLength={120} aria-label={t("Search YouTube Music")} />
+          <button type="submit" disabled={!youtubeQuery.trim()} className="glass-btn btn-primary justify-center disabled:pointer-events-none disabled:opacity-50">{t("Search on YouTube Music")}</button>
+        </form>
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+          {suggestions.map((suggestion) => (
+            <button key={suggestion} type="button" onClick={() => { setYoutubeQuery(suggestion); searchYoutube(suggestion); }} className="rounded-full border border-line bg-card px-3 py-1.5 text-xs text-muted transition-colors hover:text-fg">
+              {suggestion}
+            </button>
+          ))}
+        </div>
+        <div className="mt-6 flex flex-col items-center gap-2 border-t border-line pt-4 text-center">
+          <span className="text-xs text-faint">{lang === "ar" ? "سيتم فتح نتائج البحث في خدمة YouTube Music الرسمية." : "Search results open in the official YouTube Music service."}</span>
+          <a href="https://music.youtube.com" target="_blank" rel="noreferrer noopener" className="text-xs text-accent underline">{t("Open YouTube Music")}</a>
+        </div>
+      </Card>
+    </>;
+  }
 
 
   async function control(action: string, extra: object = {}) {
