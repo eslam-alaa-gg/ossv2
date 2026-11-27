@@ -21,7 +21,7 @@ Open this directory in Android Studio with Android Gradle Plugin 8.7.3+ and JDK 
 5. Explicitly enable notification access for OSSv2 Music Bridge.
 6. Start Spotify playback. The bridge sends metadata every five seconds.
 
-The token is stored in the app's private preferences and sent only as a Bearer token over HTTPS. Revoke the device from OSSv2 to invalidate it.
+The device token and server URL are encrypted with AES-256-GCM using a non-exportable Android Keystore key; only ciphertext is stored in app-private preferences. The app refuses non-HTTPS server URLs. Existing credentials from the older plaintext preference file are migrated and that legacy file is cleared on launch. Revoke the device from OSSv2 to invalidate its token.
 
 ## Limitations
 
