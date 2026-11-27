@@ -39,7 +39,11 @@ function Inner() {
   const [tab, setTab] = useState("habits");
   const [modal, setModal] = useState<{ habit?: Habit } | null>(null);
   useEffect(() => { if (sp.get("new") === "1") setModal({}); const requestedTab = sp.get("tab"); if (requestedTab === "reading" || requestedTab === "learning" || requestedTab === "water" || requestedTab === "habits") setTab(requestedTab); }, [sp]);
-  const reloadAll = () => { habits.reload(); trackers.reload(); };
+  const reloadAll = () => {
+    habits.reload();
+    trackers.reload();
+    window.dispatchEvent(new Event("ukiyo:habit-progress-updated"));
+  };
 
   useEffect(() => {
     if (!user?.id) return;
@@ -136,7 +140,7 @@ function Inner() {
     const r = await run(() => api<{ completed: boolean; xp: number }>(`/api/habits/${h.id}/log`, { body: { amount: nextAmount } }));
     if (!r) return;
     if (r.completed && r.xp) toast("success", `${t("Habit complete")} · +${r.xp} XP`);
-    await habits.reload();
+    reloadAll();
   }
   async function remove(h: Habit) {
     if (!(await confirm(t("Delete “{title}” and all its history?").replace("{title}", t(h.name)), t("Delete")))) return;
