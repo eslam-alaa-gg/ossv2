@@ -59,7 +59,7 @@ await test("duplicate email rejected, weak password rejected, wrong password rej
   assert.equal((await anon.req("POST", "/api/auth/login", { email: emailA, password: "wrong-password" })).status, 401);
 });
 await test("protected API routes require auth (401)", async () => {
-  for (const p of ["/api/me", "/api/tasks", "/api/habits", "/api/goals", "/api/notes", "/api/journal", "/api/focus", "/api/dashboard", "/api/analytics", "/api/export", "/api/notifications", "/api/me/avatar"]) {
+  for (const p of ["/api/me", "/api/tasks", "/api/habits", "/api/goals", "/api/notes", "/api/journal", "/api/focus", "/api/dashboard", "/api/analytics", "/api/export", "/api/notifications", "/api/me/avatar", "/api/youtube/search?q=lofi"]) {
     assert.equal((await anon.req("GET", p)).status, 401, p);
   }
 });
