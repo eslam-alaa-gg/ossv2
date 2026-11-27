@@ -128,7 +128,6 @@ const ar: Record<string, string> = {
   "Font uploaded. Apply Theme to use it across Ukiyo.": "تم رفع الخط. اضغط تطبيق المظهر لاستخدامه في Ukiyo.",
   "Could not remove the custom font.": "تعذرت إزالة الخط المخصص.",
   "Custom font removed.": "تمت إزالة الخط المخصص.",
-  "Search YouTube Music": "ابحث في YouTube Music",
   "Focus theme": "مظهر التركيز",
   "Theme": "المظهر",
   "Wallpaper library": "مكتبة الخلفيات",
