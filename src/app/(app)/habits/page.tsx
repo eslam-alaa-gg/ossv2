@@ -87,7 +87,8 @@ function Inner() {
       toast("info", t("Saved offline. It will sync when you're online."));
       return;
     }
-    if (await run(() => api("/api/trackers/water", { body: { ml } }))) reloadAll();
+    const clientActionId = crypto.randomUUID();
+    if (await run(() => api("/api/trackers/water", { body: { ml, clientActionId } }))) reloadAll();
   }
 
   async function removeWater(id: string) {
@@ -250,7 +251,8 @@ function ReadingTab({ tracker, reload, userId, setTrackerData }: { tracker: Trac
             } else toast("error", t("Could not save offline action."));
             return;
           }
-          if (await run(() => api("/api/trackers/reading", { body: { book, pages: count } }), t("Reading logged"))) { setPages(""); reload(); }
+          const clientActionId = crypto.randomUUID();
+          if (await run(() => api("/api/trackers/reading", { body: { book, pages: count, clientActionId } }), t("Reading logged"))) { setPages(""); reload(); }
         }}>
           <Field label={t("Book name")}><input className="input" value={book} onChange={(e) => setBook(e.target.value)} maxLength={120} required aria-label={t("Book name")} list="books" /><datalist id="books">{[...new Set(tracker.reading.entries.map((e) => e.book))].map((b) => <option key={b} value={b} />)}</datalist></Field>
           <Field label={t("Pages read")}><input className="input" type="number" min={1} max={2000} value={pages} onChange={(e) => setPages(e.target.value)} required aria-label={t("Pages read")} /></Field>
@@ -313,7 +315,8 @@ function LearningTab({ tracker, reload, userId, setTrackerData }: { tracker: Tra
             } else toast("error", t("Could not save offline action."));
             return;
           }
-          if (await run(() => api("/api/trackers/learning", { body: { title, explanation: text } }), t("Learning saved"))) { setTitle(""); setText(""); reload(); }
+          const clientActionId = crypto.randomUUID();
+          if (await run(() => api("/api/trackers/learning", { body: { title, explanation: text, clientActionId } }), t("Learning saved"))) { setTitle(""); setText(""); reload(); }
         }}>
           <Field label={t("New knowledge")}><input className="input" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} required aria-label={t("New knowledge")} /></Field>
           <Field label={t("Short explanation")}><textarea className="input min-h-24" value={text} onChange={(e) => setText(e.target.value)} maxLength={1000} aria-label={t("Explanation")} /></Field>
