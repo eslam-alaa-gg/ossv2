@@ -524,6 +524,7 @@ export default function FocusPage() {
             <p className="mt-2 text-xs text-faint">{t("Sounds are synthesised in your browser. Never autoplays; your choice is remembered.")}</p>
           </div>}
         </div>
+          </div>
       } />
       {(backgroundImage || backgroundScene !== "none") && <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden>
         {backgroundImage ? <div className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-45" style={{ backgroundImage: `url(${backgroundImage})` }} /> : <FocusWallpaperLayer scene={backgroundScene as Exclude<FocusWallpaper, "none">} failed={wallpaperVideoFailed || !!prefs.theme.reducedMotion} onError={() => setWallpaperVideoFailed(true)} />}
