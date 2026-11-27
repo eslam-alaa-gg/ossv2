@@ -12,8 +12,6 @@ import android.widget.TextView
 import android.text.InputType
 
 class MainActivity : Activity() {
-    private val prefs by lazy { getSharedPreferences("bridge", MODE_PRIVATE) }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val pad = (20 * resources.displayMetrics.density).toInt()
