@@ -68,7 +68,7 @@ const isVideo = (value: unknown): value is Video => {
   return typeof video.id === "string" && /^[A-Za-z0-9_-]{11}$/.test(video.id)
     && typeof video.title === "string" && video.title.length <= 500
     && typeof video.channel === "string" && typeof video.publishedAt === "string"
-    && typeof video.thumbnail === "string" && /^https:\/\/i\.ytimg\.com\//.test(video.thumbnail);
+    && typeof video.thumbnail === "string" && /^https:\/\/(?:i\.ytimg\.com|lh3\.googleusercontent\.com|yt3\.ggpht\.com)\//.test(video.thumbnail);
 };
 
 export function YouTubeMusicPlayer({ compact = false, searchOpen = true, onCloseSearch, onTrackChange, spotifyPlaying = false }: { compact?: boolean; searchOpen?: boolean; onCloseSearch?: () => void; onTrackChange?: (video: Video | null) => void; spotifyPlaying?: boolean }) {
