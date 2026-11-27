@@ -72,7 +72,7 @@ Playback control, seek and device transfer require **Spotify Premium** (Spotify 
 
 ### YouTube Music search and in-app playback
 
-The YouTube Music panel uses the server-side YouTube Data API v3 search route (`/api/youtube/search`) and the official YouTube embedded player. Search is available in the Focus Room top-right music control and in the Dashboard Music widget when its source is set to **YouTube Music**. Selecting an embeddable result loads it inside Ukiyo; the official player controls playback, volume and seeking. This is an embedded YouTube video experience, not a private YouTube Music API integration. Availability and autoplay remain subject to YouTube and browser policies.
+The YouTube Music panel uses the server-side YouTube Data API v3 search route (`/api/youtube/search`), prioritizes YouTube's Music video category, and uses the official YouTube embedded player. Search is available in the Focus Room top-right music control and in the Dashboard Music widget when its source is set to **YouTube Music**. Selecting an embeddable result loads it inside Ukiyo; the official player controls playback, volume and seeking. This is an embedded YouTube video experience, not a private YouTube Music API integration. Availability and autoplay remain subject to YouTube and browser policies.
 
 ## Notifications
 
