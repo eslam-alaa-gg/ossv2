@@ -10,7 +10,7 @@ import { api, useFetch } from "@/lib/client";
 import { cancelQueuedAction, queueOfflineAction, readOfflineSnapshot, saveOfflineSnapshot } from "@/lib/offline-db";
 
 type Subject = { id: string; name: string; color: string };
-type Flashcard = { id: string; subjectId: string | null; subjectName: string | null; front: string; back: string; dueAt: string; intervalDays: number; repetitions: number; lapses: number };
+type Flashcard = { id: string; subjectId: string | null; subjectName: string | null; front: string; back: string; dueAt: string; intervalDays: number; repetitions: number; lapses: number; easeFactor?: number; lastReviewedAt?: string | null };
 type StudyTask = { id: string; title: string; description: string; category: string; priority: string; status: string; dueDate: string | null; tags: string[] };
 type FocusOverview = { todayMinutes: number; weekMinutes: number; sessions: Array<{ taskId: string | null; startedAt: string; actualSeconds: number; mode: string; status: string }> };
 type DailySuggestion = { key: string; kind: "task" | "review"; title: string; description: string; minutes: number; taskId?: string; subjectId?: string | null; count?: number; status: string | null };
@@ -19,6 +19,21 @@ type DailySuggestion = { key: string; kind: "task" | "review"; title: string; de
 function localDate() {
   const date = new Date();
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function previewReview(card: Flashcard, rating: "again" | "hard" | "good" | "easy", now = Date.now()) {
+  const before = card.intervalDays;
+  let intervalDays = before;
+  let easeFactor = card.easeFactor ?? 2500;
+  let repetitions = card.repetitions + 1;
+  let lapses = card.lapses;
+  if (rating === "again") { intervalDays = 0; easeFactor = Math.max(1300, easeFactor - 200); repetitions = 0; lapses += 1; }
+  else if (rating === "hard") { intervalDays = Math.max(1, Math.round((before || 1) * 1.2)); easeFactor = Math.max(1300, easeFactor - 150); }
+  else if (rating === "good") { intervalDays = card.repetitions === 0 ? 1 : card.repetitions === 1 ? 6 : Math.max(1, Math.round(before * easeFactor / 1000)); }
+  else { intervalDays = card.repetitions === 0 ? 4 : Math.max(2, Math.round((before || 1) * easeFactor / 1000 * 1.3)); easeFactor = Math.min(3000, easeFactor + 150); }
+  const reviewedAt = new Date(now).toISOString();
+  const dueAt = new Date(now + (rating === "again" ? 10 * 60 * 1000 : intervalDays * 86400000)).toISOString();
+  return { dueAt, intervalDays, easeFactor, repetitions, lapses, lastReviewedAt: reviewedAt };
 }
 
 export default function StudyPage() {
@@ -43,6 +58,13 @@ export default function StudyPage() {
   const [revealed, setRevealed] = useState(false);
   const [reviewing, setReviewing] = useState(false);
   const [reviewSubjectId, setReviewSubjectId] = useState("");
+
+  useEffect(() => {
+    const refreshDue = () => { if (document.visibilityState === "visible" && navigator.onLine) void due.reload(); };
+    const interval = window.setInterval(refreshDue, 60_000);
+    window.addEventListener("focus", refreshDue);
+    return () => { window.clearInterval(interval); window.removeEventListener("focus", refreshDue); };
+  }, [due.reload]);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -193,6 +215,10 @@ export default function StudyPage() {
     : 0;
   const reviewCards = (due.data?.cards ?? []).filter((card) => !reviewSubjectId || card.subjectId === reviewSubjectId);
   const currentCard = reviewCards[0] ?? null;
+  const totalFlashcards = cards.data?.cards.length ?? 0;
+  const reviewedFlashcards = (cards.data?.cards ?? []).filter((card) => !!card.lastReviewedAt).length;
+  const newFlashcards = Math.max(0, totalFlashcards - reviewedFlashcards);
+  const reviewProgress = totalFlashcards ? Math.round((reviewedFlashcards / totalFlashcards) * 100) : 0;
   const selectedReviewSubject = (subjects.data?.subjects ?? []).find((subject) => subject.id === reviewSubjectId) ?? null;
 
   async function addSubject(event: FormEvent) {
@@ -273,9 +299,8 @@ export default function StudyPage() {
       const action = await saveAction("/api/study/review", { cardId: currentCard.id, rating }, t("Review saved"));
       if (action === "sent") await Promise.all([cards.reload(), due.reload()]);
       if (action === "queued") {
-        const intervalDays = rating === "again" ? 0 : rating === "hard" ? 1 : rating === "good" ? 1 : 4;
-        const dueAt = new Date(Date.now() + (rating === "again" ? 10 * 60 * 1000 : intervalDays * 86400000)).toISOString();
-        cards.setData({ cards: (cards.data?.cards ?? []).map((card) => card.id === currentCard.id ? { ...card, dueAt, intervalDays, repetitions: rating === "again" ? 0 : card.repetitions + 1 } : card) });
+        const next = previewReview(currentCard, rating);
+        cards.setData({ cards: (cards.data?.cards ?? []).map((card) => card.id === currentCard.id ? { ...card, ...next } : card) });
         due.setData({ cards: (due.data?.cards ?? []).filter((card) => card.id !== currentCard.id) });
       }
       if (action) setRevealed(false);
@@ -297,11 +322,16 @@ export default function StudyPage() {
         {tab === "plan" && <div className="grid gap-[var(--gap)] lg:grid-cols-[minmax(0,1fr)_minmax(280px,360px)]">
           <Card className="space-y-4">
             <div className="flex items-center justify-between gap-3"><div><h2 className="font-semibold">{t("Upcoming study tasks")}</h2><p className="mt-1 text-xs text-muted">{t("Study tasks also appear in your main Tasks list.")}</p></div><CalendarDays className="size-5 text-muted" /></div>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               <div className="rounded-xl border border-line bg-card p-3"><p className="text-[11px] text-muted">{t("Due reviews")}</p><p className="mt-1 text-lg font-semibold tabular-nums">{due.data?.cards.length ?? 0}</p></div>
               <div className="rounded-xl border border-line bg-card p-3"><p className="text-[11px] text-muted">{t("Open study tasks")}</p><p className="mt-1 text-lg font-semibold tabular-nums">{studyTasks.length}</p></div>
+              <div className="rounded-xl border border-line bg-card p-3"><p className="text-[11px] text-muted">{t("Reviewed cards")}</p><p className="mt-1 text-lg font-semibold tabular-nums">{reviewedFlashcards}<span className="ml-1 text-[10px] font-normal text-muted">/ {totalFlashcards}</span></p></div>
               <div className="rounded-xl border border-line bg-card p-3"><p className="text-[11px] text-muted">{t("Focus this week")}</p><p className="mt-1 text-lg font-semibold tabular-nums">{focus.data ? focus.data.weekMinutes : "—"}<span className="ml-1 text-[10px] font-normal text-muted">{t("min")}</span></p></div>
             </div>
+            <section className="rounded-xl border border-line bg-card p-3" aria-label={t("Learning progress")}>
+              <div className="mb-2 flex items-center justify-between gap-3"><div><p className="text-sm font-semibold">{t("Learning progress")}</p><p className="mt-1 text-xs text-muted">{reviewedFlashcards} {t("reviewed cards")} · {newFlashcards} {t("new cards")}</p></div><span className="text-sm font-semibold tabular-nums">{reviewProgress}%</span></div>
+              <div className="h-2 overflow-hidden rounded-full bg-line" role="progressbar" aria-label={t("Reviewed flashcards")} aria-valuemin={0} aria-valuemax={100} aria-valuenow={reviewProgress}><div className="h-full rounded-full bg-accent transition-[width]" style={{ width: String(reviewProgress) + "%" }} /></div>
+            </section>
             {dailySuggestions.data?.suggestions.some((item) => item.status !== "dismissed") && <section className="space-y-2 rounded-xl border border-line bg-card/70 p-3">
               <div className="flex items-center justify-between gap-2">
                 <div><p className="text-xs font-semibold uppercase tracking-wide text-accent">{t("Daily study suggestions")}</p><p className="mt-1 text-xs text-muted">{t("A small, practical plan based on your open tasks, due reviews and weekly focus time.")} <span className="text-muted">· {dailySuggestions.data.focusMinutesThisWeek} {t("focus min this week")}</span></p></div>
@@ -355,14 +385,14 @@ export default function StudyPage() {
 
         {tab === "subjects" && <div className="grid gap-[var(--gap)] lg:grid-cols-[minmax(0,1fr)_minmax(280px,360px)]">
           <Card className="space-y-3"><h2 className="font-semibold">{t("Your subjects")}</h2>
-            {(subjects.data?.subjects ?? []).length ? <div className="grid gap-2 sm:grid-cols-2">{subjects.data!.subjects.map((subject) => <div key={subject.id} className="flex items-center gap-3 rounded-xl border border-line bg-card p-3"><span className="size-3 rounded-full" style={{ background: subject.color }} /><span className="min-w-0 flex-1 truncate text-sm font-medium">{subject.name}</span><Badge>{cards.data?.cards.filter((card) => card.subjectId === subject.id).length ?? 0} {t("cards")}</Badge></div>)}</div> : <EmptyState icon={<BookOpen className="size-5" />} title={t("No subjects yet")} text={t("Add subjects such as Chemistry, Physics or History.")} />}
+            {subjects.loading && !subjects.data ? <p className="py-6 text-center text-sm text-muted">{t("Loading…")}</p> : subjects.error && !subjects.data ? <div className="rounded-xl border border-line p-4 text-center"><p className="text-sm text-muted">{subjects.error}</p><Button className="mt-3" size="sm" variant="secondary" onClick={() => void subjects.reload()}>{t("Try again")}</Button></div> : (subjects.data?.subjects ?? []).length ? <div className="grid gap-2 sm:grid-cols-2">{subjects.data!.subjects.map((subject) => <div key={subject.id} className="flex items-center gap-3 rounded-xl border border-line bg-card p-3"><span className="size-3 rounded-full" style={{ background: subject.color }} /><span className="min-w-0 flex-1 truncate text-sm font-medium">{subject.name}</span><Badge>{cards.data?.cards.filter((card) => card.subjectId === subject.id).length ?? 0} {t("cards")}</Badge></div>)}</div> : <EmptyState icon={<BookOpen className="size-5" />} title={t("No subjects yet")} text={t("Add subjects such as Chemistry, Physics or History.")} />}
           </Card>
           <Card><h2 className="mb-3 font-semibold">{t("Add a subject")}</h2><form onSubmit={addSubject} className="space-y-3"><Field label={t("Subject name")}><input className="input" value={subjectName} onChange={(event) => setSubjectName(event.target.value)} maxLength={60} placeholder={t("e.g. Chemistry")} required /></Field><Field label={t("Color")}><input type="color" value={subjectColor} onChange={(event) => setSubjectColor(event.target.value)} aria-label={t("Subject color")} /></Field><Button type="submit" variant="primary" disabled={!subjectName.trim()}><Plus className="size-4" /> {t("Add subject")}</Button></form></Card>
         </div>}
 
         {tab === "cards" && <div className="grid gap-[var(--gap)] lg:grid-cols-[minmax(0,1fr)_minmax(300px,380px)]">
           <Card className="space-y-3"><div className="flex items-center justify-between"><h2 className="font-semibold">{t("Your flashcards")}</h2><Badge>{cards.data?.cards.length ?? 0} {t("total")}</Badge></div>
-            {(cards.data?.cards ?? []).length ? <ul className="space-y-2">{cards.data!.cards.map((card) => <li key={card.id} className="flex items-center gap-3 rounded-xl border border-line bg-card p-3"><div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{card.front}</p><p className="truncate text-xs text-muted">{card.subjectName ?? t("General")} · {t("Due")} {new Date(card.dueAt).toLocaleDateString(lang === "ar" ? "ar-EG" : "en-US")}</p></div><Badge>{card.intervalDays}d</Badge><Button size="icon" variant="ghost" disabled={card.id.startsWith("local-")} aria-label={t("Delete flashcard")} onClick={() => void deleteCard(card)}><Trash2 className="size-4" /></Button></li>)}</ul> : <EmptyState icon={<Brain className="size-5" />} title={t("No flashcards yet")} text={t("Create your first question and answer card.")} />}
+            {cards.loading && !cards.data ? <p className="py-6 text-center text-sm text-muted">{t("Loading…")}</p> : cards.error && !cards.data ? <div className="rounded-xl border border-line p-4 text-center"><p className="text-sm text-muted">{cards.error}</p><Button className="mt-3" size="sm" variant="secondary" onClick={() => void cards.reload()}>{t("Try again")}</Button></div> : (cards.data?.cards ?? []).length ? <ul className="space-y-2">{cards.data!.cards.map((card) => <li key={card.id} className="flex items-center gap-3 rounded-xl border border-line bg-card p-3"><div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{card.front}</p><p className="truncate text-xs text-muted">{card.subjectName ?? t("General")} · {t("Due")} {new Date(card.dueAt).toLocaleDateString(lang === "ar" ? "ar-EG" : "en-US")}</p></div><Badge>{card.intervalDays}d</Badge><Button size="icon" variant="ghost" disabled={card.id.startsWith("local-")} aria-label={t("Delete flashcard")} onClick={() => void deleteCard(card)}><Trash2 className="size-4" /></Button></li>)}</ul> : <EmptyState icon={<Brain className="size-5" />} title={t("No flashcards yet")} text={t("Create your first question and answer card.")} />}
           </Card>
           <Card className="space-y-3"><h2 className="font-semibold">{t("Create a flashcard")}</h2><form onSubmit={addCard} className="space-y-3"><Field label={t("Question / front")}><textarea className="input min-h-24" value={front} onChange={(event) => setFront(event.target.value)} maxLength={4000} required /></Field><Field label={t("Answer / back")}><textarea className="input min-h-24" value={back} onChange={(event) => setBack(event.target.value)} maxLength={8000} required /></Field><Field label={t("Subject")}><select className="input" value={subjectId} onChange={(event) => setSubjectId(event.target.value)}><option value="">{t("General")}</option>{(subjects.data?.subjects ?? []).filter((subject) => !subject.id.startsWith("local-")).map((subject) => <option key={subject.id} value={subject.id}>{subject.name}</option>)}</select></Field><Button type="submit" variant="primary" disabled={!front.trim() || !back.trim()}><Plus className="size-4" /> {t("Create flashcard")}</Button></form></Card>
         </div>}
@@ -370,7 +400,7 @@ export default function StudyPage() {
         {tab === "review" && <Card className="mx-auto max-w-2xl space-y-5">
           <div className="flex items-center justify-between gap-3"><div><h2 className="font-semibold">{t("Spaced repetition review")}</h2><p className="mt-1 text-xs text-muted">{t("Rate how well you recalled the answer. Your next review date adjusts automatically.")}</p></div><Badge>{reviewCards.length} {t("due")}</Badge></div>
           {selectedReviewSubject && <div className="flex items-center justify-between rounded-lg border border-line bg-card px-3 py-2 text-xs"><span>{t("Reviewing subject")}: <strong>{selectedReviewSubject.name}</strong></span><Button size="sm" variant="ghost" onClick={() => setReviewSubjectId("")}>{t("Show all subjects")}</Button></div>}
-          {due.loading ? <p className="py-8 text-center text-sm text-muted">{t("Loading…")}</p> : !currentCard ? <EmptyState icon={<Sparkles className="size-6" />} title={t("You're all caught up")} text={t("New cards and future reviews will appear here when they're due.")} /> : <div className="space-y-4">
+          {due.loading && !due.data ? <p className="py-8 text-center text-sm text-muted">{t("Loading…")}</p> : due.error && !due.data ? <div className="py-8 text-center"><p className="text-sm text-muted">{due.error}</p><Button className="mt-3" size="sm" variant="secondary" onClick={() => void due.reload()}>{t("Try again")}</Button></div> : !currentCard ? <EmptyState icon={<Sparkles className="size-6" />} title={t("You're all caught up")} text={t("New cards and future reviews will appear here when they're due.")} /> : <div className="space-y-4">
             <div className="rounded-2xl border border-line bg-card p-6 text-center sm:p-10"><p className="mb-3 text-xs uppercase tracking-[.18em] text-muted">{currentCard.subjectName ?? t("General")}</p><p className="whitespace-pre-wrap text-lg font-semibold">{currentCard.front}</p>{revealed && <div className="mt-6 border-t border-line pt-5"><p className="whitespace-pre-wrap text-sm leading-relaxed text-muted">{currentCard.back}</p></div>}</div>
             {!revealed ? <Button variant="primary" className="w-full" onClick={() => setRevealed(true)}>{t("Show answer")}</Button> : <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               <Button variant="danger" disabled={reviewing} onClick={() => void review("again")}>{t("Again")}<span className="block text-[10px] opacity-70">10 min</span></Button>
