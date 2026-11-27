@@ -645,3 +645,38 @@ A follow-up review was performed against the current target-branch source after 
 - No application source code was changed during this follow-up review. No merge, rebase, reset, force-push or deployment was performed.
 
 **Phase 07 follow-up outcome:** source-level consistency checks confirm the previously implemented theme, RTL search and navigation behavior remain present. Phase 07 implementation remains recorded as complete with explicit browser/device visual QA outstanding; it must not be marked fully visually verified until those checks are performed.
+
+
+## Phase 08 — Responsive and accessibility audit (2026-11-27)
+
+### Actual browser test setup
+- Tested the latest available READY Vercel preview for branch `fix/ukiyo-habits-heatmap-focus`: [preview deployment](https://ossv2-rnqxrt77g-vyn9.vercel.app), deployed application commit `87742f4745b0f942a3d5f3dac4b538959a2c064c`.
+- Executed real Chromium browser automation (Playwright) against the preview, not a static source-only estimate.
+- Ran the public entry/login surface at five viewport profiles: Desktop 1440×900, Laptop 1280×800, Tablet 820×1180, Mobile portrait 390×844, and Mobile landscape 844×390.
+
+### Results — 5 viewport smoke checks
+| Profile | HTTP | Horizontal overflow | Browser page errors | First keyboard focus |
+|---|---:|---|---|---|
+| Desktop 1440×900 | 200 | None | None | Visible 2px focus outline |
+| Laptop 1280×800 | 200 | None | None | Visible 2px focus outline |
+| Tablet 820×1180 | 200 | None | None | Visible 2px focus outline |
+| Mobile portrait 390×844 | 200 | None | None | Visible 2px focus outline |
+| Mobile landscape 844×390 | 200 | None | None | Visible 2px focus outline |
+
+- All five viewport runs loaded the login screen successfully; document/body width matched the viewport in every run.
+- Mobile landscape correctly allowed vertical scrolling (content height 742px in a 390px-high viewport); this is not horizontal overflow.
+- Email and password inputs exposed accessible labels ("Email" and "Password").
+- The skip-to-content link received keyboard focus first and displayed a solid 2px outline in all five runs.
+- No uncaught browser page errors were observed in these runs.
+
+### Findings / failures
+- **Touch-target follow-up required:** on the tested login surface, the visible "Forgot password?" link measured 98×14px and "Create an account" measured 115×17px. Their measured hit boxes are below the 44×44px touch-target benchmark. The skip link is visually hidden until focused and is not counted as an ordinary touch action. These link hit areas need to be enlarged without hiding or removing either action.
+- The viewport checks cover the public entry/login surface only. The preview redirected unauthenticated requests to `/login`; authenticated product pages could not be exercised without an authorized test account/session.
+- Consequently, authenticated navigation menus, modal/dialog flows, Focus Zone fullscreen and orientation behavior, dashboard drag/resize, touch gestures, and in-app keyboard/screen-reader paths are **NOT VERIFIED** by this run. No passing result is claimed for these flows.
+- The existing CI workflow currently runs typecheck, lint, build, migrations, health and API E2E, but has no browser-responsiveness suite configured.
+
+### Outcome and next required verification
+- Public entry/login responsive smoke test: **5/5 viewport profiles passed** for HTTP load, horizontal-overflow check and absence of uncaught page errors.
+- Accessibility/touch audit: **not fully passed** because two visible links have undersized hit areas.
+- Full Phase 08: **PARTIAL — NOT COMPLETE**. Do not mark the entire responsive/accessibility phase complete until the touch-target issue is fixed and authenticated browser tests cover desktop/tablet/mobile navigation, dialogs, Focus Zone, drag/resize, and keyboard/touch interactions.
+- No application source code was changed during this audit. No production deployment, merge, rebase or branch reset was performed.
