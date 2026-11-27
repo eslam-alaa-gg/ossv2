@@ -28,7 +28,7 @@ export const GET = handle(async (req) => {
   });
   const response = await fetch(`https://www.googleapis.com/youtube/v3/search?${params.toString()}`, {
     headers: { Accept: "application/json" },
-    cache: "no-store",
+    next: { revalidate: 60 },
     signal: AbortSignal.timeout(10000),
   });
   if (!response.ok) {
