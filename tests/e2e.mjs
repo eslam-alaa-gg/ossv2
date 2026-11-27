@@ -266,6 +266,41 @@ await test("spaced repetition review updates schedule and history atomically", a
   assert.equal((await B.req("POST", "/api/study/review", { cardId: card.id, rating: "easy" })).status, 404);
 });
 
+await test("all spaced-repetition ratings persist their exact next-review schedule", async () => {
+  const cases = [
+    { rating: "again", interval: 0, repetitions: 0, lapses: 1, minimumMs: 9 * 60 * 1000, maximumMs: 11 * 60 * 1000 },
+    { rating: "hard", interval: 1, repetitions: 1, lapses: 0 },
+    { rating: "good", interval: 1, repetitions: 1, lapses: 0 },
+    { rating: "easy", interval: 4, repetitions: 1, lapses: 0 },
+  ];
+  for (const item of cases) {
+    const created = await A.req("POST", "/api/study/flashcards", {
+      front: "Schedule " + item.rating,
+      back: "Persist schedule for " + item.rating,
+    });
+    assert.equal(created.status, 200, created.text);
+    const cardId = created.json.card.id;
+    const reviewedAt = Date.now();
+    const reviewed = await A.req("POST", "/api/study/review", { cardId, rating: item.rating });
+    assert.equal(reviewed.status, 200, reviewed.text);
+    assert.equal(reviewed.json.intervalDays, item.interval);
+    assert.equal(reviewed.json.card.repetitions, item.repetitions);
+    assert.equal(reviewed.json.card.lapses, item.lapses);
+    const dueMs = new Date(reviewed.json.dueAt).getTime();
+    if (item.minimumMs !== undefined) {
+      assert.ok(dueMs >= reviewedAt + item.minimumMs && dueMs <= reviewedAt + item.maximumMs, "Again schedules a ten-minute retry");
+    } else {
+      assert.ok(dueMs >= reviewedAt + item.interval * 86400000 - 2000, "review interval is reflected in dueAt");
+    }
+    const persisted = (await A.req("GET", "/api/study/flashcards")).json.cards.find((card) => card.id === cardId);
+    assert.equal(persisted.intervalDays, item.interval);
+    assert.equal(persisted.repetitions, item.repetitions);
+    assert.ok(persisted.lastReviewedAt, "last review timestamp is returned from persisted state");
+    assert.equal(persisted.easeFactor, reviewed.json.card.easeFactor);
+    assert.equal((await A.req("GET", "/api/study/flashcards?due=1")).json.cards.some((card) => card.id === cardId), false, "future-due card is excluded from the due queue");
+  }
+});
+
 await test("study review rejects concurrent duplicate ratings for the same card", async () => {
   const created = await A.req("POST", "/api/study/flashcards", {
     front: "Concurrent review guard",
