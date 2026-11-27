@@ -322,3 +322,64 @@ Implementation branch: \`fix/ukiyo-habits-heatmap-focus\`
 - The subsequent documentation-only branch-head run [#45986064683](https://github.com/eslam-alaa-gg/ossv2/actions/runs/45986064683) also completed with **SUCCESS**.
 - Phase 03's automated CI/API verification is complete. Real browser/device, mobile visual, offline/reconnect, and timezone-boundary manual/browser verification remain outstanding; these are not represented as passed.
 - No merge or deployment was performed.
+
+
+---
+
+# Phase 04 — Focus Zone Redesign & Functionality
+
+Phase status: **IMPLEMENTED — CI and manual responsive verification pending**
+Implementation branch: `fix/ukiyo-habits-heatmap-focus`
+
+## Existing functionality preserved
+
+The Focus Zone was inspected before editing. The existing implementation already contains:
+- Focus, short-break, long-break and custom session modes.
+- Start, pause, resume, end/reset and automatic completion flows.
+- Server-persisted sessions and restoration after a page reload.
+- Five selectable video scenes: forest, ocean, rain, sunset and cosmos.
+- Five photo presets and private user-uploaded background images.
+- Five timer presentations: ring, digital, minimal, progress bar and orbit.
+- Ambient sound controls, volume, YouTube Music panel, theme selection, keyboard shortcuts and immersive/fullscreen mode.
+- Focus task linking, daily/weekly statistics and session history.
+
+No duplicate Focus Room or background system was introduced.
+
+## Changes implemented
+
+1. **Timer clock reliability**
+   - The live countdown now uses the monotonic browser clock (`performance.now()`) rather than the adjustable device wall clock.
+   - Restored-session elapsed time is calculated against the API's `serverNow` timestamp, rather than the local device clock.
+   - Pausing now uses the server-returned `actualSeconds` as the source of truth for remaining time.
+2. **Session transition safety**
+   - Added a client-side transition lock to prevent repeated pause/resume/end actions from racing.
+   - Completion is prevented from racing with a pause/resume/end transition.
+   - Existing server-side conditional state transitions remain authoritative.
+3. **Readability customization**
+   - Added a persisted 0–80% background readability overlay control to the Focus background panel.
+   - Applied the overlay consistently in immersive mode and the regular Focus page.
+   - Existing theme, reduced-motion, background and timer-style preferences remain supported.
+4. **Regression coverage**
+   - Added an API E2E case that sends duplicate concurrent pause and resume requests and expects exactly one success and one conflict for each transition.
+
+## Media and licensing status
+
+The five existing video scene choices and their fallback CSS animations were retained. The source currently references external preview media URLs; the repository does not record the individual asset IDs or each asset's applicable license class. Since the applicable terms distinguish different license classes per video, the five specific clips are **not marked as license-cleared** by this phase. No additional video files were introduced and no licensing claim is made.
+
+## Verification status
+
+- [x] Existing Focus page, API, preference schema, styles and E2E coverage inspected.
+- [x] Timer changed to monotonic timing for live countdown.
+- [x] Session restoration uses server time.
+- [x] Pause uses server-recorded elapsed seconds.
+- [x] Client transition race guards added.
+- [x] Readability overlay preference and UI added.
+- [x] Concurrent pause/resume regression test added.
+- [ ] CI typecheck, lint, production build, migrations and API E2E run for the final Phase 04 head.
+- [ ] Desktop, tablet and mobile visual/touch QA.
+- [ ] Fullscreen behavior verified in real browsers and mobile devices.
+- [ ] Background video playback/fallback verified on real devices and network conditions.
+- [ ] Individual video asset license classes verified.
+- [ ] Drag/resize behavior: no draggable/resizable control was found in the Focus page itself; no new drag/resize interaction was invented. Existing fullscreen behavior was preserved but still needs browser QA.
+
+**Deployment/integration:** no merge, rebase, production deployment or preview deployment was performed.
