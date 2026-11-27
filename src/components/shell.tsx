@@ -360,7 +360,7 @@ function HabitQuickPanel() {
       setMessage((current) => current ? `${current} · Trackers: ${detail}` : `Trackers: ${detail}`);
     }
     setLoading(false);
-  }, [t]);
+  }, []);
 
   useEffect(() => { void load(); }, [load]);
   useEffect(() => {
