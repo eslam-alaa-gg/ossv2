@@ -489,7 +489,7 @@ The Spotify provider remains mounted at the application shell level. Focus now r
    - Existing PKCE uses a random verifier, SHA-256 challenge, random state and a short-lived HttpOnly/SameSite=Lax cookie.
    - The cookie is bound to the authenticated user ID; callback state comparison uses constant-time comparison after a length check.
    - Callback token-exchange network errors and token-persistence errors now return clear Music Hub error states instead of an unhandled generic failure.
-   - Secure-cookie detection now correctly reads the first value of a comma-separated forwarded-protocol header.
+   - Secure-cookie detection now derives the Secure flag from the canonical application origin, including when HTTPS is configured behind a proxy.
 
 2. **Spotify token storage**
    - Access and refresh tokens remain encrypted at rest using AES-256-GCM; the encryption key is derived from the server-only APP_SECRET, which must be at least 32 characters.
