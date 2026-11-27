@@ -332,13 +332,13 @@ function HabitQuickPanel() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    try {
-      const [h, tr] = await Promise.all([
-        api<{ habits: QuickHabit[] }>("/api/habits"),
-        api<QuickTrackers>("/api/trackers"),
-      ]);
-      setHabits(h.habits);
-      setTracker(tr);
+    setMessage("");
+    const [habitsResult, trackersResult] = await Promise.allSettled([
+      api<{ habits: QuickHabit[] }>("/api/habits"),
+      api<QuickTrackers>("/api/trackers"),
+    ]);
+    if (habitsResult.status === "fulfilled") {
+      setHabits(Array.isArray(habitsResult.value.habits) ? habitsResult.value.habits : []);
       try {
         const saved = localStorage.getItem("ukiyo.habit-quick.hidden");
         if (saved === null) {
@@ -346,15 +346,20 @@ function HabitQuickPanel() {
           localStorage.setItem("ukiyo.habit-quick.hidden", "[]");
         } else {
           const parsed: unknown = JSON.parse(saved);
-          setHiddenIds(Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === "string" && h.habits.some((item) => item.id === id)) : []);
+          setHiddenIds(Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === "string" && habitsResult.value.habits.some((item) => item.id === id)) : []);
         }
       } catch { setHiddenIds([]); }
-      setMessage("");
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : t("Could not load habit progress."));
-    } finally {
-      setLoading(false);
+    } else {
+      setMessage(habitsResult.reason instanceof Error ? `Habits: ${habitsResult.reason.message}` : "Habits could not be loaded.");
     }
+    if (trackersResult.status === "fulfilled") {
+      setTracker(trackersResult.value);
+    } else {
+      setTracker(null);
+      const detail = trackersResult.reason instanceof Error ? trackersResult.reason.message : "Tracker data could not be loaded.";
+      setMessage((current) => current ? `${current} · Trackers: ${detail}` : `Trackers: ${detail}`);
+    }
+    setLoading(false);
   }, [t]);
 
   useEffect(() => { void load(); }, [load]);
@@ -443,8 +448,9 @@ function HabitQuickPanel() {
               </div>
             </div>
             {customizing && <div className="mb-3 grid grid-cols-2 gap-2 rounded-xl border border-line bg-card p-2">{habits.map((habit) => <label key={habit.id} className="flex min-w-0 items-center gap-2 text-xs"><input type="checkbox" checked={!hiddenIds.includes(habit.id)} onChange={() => toggleVisible(habit.id)} /><span className="truncate">{t(habit.name)}</span></label>)}</div>}
-            {loading && !tracker ? <p className="py-5 text-center text-xs text-muted">{t("Loading…")}</p> : message ? <p role="alert" className="text-xs text-muted">{message}</p> : (
+            {loading && !tracker && !habits.length ? <p className="py-5 text-center text-xs text-muted">{t("Loading…")}</p> : !habits.length && !tracker && message ? <div className="space-y-2 py-3"><p role="alert" className="text-xs text-muted">{message}</p><button type="button" onClick={() => void load()} className="w-full rounded-lg bg-card px-3 py-2 text-xs text-accent">{t("Try again")}</button></div> : (
               <>
+                {message && <p role="status" className="mb-2 text-[10px] text-amber-400">{message}</p>}
                 <div className="grid max-h-[min(55vh,320px)] grid-cols-3 gap-1 overflow-y-auto">
                   {tracker && waterVisible && <HabitProgressButton label={t("Drink Water")} icon="water" amount={waterCups} target={Math.max(1, waterGoal)} disabled={busy || waterCups >= waterGoal} onClick={() => void addWater()} />}
                   {readingVisible && tracker && <HabitProgressButton label={t("Read Books")} icon="reading" amount={tracker.reading.todayPages} target={reading?.target ?? tracker.reading.target} onClick={() => setActiveEntry((value) => value === "reading" ? null : "reading")} />}
