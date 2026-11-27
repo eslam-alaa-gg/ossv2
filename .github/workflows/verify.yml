@@ -24,10 +24,10 @@ jobs:
       APP_SECRET: throwaway-ci-secret-0123456789-0123456789
       NEXT_TELEMETRY_DISABLED: "1"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
       - name: Install
@@ -92,7 +92,7 @@ jobs:
       - name: Server errors
         if: always()
         run: grep -n -i -A6 "error" /tmp/server.log | head -80 || echo "no server errors logged"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: always()
         with:
           name: screenshots
