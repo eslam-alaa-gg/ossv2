@@ -396,6 +396,22 @@ await test("focus pause and resume preserve active time and enforce session owne
   assert.ok(ended.json.session.actualSeconds <= 5);
 });
 
+await test("focus session state transitions reject concurrent duplicate pause and resume requests", async () => {
+  const session = (await A.req("POST", "/api/focus", { mode: "focus", minutes: 5 })).json.session;
+  assert.ok(session?.id);
+  const pauses = await Promise.all([
+    A.req("POST", `/api/focus/${session.id}`, { action: "pause" }),
+    A.req("POST", `/api/focus/${session.id}`, { action: "pause" }),
+  ]);
+  assert.deepEqual(pauses.map((result) => result.status).sort(), [200, 409]);
+  const resumes = await Promise.all([
+    A.req("POST", `/api/focus/${session.id}`, { action: "resume" }),
+    A.req("POST", `/api/focus/${session.id}`, { action: "resume" }),
+  ]);
+  assert.deepEqual(resumes.map((result) => result.status).sort(), [200, 409]);
+  assert.equal((await A.req("POST", `/api/focus/${session.id}`, { action: "end" })).status, 200);
+});
+
 await test("Focus background and custom font uploads are validated and private per account", async () => {
   const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
   const imageForm = new FormData();
