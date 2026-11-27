@@ -9,6 +9,7 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.text.InputType
 
 class MainActivity : Activity() {
     private val prefs by lazy { getSharedPreferences("bridge", MODE_PRIVATE) }
@@ -32,22 +33,26 @@ class MainActivity : Activity() {
         val server = EditText(this).apply {
             hint = "OSSv2 URL (https://your-site.example)"
             setSingleLine(true)
-            setText(prefs.getString("server", ""))
+            setText(SecureBridgePrefs.read(this@MainActivity, "server"))
         }
         val token = EditText(this).apply {
             hint = "Device token from OSSv2"
             setSingleLine(true)
-            setText(prefs.getString("token", ""))
+            setText(SecureBridgePrefs.read(this@MainActivity, "token"))
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
         }
         root.addView(server, ViewGroup.LayoutParams(-1, -2))
         root.addView(token, ViewGroup.LayoutParams(-1, -2))
         root.addView(Button(this).apply {
             text = "Save device connection"
             setOnClickListener {
-                prefs.edit()
-                    .putString("server", server.text.toString().trim().trimEnd('/'))
-                    .putString("token", token.text.toString().trim())
-                    .apply()
+                try {
+                    SecureBridgePrefs.write(this@MainActivity, "server", server.text.toString().trim().trimEnd('/'))
+                    SecureBridgePrefs.write(this@MainActivity, "token", token.text.toString().trim())
+                    android.widget.Toast.makeText(this@MainActivity, "Encrypted connection saved.", android.widget.Toast.LENGTH_SHORT).show()
+                } catch (_: Exception) {
+                    android.widget.Toast.makeText(this@MainActivity, "Could not securely save the connection. Please try again.", android.widget.Toast.LENGTH_LONG).show()
+                }
             }
         })
         root.addView(Button(this).apply {
