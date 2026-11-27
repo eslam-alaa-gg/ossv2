@@ -1239,6 +1239,8 @@ const ar: Record<string, string> = {
   "Push notifications are working.": "إشعارات المتصفح تعمل بشكل صحيح.",
   "complete": "مكتملة",
   "Empty note": "ملاحظة فارغة",
+  "Readability overlay": "طبقة تحسين وضوح النص",
+  "Increase the shade behind the timer and controls for clearer text.": "زِد تعتيم الخلفية خلف المؤقت وأزرار التحكم لقراءة أوضح.",
 };
 
 export function translate(lang: Lang, s: string): string {
