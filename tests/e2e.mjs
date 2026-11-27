@@ -142,6 +142,18 @@ await test("focus: cannot complete before duration elapsed; early end gives no X
   const e = await A.req("POST", `/api/focus/${s.id}`, { action: "end", activeSeconds: 14000 });
   assert.equal(e.json.xp, 0); assert.ok(e.json.session.actualSeconds <= 5);
 });
+await test("focus: concurrent starts leave exactly one active session", async () => {
+  const starts = await Promise.all([
+    A.req("POST", "/api/focus", { mode: "focus", minutes: 25 }),
+    A.req("POST", "/api/focus", { mode: "custom", minutes: 30 }),
+  ]);
+  assert.ok(starts.every((response) => response.status === 200), starts.map((response) => response.text).join("\\n"));
+  const current = await A.req("GET", "/api/focus");
+  assert.ok(current.json.running?.id, "one active session is returned");
+  assert.ok(["focus", "custom"].includes(current.json.running.mode));
+  const ended = await A.req("POST", `/api/focus/${current.json.running.id}`, { action: "end" });
+  assert.equal(ended.status, 200);
+});
 await test("habit completion rewards once per day; heatmap counts verified records", async () => {
   const a = await A.req("POST", `/api/habits/${habitA.id}/log`, { amount: 1 });
   assert.equal(a.json.xp, 5);
