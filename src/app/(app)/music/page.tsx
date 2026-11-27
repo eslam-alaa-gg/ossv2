@@ -57,7 +57,7 @@ function Inner() {
   if (tab === "detection") return <><div className="mb-4">{tabControl}</div><MusicBridgePanel /></>;
   if (tab === "youtube") {
     return <>
-      <PageHeader title={t("Music")} subtitle={t("Search and play YouTube videos from inside Ukiyo.")} actions={tabControl} />
+      <PageHeader title={t("Music")} subtitle={lang === "ar" ? "ابحث عن الأغاني واخترها وشغّلها داخل Ukiyo." : "Search, choose and play songs inside Ukiyo."} actions={tabControl} />
       <Card className="mx-auto max-w-3xl"><YouTubeMusicPlayer /></Card>
     </>;
   }
