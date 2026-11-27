@@ -12,10 +12,10 @@ type YouTubeSearchResponse = {
 
 export const GET = handle(async (req) => {
   const auth = await requireUser();
-  rateLimit(`youtube-search:user:${auth.id}`, 12, 60_000);
-  rateLimit(`youtube-search:ip:${await clientIp()}`, 30, 60_000);
   const q = (req.nextUrl.searchParams.get("q") ?? "").trim().slice(0, 120);
   if (q.length < 2) throw new ApiError(400, "Enter at least 2 characters to search.");
+  rateLimit(`youtube-search:user:${auth.id}`, 12, 60_000);
+  rateLimit(`youtube-search:ip:${await clientIp()}`, 30, 60_000);
   const key = process.env.YOUTUBE_API_KEY;
   if (!key) throw new ApiError(503, "YouTube search is not configured. Add YOUTUBE_API_KEY to the server environment.", "not_configured");
   const params = new URLSearchParams({
