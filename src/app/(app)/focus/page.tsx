@@ -130,7 +130,7 @@ function FocusNowPlaying({ immersive = false }: { immersive?: boolean }) {
         </span>
         <Music2 className="size-4 shrink-0 text-white/65" />
       </button>
-      {open && <div role="dialog" aria-label={t("Music controls")} className="absolute bottom-[calc(100%+10px)] left-1/2 w-[min(92vw,360px)] -translate-x-1/2 rounded-2xl border border-white/15 bg-[#11131b]/95 p-3 text-white shadow-2xl backdrop-blur-2xl">
+      {open && <div role="dialog" aria-label={t("Music controls")} className="absolute bottom-[calc(100%+10px)] left-1/2 max-h-[min(75vh,640px)] w-[min(92vw,390px)] -translate-x-1/2 overflow-y-auto rounded-2xl border border-white/15 bg-[#11131b]/95 p-3 text-white shadow-2xl backdrop-blur-2xl">
         {displayTitle ? <>
           <div className="flex items-center gap-3">
             <div className="size-12 shrink-0 overflow-hidden rounded-xl bg-white/10">{displayArtwork ? <img src={displayArtwork} alt="" className="size-full object-cover" /> : <div className="grid size-full place-items-center"><Music2 className="size-5" /></div>}</div>
