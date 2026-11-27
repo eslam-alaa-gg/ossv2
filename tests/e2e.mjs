@@ -57,7 +57,7 @@ await test("session cookie is HttpOnly + SameSite", async () => {
   const c = new Client();
   const r = await c.req("POST", "/api/auth/login", { email: emailA, password: pw }, true);
   const sc = r.headers.getSetCookie().find((x) => x.startsWith("lifeos_session"));
-  assert.match(sc, /HttpOnly/i); assert.match(sc, /SameSite=lax/i);
+  assert.match(sc, /HttpOnly/i); assert.match(sc, /SameSite=lax/i); assert.match(sc, /Secure/i);
 });
 await test("duplicate email rejected, weak password rejected, wrong password rejected", async () => {
   assert.equal((await anon.req("POST", "/api/auth/signup", { email: emailA, password: pw, displayName: "Dup Dup" })).status, 409);
@@ -265,6 +265,19 @@ await test("CSRF: cross-origin and metadata-free cookie mutations blocked", asyn
   assert.equal(missingMetadata.status, 403);
   const sameOrigin = await A.req("POST", "/api/tasks", { title: "same-origin-csrf-regression" });
   assert.equal(sameOrigin.status, 200);
+});
+await test("CSRF: mismatched Origin is rejected even with same-origin Fetch Metadata", async () => {
+  const res = await fetch(BASE + "/api/tasks", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Origin: "https://evil.example",
+      "Sec-Fetch-Site": "same-origin",
+      Cookie: `lifeos_session=${A.jar.lifeos_session}`,
+    },
+    body: JSON.stringify({ title: "forged origin" }),
+  });
+  assert.equal(res.status, 403);
 });
 await test("Spotify routes: auth required, status reflects config", async () => {
   assert.equal((await anon.req("GET", "/api/spotify/status")).status, 401);
