@@ -26,13 +26,19 @@ jobs:
     env:
       DATABASE_URL: postgresql://ci:ci@127.0.0.1:5432/ci
       APP_SECRET: ci-only-secret-with-at-least-thirty-two-characters
+      NEXT_PUBLIC_SITE_URL: https://ossv2-ci.invalid
       NEXT_TELEMETRY_DISABLED: "1"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm install --no-audit --no-fund --no-package-lock
+      - name: Resolve and audit dependency lock
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+      - name: Audit resolved dependency tree
+        run: npm audit --audit-level=moderate
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
       - run: npm run typecheck
       - run: npm run lint
       - run: npm run build
