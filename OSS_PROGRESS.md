@@ -1,0 +1,189 @@
+# OSSv2 Audit & Progress Report
+
+Audit date: 2026-11-27
+Repository: `eslam-alaa-gg/ossv2`
+Target branch: `fix/ukiyo-habits-heatmap-focus`
+Audit baseline commit: `1099d3989ff7740765e75728badc39774170f63c`
+Default branch: `main`
+Phase: 01 — Complete Repository Audit
+Phase status: **NEEDS VERIFICATION** (remote source audit completed; local working tree and runtime checks unavailable)
+
+## 1. Repository and Git state
+
+- Repository is public and accessible; default branch is `main`.
+- Target branch exists and points to `1099d3989ff7740765e75728badc39774170f63c` at audit start.
+- Comparison `main...fix/ukiyo-habits-heatmap-focus`: **281 commits ahead, 15 commits behind; status = diverged**.
+- Merge base: `d2617ce94b9d45b984c799352b2908e6f075f39b`.
+- `main` head at audit: `51c4d7fa225d0cf9a65464ae0714e065192a0271`.
+- The target branch contains 150 tracked file entries in its recursive Git tree.
+- GitHub's remote API does not expose the local checkout's uncommitted working-tree state. Therefore local dirty/clean status is **not verified**; this report must not be interpreted as proof that a developer's local workspace is clean.
+- No merge, rebase, reset, force-push, or deployment was performed.
+
+### Branch divergence risk
+
+The 15 commits present on `main` but absent from the target branch include changes to Focus, Habits, Shell/navigation, Spotify, Music Bridge, Heatmap, tracker/server logic, and a new per-card review route at `src/app/api/study/flashcards/[id]/review/route.ts`. The target branch has substantial independent work, including Study Planner, focus backgrounds/pause recovery, custom fonts, daily study suggestions, tracker idempotency, YouTube Music, offline storage, and related migrations.
+
+**Recommendation:** do not merge or rebase blindly. First inspect the 15 main-only commits and reconcile the affected files and API contracts deliberately, preserving both sides' work.
+
+## 2. Architecture inventory
+
+- Framework: Next.js 16 App Router, React 19, TypeScript.
+- Styling/UI: Tailwind CSS 4, custom UI primitives, Framer Motion, Lucide icons, Recharts.
+- Data: PostgreSQL in a dedicated `ossv2` schema, Drizzle ORM, SQL migrations under `drizzle/`.
+- Authentication: server-side session handling, HttpOnly session cookie, password hashing, Google/Supabase OAuth callback flow.
+- Client state/data: shared providers and API helpers; IndexedDB/Dexie offline database and queued actions.
+- Integrations: Spotify PKCE, YouTube Data API search, Android and Windows Music Bridge clients, optional Resend email and Web Push.
+- Native bridge sources: Android Kotlin and Windows C#.
+- CI: GitHub Actions workflow `.github/workflows/ci.yml`.
+- Tests: one API-oriented end-to-end script, `tests/e2e.mjs`.
+
+### Main source areas
+
+- `src/app/(app)/`: dashboard, tasks, habits, focus, study, goals, calendar, analytics, music, themes, settings, profile, review, vault, achievements and other application pages.
+- `src/app/(auth)/`: login, signup, verification, password reset and forgot-password pages.
+- `src/app/api/`: authentication, user preferences/profile, tasks, habits, trackers, focus, study, music, Spotify, analytics, notifications, goals, search and supporting APIs.
+- `src/components/`: application shell, providers, UI primitives, heatmap, habit icons, Spotify and music bridge components.
+- `src/lib/`: client API helpers, date utilities, i18n, preferences, themes, offline database and server-side domain/auth/security/integration helpers.
+- `src/db/` and `drizzle/`: schema, DB connection, migration SQL and Drizzle snapshots/journal.
+- `native/`: Android and Windows music bridge apps.
+- `public/`: app icon, manifest, service worker and font documentation.
+
+## 3. Feature inventory
+
+Status definitions:
+- **WORKING**: implementation and meaningful verification evidence are both available.
+- **PARTIALLY WORKING**: substantial implementation exists, but coverage or integration is incomplete.
+- **BROKEN**: a reproducible failure is confirmed.
+- **MISSING**: no implementation was found for the scoped requirement.
+- **NEEDS VERIFICATION**: source exists, but runtime/browser/device behavior has not been verified in this audit.
+
+No feature is labelled WORKING solely because a component or endpoint exists. No reproducible application failure was confirmed from this remote source-only audit.
+
+| Area | Status | Repository evidence and remaining verification |
+|---|---|---|
+| Application architecture and routing | PARTIALLY WORKING | App Router pages and API routes are present. Full route-by-route runtime verification has not been run. |
+| Authentication and account lifecycle | NEEDS VERIFICATION | Login/signup/verification/reset/callback routes, server auth helpers and E2E cases exist. Execute the suite against a configured database and validate OAuth provider configuration. |
+| User data isolation / IDOR | NEEDS VERIFICATION | README documents owner-scoped queries and server-derived session identity; E2E cases cover cross-user list/read/update/delete and foreign IDs. Tests were not executed in this audit. |
+| Tasks, goals, milestones, notes, journal | NEEDS VERIFICATION | Pages and APIs exist; current E2E script covers task/goal/milestone creation, ownership and task rewards. UI workflows and edge cases remain unverified. |
+| Habits | PARTIALLY WORKING | Habits page, habit templates, server helpers, APIs and quick tracker exist. Current tests cover per-user tracker/habit progress and rewards; browser behavior, editing flows, date/time edge cases and offline reconciliation need verification. |
+| Top-bar Quick Habit Tracker | PARTIALLY WORKING | `HabitQuickPanel` exists in `src/components/shell.tsx`, with Drink Water, Read Books, Learn Something New, standard habits, progress rings and customization/visibility controls. It currently appears immediately after the search button on the left side of the top bar; if the intended final placement differs, adjust only after confirming the current UX requirement. |
+| Water / Reading / Learning trackers | NEEDS VERIFICATION | Dedicated tracker APIs, per-user storage and linked habit progress are implemented. E2E cases cover logging, persistence, user isolation and idempotent retries. Actual browser and offline retry behavior remains untested. |
+| Contribution heatmap | NEEDS VERIFICATION | Heatmap component supports daily levels 0–4 and activity detail; analytics API and E2E assertions cover verified activity and zero-activity users. CSS color mapping, real data aggregation, timezone boundaries and visual rendering need browser verification. |
+| Focus Room / timer | PARTIALLY WORKING | Focus page contains modes, timer, start/pause/resume/end/complete flows, session restoration, keyboard shortcuts, fullscreen/immersive mode and ambient sound. API tests cover early completion and pause/resume ownership. Real timer accuracy, mobile fullscreen and interruption recovery are not verified. |
+| Focus backgrounds | PARTIALLY WORKING | Five video scenes (forest/ocean/rain/sunset/cosmos), five photo presets, user-uploaded background image and persistence API are present. Remote video availability, autoplay restrictions, performance and mobile behavior need verification. |
+| Theme Studio | PARTIALLY WORKING | Theme page supports appearance modes, presets, accent colors, glass/background/gradient controls, fonts, custom fonts and saved themes. Cross-page application, persistence and contrast/accessibility need browser verification. |
+| Global search / command menu | PARTIALLY WORKING | Command menu, keyboard shortcut, navigation actions and server search API exist. It is triggered by the top-bar search icon and Ctrl/Cmd+K. Search placement and keyboard/mobile interaction require UI verification. |
+| Study Planner / flashcards | PARTIALLY WORKING | Study page, subjects, flashcard APIs, due-card listing, review history, scheduling and suggestions exist. E2E tests cover account scoping, review schedule/history and suggestion decisions. Study UI and scheduling edge cases remain unverified. |
+| Study review API contract | NEEDS VERIFICATION | Target branch E2E uses `POST /api/study/review` with `cardId`; main additionally contains `POST /api/study/flashcards/[id]/review`. Reconcile this branch divergence deliberately; do not introduce duplicate review flows or break existing clients. |
+| Spotify Music Hub | PARTIALLY WORKING | Spotify PKCE helpers, encrypted token storage, refresh logic, provider/UI and routes exist. E2E coverage checks auth/config, but live Spotify OAuth, Premium/device playback, rate limits and real account behavior were not exercised. |
+| Music Detection / native bridge | PARTIALLY WORKING | Music Bridge UI/API and Android/Windows native sources exist. E2E script covers pairing, now-playing push, account isolation and revocation. Actual installation, permissions, background behavior and device compatibility require physical-device verification. |
+| YouTube Music search/player | PARTIALLY WORKING | YouTube Music component and server search route exist; Focus integrates the player. Requires configured API key and real browser/API verification. |
+| Offline support | NEEDS VERIFICATION | Dexie/IndexedDB storage, offline snapshots, queued actions and shell synchronization are present. Multi-user isolation, replay conflicts, duplicate prevention and reconnect behavior need browser/network testing. |
+| Notifications / email / push | PARTIALLY WORKING | Notification APIs, UI, service worker and optional Resend/VAPID configuration exist. README explicitly requires external credentials and a scheduled cron request for delivery. Provider configuration and actual delivery are not verified. |
+| Arabic / RTL / i18n | NEEDS VERIFICATION | Language switch, translation dictionary and logical RTL-aware styling exist. README says untranslated strings fall back to English. Full page-by-page Arabic layout and missing translations need visual review. |
+| Security / rate limiting | PARTIALLY WORKING | Session/token handling, validation helpers, ownership checks and encrypted Spotify credentials exist. README notes that rate limiting is in-memory/per-instance and PostgreSQL RLS is not the current enforcement mechanism. Review before scaling or changing DB access. |
+| Database migrations | NEEDS VERIFICATION | Ten migration SQL files and Drizzle journal/snapshots exist. CI workflow includes migration application, but no workflow run was available for the audited head. Verify a clean disposable database migration end-to-end. |
+| Browser / visual E2E coverage | MISSING | The repository contains API-oriented `tests/e2e.mjs`, but no browser automation suite or visual regression suite was found in the branch tree. This does not mean the app lacks UI; it means automated browser verification is absent from this repository snapshot. |
+| Unit/component test coverage | MISSING | No dedicated unit/component test files or test runner script were found in the audited tree. |
+| Duplicate feature implementations | NEEDS VERIFICATION | No confirmed duplicate user-facing system was established. The Study review endpoint divergence and overlapping Spotify/native music surfaces need contract-level review before any consolidation. |
+
+## 4. E2E coverage found
+
+The current `tests/e2e.mjs` contains 33 named API test cases, including:
+- Signup/login/session cookie/protected routes.
+- Cross-user data isolation and IDOR checks.
+- Tasks, goals, milestones, habits, challenges and XP idempotency.
+- Focus early-completion validation and pause/resume ownership.
+- Heatmap aggregation and user isolation.
+- Preferences/profile persistence and avatar lifecycle.
+- CSRF checks and password reset/account deletion.
+- Spotify route authentication/configuration.
+- Study subjects, flashcards, spaced repetition and daily suggestions.
+- Water/reading/learning trackers and idempotent retry handling.
+- Focus image/custom font uploads and account privacy.
+- Music Bridge pairing, now-playing updates and device revocation.
+
+These are test definitions, not proof of a passing run. The audited commit had no GitHub commit status entries and no associated workflow runs returned by the GitHub API. The audit environment did not provide a local checkout or running application, so no npm scripts or E2E tests were executed.
+
+## 5. Configuration and integration dependencies
+
+Required for a meaningful local/CI run:
+- `DATABASE_URL`
+- `APP_SECRET` (at least 32 characters)
+
+Optional integrations documented in `.env.example`:
+- Supabase public URL/publishable key for the configured auth flow.
+- `SPOTIFY_CLIENT_ID` and optional redirect URI.
+- `YOUTUBE_API_KEY`.
+- Resend API key/from address.
+- VAPID public/private keys, subject and cron secret.
+
+Never copy real secrets into this report, source control, logs or chat.
+
+## 6. Confirmed limitations and fragile areas
+
+1. Branch divergence is the highest integration risk: 281 commits ahead and 15 behind.
+2. Main-only changes touch the same high-risk files as the target branch, especially Focus, Habits, Shell, Heatmap, Music Bridge and Spotify.
+3. Study review routes/contracts differ between the branch and main.
+4. README describes a demo entry flow, while the current E2E test asserts the legacy `/api/auth/demo` endpoint is not exposed. Confirm whether documentation refers to a separate current demo flow or is stale.
+5. README documents in-memory rate limiting, which is not shared across horizontally scaled instances.
+6. README documents that the `ossv2` schema is server-side and not protected by per-user Postgres RLS; owner scoping currently relies on server-side authenticated handlers.
+7. External media/API behavior (Focus videos, Spotify, YouTube, push and email) depends on third-party availability and environment configuration.
+8. No automated browser suite was found, so responsive layout, pointer/touch interactions and visual regressions are not covered by the current API test file.
+9. Local uncommitted changes cannot be assessed through the remote GitHub API.
+
+## 7. Prioritized implementation roadmap
+
+### P0 — Protect and reconcile branch state
+- Capture a local working-tree backup/checkpoint before syncing.
+- Review the 15 main-only commits and their patches, especially the shared high-risk files.
+- Prepare a file-by-file integration plan; preserve branch-only features and main-only fixes.
+- Reconcile Study review API contracts and update tests without duplicate endpoints or broken clients.
+- Do not merge/rebase until conflicts and behavior are understood.
+
+### P1 — Establish a reproducible baseline
+- Run install, typecheck, lint, build and database migrations on a local checkout of the exact target commit.
+- Run all 33 API E2E cases against a disposable database.
+- Record exact failures and distinguish code defects from environment/test timing issues.
+- Verify CI on the exact branch head.
+
+### P2 — Verify core data and security flows
+- Auth, user isolation, IDOR, CSRF, ownership, task/habit/goal persistence and deletion cascades.
+- Tracker progress, idempotency, linked habits, timezone handling and heatmap calculations.
+- Review session, rewards and offline queue consistency.
+
+### P3 — Verify Focus and learning experiences
+- Focus timer restoration, pause/resume, completion validation, five video scenes, uploaded image, sound and mobile immersive mode.
+- Study flashcards, due dates, review history, suggestions and review endpoint compatibility.
+
+### P4 — Verify music integrations
+- Spotify OAuth/refresh/playback with a real authorized test account.
+- YouTube search with configured API key.
+- Android/Windows Music Bridge installation, permissions, pairing, push and revocation.
+
+### P5 — UI/UX, responsive and accessibility verification
+- Confirm top-bar search placement and quick tracker UX.
+- Verify themes apply consistently across pages.
+- Check desktop/tablet/mobile, Arabic RTL, keyboard navigation, focus visibility, touch targets and overflow.
+- Add browser E2E coverage for critical user journeys and mobile Focus behavior.
+
+### P6 — Hardening and documentation
+- Review shared rate limiting, security boundaries, migration reproducibility and dependency health.
+- Resolve README/demo-flow inconsistencies.
+- Document external service setup and known limitations accurately.
+
+## 8. Phase 01 completion checklist
+
+- [x] Remote repository and target branch identified.
+- [x] Branch head and main head recorded.
+- [x] Branch divergence measured in both directions.
+- [x] Recursive target-branch file tree inspected.
+- [x] Architecture and key source areas inventoried.
+- [x] Main-only changes identified for careful reconciliation.
+- [x] Key pages, components, APIs, schema, migrations, E2E tests and CI configuration reviewed.
+- [x] Feature inventory and prioritized roadmap created.
+- [ ] Local working-tree status inspected (not available through remote GitHub API).
+- [ ] Typecheck/lint/build/migrations/E2E executed (not run in this remote-only audit).
+- [ ] Browser/mobile behavior verified (not run).
+
+**Phase 01 outcome:** remote source audit and roadmap are documented. Runtime and local-worktree verification remain explicitly open. No application source code was changed in this phase; only this audit report is being added.
