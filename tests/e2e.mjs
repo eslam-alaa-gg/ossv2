@@ -71,7 +71,7 @@ await test("protected API routes require auth (401)", async () => {
     assert.equal((await anon.req("GET", p)).status, 401, p);
   }
 });
-await test("protected pages redirect to /login", async () => {
+await test("YouTube search rejects queries shorter than two characters", async () => {\n  assert.equal((await A.req("GET", "/api/youtube/search?q=x")).status, 400);\n});\nawait test("protected pages redirect to /login", async () => {
   const r = await anon.req("GET", "/dashboard", undefined, true);
   assert.ok([307, 308].includes(r.status), `status ${r.status}`);
   assert.match(r.headers.get("location") ?? "", /\/login/);
