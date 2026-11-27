@@ -357,6 +357,7 @@ No duplicate Focus Room or background system was introduced.
    - Existing server-side conditional state transitions remain authoritative.
 3. **Readability customization**
    - Added a persisted 0–80% background readability overlay control to the Focus background panel.
+   - Added the Arabic translation for the new readability control and helper text.
    - Applied the overlay consistently in immersive mode and the regular Focus page.
    - Existing theme, reduced-motion, background and timer-style preferences remain supported.
 4. **Regression coverage**
