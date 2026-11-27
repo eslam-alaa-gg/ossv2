@@ -70,7 +70,17 @@ export default function DashboardPage() {
     const items = current.map((i) => (i.id === key ? { ...i, w: width, x: Math.min(i.x, COLUMNS[bp] - width) } : i));
     saveDashboard({ ...dashboard, sizes: { ...sizes, [key]: size }, layouts: { ...layouts, [bp]: mergeHidden(items, layouts[bp]) } });
   };
-  const resetLayout = () => saveDashboard({ ...DEFAULT_PREFS.dashboard, widgets: w });
+  const resetLayout = () => {
+    // Reset every breakpoint to a fresh, deterministic layout; never reuse stale saved positions.
+    const order = [...WIDGETS];
+    const sizes: Record<string, Size> = Object.fromEntries(WIDGETS.map((key) => [key, "standard" as const]));
+    const layouts: Prefs["dashboard"]["layouts"] = {
+      lg: resolveLayout(undefined, order.filter((key) => w[key] !== false), sizes, "lg"),
+      md: resolveLayout(undefined, order.filter((key) => w[key] !== false), sizes, "md"),
+      sm: resolveLayout(undefined, order.filter((key) => w[key] !== false), sizes, "sm"),
+    };
+    saveDashboard({ widgets: w, order, sizes, layouts });
+  };
   // The list mirrors what is on screen; hidden widgets follow it.
   const listed = [...current.map((i) => i.id), ...order.filter((k) => !show(k))].filter((k) => (WIDGETS as readonly string[]).includes(k));
   const hour = hourIn(user?.timezone);
