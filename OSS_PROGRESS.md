@@ -390,7 +390,7 @@ The five existing video scene choices and their fallback CSS animations were ret
 
 # Phase 05 — Study & Learning System
 
-Phase status: **IMPLEMENTED — corrected TypeScript issue; latest CI pending; browser/mobile QA not performed**
+Phase status: **IMPLEMENTED — full automated CI passed (38/38 API E2E); browser/mobile QA not performed**
 Implementation branch: `fix/ukiyo-habits-heatmap-focus`
 
 ## Existing system preserved
@@ -449,7 +449,8 @@ No parallel flashcard, task, or learning system was created. Existing records an
 - [x] Due queue refreshes on focus and at a one-minute interval while visible.
 - [x] Loading/error/retry states added for subjects, flashcards and due reviews.
 - [x] Regression tests added for all four rating schedules and persisted results.
-- [ ] TypeScript, ESLint, production build, migrations and API E2E — latest corrected-head GitHub Actions run pending at time of this update.
+- [x] TypeScript, ESLint, production build, database migrations, application startup/health check and API E2E all passed on commit `ad78cb08228a7f1cad33230e013768c6ee091ff1`.
+- [x] API end-to-end suite: **38/38 passed**, including all four spaced-repetition rating schedules, persisted review metadata, due queue filtering and concurrent duplicate-review protection.
 - [x] Initial CI exposed an unsupported Button variant in the new retry states; replaced it with the supported `glass` variant before the latest run. Earlier failed CI runs are not treated as successful verification.
 - [ ] Real desktop/tablet/mobile browser QA, including touch navigation and narrow-screen review controls.
 - [ ] Offline queue replay/reconnect and IndexedDB account-switching behavior require browser/network verification; not claimed as passed.
@@ -460,6 +461,6 @@ Implementation commits:
 - `751817153bad5a83eb4e04a29361ed82db71d651` — learning progress summary, review UX states, due refresh and matching offline schedule preview.
 - `3906676bb43e699d9a8f3c422fe48b8d666962e3` — regression coverage for all rating schedules and persistence.
 
-CI runs: [#45988700249](https://github.com/eslam-alaa-gg/ossv2/actions/runs/45988700249) and [#45988917329](https://github.com/eslam-alaa-gg/ossv2/actions/runs/45988917329) — the first failed at TypeScript because of unsupported retry-button variants; the corrected-head run #299 was pending at the time of this update.
+CI: [#45988972752](https://github.com/eslam-alaa-gg/ossv2/actions/runs/45988972752) — **completed successfully**. All workflow steps passed, including typecheck, lint, production build, database migrations, application health and **38/38 API E2E tests**. Earlier failed runs were superseded by the corrected successful run.
 
 No merge, rebase, reset, force-push, preview deployment or production deployment was performed.
