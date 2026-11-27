@@ -38,6 +38,20 @@ object SecureBridgePrefs {
         return generator.generateKey()
     }
 
+    /** Move credentials from the previous plaintext preference file, then erase that file. */
+    fun migrateLegacy(context: Context) {
+        val legacy = context.getSharedPreferences("bridge", Context.MODE_PRIVATE)
+        val oldServer = legacy.getString("server", "").orEmpty()
+        val oldToken = legacy.getString("token", "").orEmpty()
+        try {
+            if (oldServer.isNotBlank()) write(context, "server", oldServer)
+            if (oldToken.isNotBlank()) write(context, "token", oldToken)
+        } finally {
+            // Never leave the former bearer token in an unencrypted preferences file.
+            legacy.edit().clear().commit()
+        }
+    }
+
     fun read(context: Context, name: String): String {
         val encoded = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(name, null)
             ?: return ""
