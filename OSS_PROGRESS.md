@@ -470,7 +470,7 @@ No merge, rebase, reset, force-push, preview deployment or production deployment
 
 # Phase 06 — Music Hub & Spotify
 
-Phase status: **IMPLEMENTED — source hardening and API regression assertions committed; final CI and native/live-account verification pending**
+Phase status: **IMPLEMENTED — final web CI passed (38/38 API E2E); native/live-account verification remains pending**
 
 Implementation branch: `fix/ukiyo-habits-heatmap-focus`
 
@@ -523,6 +523,7 @@ The Spotify provider remains mounted at the application shell level. Focus now r
 ## Regression coverage
 
 - Existing Spotify E2E coverage verifies authenticated status access, disconnected-state behavior, rejection of untrusted artwork hosts and callback state mismatch.
+- Added per-user Spotify preference assertions for Dynamic Album Ambience and auto-refresh, including persistence after logout/login and isolation from another account.
 - The disconnected now-playing assertion now also verifies the explicit `expired` error code used by the reconnect UI.
 - Existing Music Detection E2E coverage exercises pair → authenticated metadata push → now-playing retrieval → account isolation → revoke → rejection of the revoked token.
 - Added assertions that the device token is not exposed in the device-list response and that an invalid bearer token is rejected.
@@ -538,11 +539,13 @@ The Spotify provider remains mounted at the application shell level. Focus now r
 - [x] Android and Windows native clients require HTTPS before sending bearer tokens.
 - [x] Focus Music panel now includes Spotify now-playing alongside YouTube Music.
 - [x] E2E assertions added for private device-token responses, invalid bearer rejection and expired-connection classification.
-- [ ] Final CI on the Phase 06 head: pending.
-- [ ] Android Gradle build/APK install and real notification-listener permission test: not run in this remote GitHub-only session.
-- [ ] Windows .NET build and real Spotify media-session test: not run.
+- [x] Final CI on the Phase 06 head: [run #45990863339](https://github.com/eslam-alaa-gg/ossv2/actions/runs/45990863339) completed successfully for commit `b97f6f2f4b2460b4ced9c0c603de7dc80984350e`.
+- [ ] Android Gradle build/APK install and real notification-listener permission test: not run in this remote GitHub-only session. The repository CI does not build the native Android project.
+- [ ] Windows .NET build and real Spotify media-session test: not run. The repository CI does not build the native Windows project.
 - [ ] Live Spotify OAuth authorization, refresh against Spotify, Premium playback, transfer, unavailable-device and rate-limit scenarios: not run; no real authorized Spotify account/device was available.
 - [ ] Browser verification of Music Hub, Focus panel, Arabic/RTL and mobile states: not run.
+
+**CI result:** run [#45990863339](https://github.com/eslam-alaa-gg/ossv2/actions/runs/45990863339) passed dependency installation, TypeScript, ESLint, production build, database migrations, application health and **38/38 API E2E tests** on the final Phase 06 implementation/test commit.
 
 **Important:** Spotify playback is **not claimed as verified**. The code paths and API contracts were audited, but only a real authorized Spotify account plus an available Spotify device can establish actual playback behavior. The native bridge projects are source code and are not packaged installers in this repository snapshot.
 
