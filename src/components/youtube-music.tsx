@@ -7,7 +7,7 @@ import { api } from "@/lib/client";
 
 type Video = { id: string; title: string; channel: string; thumbnail: string; publishedAt: string };
 
-export function YouTubeMusicPlayer({ compact = false }: { compact?: boolean }) {
+export function YouTubeMusicPlayer({ compact = false, onTrackChange, spotifyPlaying = false }: { compact?: boolean; onTrackChange?: (video: Video | null) => void; spotifyPlaying?: boolean }) {
   const { lang } = useApp();
   const ar = lang === "ar";
   const [query, setQuery] = useState("");
@@ -27,6 +27,7 @@ export function YouTubeMusicPlayer({ compact = false }: { compact?: boolean }) {
     } catch { /* Ignore unavailable or invalid local playback state. */ }
     setHydrated(true);
   }, []);
+  useEffect(() => { if (hydrated) onTrackChange?.(selected); }, [hydrated, selected, onTrackChange]);
   useEffect(() => {
     if (!hydrated) return;
     try { localStorage.setItem("ukiyo.youtube.player", JSON.stringify({ selected, results })); } catch { /* Playback still works without persistence. */ }
@@ -86,6 +87,7 @@ export function YouTubeMusicPlayer({ compact = false }: { compact?: boolean }) {
           <span className="min-w-0"><span className="block line-clamp-2 text-xs font-medium">{video.title}</span><span className="mt-1 block truncate text-[10px] text-muted">{video.channel}</span></span>
         </button>)}
       </div>}
+      {spotifyPlaying && <p className="text-[10px] text-amber-400">{ar ? "Spotify يعمل أيضًا؛ أوقفه يدويًا لتجنب تشغيل مصدرين معًا." : "Spotify is also playing; pause it manually to avoid overlapping audio."}</p>}
       <p className="text-[10px] leading-relaxed text-faint">{ar ? "يتم تشغيل نتائج YouTube القابلة للتضمين عبر مشغل YouTube الرسمي. قد لا تكون بعض الأغاني متاحة للتشغيل داخل الموقع." : "Playable, embeddable YouTube results use the official YouTube player. Some tracks may not be available for in-site playback."}</p>
     </section>
   );
