@@ -15,9 +15,11 @@ type FocusData = { todayMinutes: number; weekMinutes: number; totalSessions: num
 type Mode = "focus" | "short_break" | "long_break" | "custom";
 const MODES: { value: Mode; label: string; min: number }[] = [{ value: "focus", label: "Standard Focus", min: 25 }, { value: "short_break", label: "Short Break", min: 5 }, { value: "long_break", label: "Long Break", min: 15 }, { value: "custom", label: "Custom Session", min: 30 }];
 const PRESETS = [15, 25, 45, 60];
-type FocusWallpaper = "none" | "forest" | "ocean" | "rain" | "sunset" | "cosmos";
+type VideoWallpaper = "forest" | "ocean" | "rain" | "sunset" | "cosmos";
+type PhotoWallpaper = "photo-mountains" | "photo-lake" | "photo-coast" | "photo-sunset" | "photo-forest";
+type FocusWallpaper = "none" | VideoWallpaper | PhotoWallpaper;
 type TimerStyle = "ring" | "digital" | "minimal" | "bar" | "orbit";
-const WALLPAPER_VIDEO_URLS: Record<Exclude<FocusWallpaper, "none">, string> = {
+const WALLPAPER_VIDEO_URLS: Record<VideoWallpaper, string> = {
   forest: "https://assets.mixkit.co/videos/preview/mixkit-waterfall-in-forest-2213-large.mp4",
   ocean: "https://assets.mixkit.co/videos/preview/mixkit-waves-coming-to-the-beach-5016-large.mp4",
   rain: "https://assets.mixkit.co/videos/preview/mixkit-window-on-a-rainy-day-2846-large.mp4",
@@ -31,13 +33,22 @@ const WALLPAPERS: { id: Exclude<FocusWallpaper, "none">; label: string; hint: st
   { id: "sunset", label: "Golden Hour", hint: "Warm sunset clouds and soft glow" },
   { id: "cosmos", label: "Deep Space", hint: "Slow stars and violet nebula" },
 ];
+const PHOTO_WALLPAPERS: { id: PhotoWallpaper; label: string; image: string }[] = [
+  { id: "photo-mountains", label: "Mountain Escape", image: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1200&auto=format&fit=crop&q=82" },
+  { id: "photo-lake", label: "Quiet Lake", image: "https://images.unsplash.com/photo-1470770841072-f978cf4d019e?w=1200&auto=format&fit=crop&q=82" },
+  { id: "photo-coast", label: "Ocean Calm", image: "https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=1200&auto=format&fit=crop&q=82" },
+  { id: "photo-sunset", label: "Soft Sunset", image: "https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?w=1200&auto=format&fit=crop&q=82" },
+  { id: "photo-forest", label: "Forest Path", image: "https://images.unsplash.com/photo-1448375240586-882707db888b?w=1200&auto=format&fit=crop&q=82" },
+];
 const mmss = (s: number) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 
 function FocusWallpaperLayer({ scene, failed, onError }: { scene: Exclude<FocusWallpaper, "none">; failed: boolean; onError: () => void }) {
+  const photo = PHOTO_WALLPAPERS.find((item) => item.id === scene);
+  if (photo) return <div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: `url("${photo.image}")` }} aria-hidden />;
   return (
     <div className={`focus-wallpaper focus-wallpaper-${scene}`} aria-hidden>
       {!failed && <video key={scene} autoPlay muted loop playsInline preload="metadata" tabIndex={-1} onError={onError} className="absolute inset-0 size-full object-cover">
-        <source src={WALLPAPER_VIDEO_URLS[scene]} type="video/mp4" />
+        <source src={WALLPAPER_VIDEO_URLS[scene as VideoWallpaper]} type="video/mp4" />
       </video>}
       <div className="absolute inset-0 bg-black/25" />
     </div>
@@ -485,6 +496,10 @@ export default function FocusPage() {
               <div className="grid grid-cols-2 gap-2">
                 {WALLPAPERS.map((wallpaper) => <button key={wallpaper.id} type="button" onClick={() => void selectWallpaper(wallpaper.id)} aria-pressed={backgroundScene === wallpaper.id} className={cn("group overflow-hidden rounded-xl border text-start transition", backgroundScene === wallpaper.id ? "border-white/80 ring-1 ring-white/40" : "border-white/10 hover:border-white/30")}><div className={`focus-wallpaper-preview focus-wallpaper-${wallpaper.id}`} /><span className="block px-2.5 py-2 text-xs font-medium">{t(wallpaper.label)}</span></button>)}
                 <button type="button" onClick={() => void selectWallpaper("none")} aria-pressed={backgroundScene === "none"} className={cn("flex min-h-[86px] flex-col items-center justify-center gap-1 rounded-xl border text-xs", backgroundScene === "none" ? "border-white/80 ring-1 ring-white/40" : "border-white/10 hover:border-white/30")}><span className="text-lg">◌</span>{t("No wallpaper")}</button>
+              </div>
+              <p className="mb-2 mt-4 text-[11px] font-semibold uppercase tracking-wider text-white/55">{t("Wallpaper library")}</p>
+              <div className="grid grid-cols-2 gap-2">
+                {PHOTO_WALLPAPERS.map((wallpaper) => <button key={wallpaper.id} type="button" onClick={() => void selectWallpaper(wallpaper.id)} aria-pressed={backgroundScene === wallpaper.id} className={cn("overflow-hidden rounded-xl border text-start transition", backgroundScene === wallpaper.id ? "border-white/80 ring-1 ring-white/40" : "border-white/10 hover:border-white/30")}><div className="h-[68px] bg-cover bg-center" style={{ backgroundImage: `url("${wallpaper.image}")` }} /><span className="block px-2.5 py-2 text-xs font-medium">{t(wallpaper.label)}</span></button>)}
               </div>
               <div className="my-3 border-t border-white/10" />
               <label className="flex h-10 cursor-pointer items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/10 text-sm transition hover:bg-white/15"><ImagePlus className="size-4" />{t("Upload background image")}<input type="file" accept="image/*" className="sr-only" onChange={(e) => { const file = e.target.files?.[0]; if (file) void uploadFocusBackground(file); e.currentTarget.value = ""; }} /></label>
