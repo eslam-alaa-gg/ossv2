@@ -37,7 +37,6 @@ function Inner() {
   const sp = useSearchParams();
   const router = useRouter();
   const [tab, setTab] = useState<"spotify" | "youtube" | "detection">("spotify");
-  const [youtubeQuery, setYoutubeQuery] = useState("");
   const selectTab = (value: string) => { const next = value as "spotify" | "youtube" | "detection"; setTab(next); router.replace(next === "spotify" ? "/music" : `/music?tab=${next}`, { scroll: false }); };
   const tabControl = <Segmented value={tab} onChange={selectTab} label={t("Music sections")} options={[{ value: "spotify", label: "Spotify" }, { value: "youtube", label: "YouTube Music" }, { value: "detection", label: t("Music Detection") }]} />;
   const { status, np, error, errorCode, loadingStatus, refresh, reloadStatus, setBoost } = useSpotify();
