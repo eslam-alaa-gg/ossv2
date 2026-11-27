@@ -187,3 +187,54 @@ Never copy real secrets into this report, source control, logs or chat.
 - [ ] Browser/mobile behavior verified (not run).
 
 **Phase 01 outcome:** remote source audit and roadmap are documented. Runtime and local-worktree verification remain explicitly open. No application source code was changed in this phase; only this audit report is being added.
+
+
+---
+
+# Phase 02 — Core Functionality & Integration
+
+Phase status: **IN PROGRESS — focused fix implemented; CI verification pending**
+Implementation branch: `fix/ukiyo-habits-heatmap-focus`
+Phase 02 commits:
+- `4ece21c6ad7aa58bc6e9347640353d6cb6476969` — atomic, serialized Focus session replacement.
+- `03e83d4c4fbc29f130083dd5c35011c191cf5ff9` — client-side duplicate-start guard.
+- `ceb9ad705b4bdef9a4133a22b0cac8c3e360ddb8` — concurrent-start regression test.
+
+## Confirmed issue fixed
+
+### Focus session start race and partial-write risk
+
+**Evidence before change:** `src/app/api/focus/route.ts` closed all existing running/paused sessions with one database statement, then inserted the replacement session in a separate statement. Concurrent POST requests could interleave, and a failed insert could leave the user's previous session closed without a replacement. The Focus page's `start()` handler also had no in-flight guard, and both the button and Space keyboard shortcut could invoke it.
+
+**Changes:**
+1. Wrapped previous-session closure and new-session insertion in one Drizzle database transaction.
+2. Added a per-user PostgreSQL transaction advisory lock before modifying active sessions, serializing simultaneous start requests for the same user.
+3. Added a client-side `starting` ref guard and `finally` cleanup to prevent repeated click/keyboard submissions in the same page instance.
+4. Added an API E2E regression case that sends two Focus start requests concurrently, checks that the API returns successfully and that exactly one current active session is exposed, then ends that session.
+
+**Files changed:**
+- `src/app/api/focus/route.ts`
+- `src/app/(app)/focus/page.tsx`
+- `tests/e2e.mjs`
+
+## Verification
+
+- [x] Source-level pre-change sequence inspected and race identified.
+- [x] API change committed to target branch.
+- [x] Client duplicate-start guard committed.
+- [x] Concurrent-start regression test added.
+- [x] GitHub Actions Typecheck workflow automatically started for final Phase 02 commit `ceb9ad705b4bdef9a4133a22b0cac8c3e360ddb8`.
+- [ ] TypeScript check — pending workflow.
+- [ ] ESLint — pending workflow.
+- [ ] Production build — pending workflow.
+- [ ] Database migrations — pending workflow.
+- [ ] Full API E2E suite including new concurrency test — pending workflow.
+- [ ] Browser-level workflows — not covered by current CI; no browser automation framework is configured in this branch.
+
+CI run: [GitHub Actions run #271](https://github.com/eslam-alaa-gg/ossv2/actions/runs/45927860744)
+
+No CI pass/fail result is claimed until the run completes. No local browser/device testing was performed. No unrelated frontend/API/database behavior was changed. No merge or deployment was performed.
+
+## Remaining Phase 02 scope
+
+This pass fixed one confirmed high-risk integration defect rather than rewriting already implemented systems. Other workflows (authentication, task/habit forms, preferences, offline queue, tracker persistence, study review, music integrations) still require runtime verification through the CI/API suite and browser/device testing before any further changes are justified. Do not mark them broken based on source inspection alone.
