@@ -72,7 +72,7 @@ export function YouTubeMusicPlayer({ compact = false }: { compact?: boolean }) {
           <a href={`https://www.youtube.com/watch?v=${selected.id}`} target="_blank" rel="noreferrer noopener" className="text-muted hover:text-fg" aria-label={ar ? "فتح على YouTube" : "Open on YouTube"}><ExternalLink className="size-4" /></a>
         </div>
         <div className="overflow-hidden rounded-xl bg-black">
-          <iframe key={selected.id} title={selected.title} src={`https://www.youtube.com/embed/${selected.id}?autoplay=1&controls=1&enablejsapi=1&playsinline=1&rel=0&origin=${encodeURIComponent(typeof window !== "undefined" ? window.location.origin : "")}`} className="aspect-video min-h-[200px] w-full" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen />
+          <iframe key={selected.id} title={selected.title} src={`https://www.youtube.com/embed/${selected.id}?autoplay=0&controls=1&enablejsapi=1&playsinline=1&rel=0&origin=${encodeURIComponent(typeof window !== "undefined" ? window.location.origin : "")}`} className="aspect-video min-h-[200px] w-full" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen />
         </div>
         <div className="flex items-center justify-between gap-2">
           <button type="button" onClick={() => move(-1)} disabled={results.findIndex((item) => item.id === selected.id) <= 0} className="glass-btn btn-secondary" aria-label={ar ? "السابق" : "Previous"}><SkipBack className="size-4" />{ar ? "السابق" : "Previous"}</button>
