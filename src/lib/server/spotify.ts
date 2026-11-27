@@ -179,7 +179,7 @@ export async function getConnection(userId: string) {
 
 export async function spotify<T = unknown>(userId: string, path: string, options: { method?: string; body?: unknown } = {}) {
   const connection = await getConnection(userId);
-  if (!connection) throw new ApiError(401, "Connect your Spotify account first.");
+  if (!connection) throw new ApiError(401, "Your Spotify connection is missing or expired. Please reconnect.", "expired");
   const response = await fetch(`https://api.spotify.com/v1${path}`, {
     method: options.method || "GET",
     headers: {
@@ -191,10 +191,10 @@ export async function spotify<T = unknown>(userId: string, path: string, options
   });
   if (response.status === 204) return { data: null as T, status: response.status };
   const data = await response.json().catch(() => null) as T | null;
-  if (response.status === 429) throw new ApiError(429, "Spotify is rate limiting requests. Please wait and try again.");
+  if (response.status === 429) throw new ApiError(429, "Spotify is rate limiting requests. Please wait and try again.", "rate_limited");
   if (response.status === 401) {
     await db.delete(spotifyConnections).where(eq(spotifyConnections.userId, userId));
-    throw new ApiError(401, "Your Spotify connection expired. Please connect again.");
+    throw new ApiError(401, "Your Spotify connection expired. Please connect again.", "expired");
   }
   if (!response.ok) {
     const detail = data && typeof data === "object" && "error" in data ? (data as { error?: { message?: string } }).error?.message : undefined;
