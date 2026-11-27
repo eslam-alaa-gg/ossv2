@@ -60,7 +60,7 @@ export function AppProvider({ initialUser, initialPrefs, initialLang = "en", chi
       mq.addEventListener("change", apply);
       return () => mq.removeEventListener("change", apply);
     }
-  }, [theme.mode, theme.reducedMotion, theme.animation]);
+  }, [theme.mode, theme.preset, theme.reducedMotion, theme.animation]);
 
   const refresh = useCallback(async () => {
     const r = await api<{ user: PublicUser; prefs: Prefs }>("/api/me");
