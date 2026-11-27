@@ -1,5 +1,5 @@
 import Dexie, { type Table } from "dexie";
-import { api } from "@/lib/client";
+import { api, ApiErr } from "@/lib/client";
 
 type Snapshot = { userId: string; key: string; value: unknown; updatedAt: number };
 type PendingAction = { id?: number; userId: string; path: string; method: "POST" | "PATCH" | "DELETE"; body?: Record<string, unknown>; createdAt: number };
@@ -75,7 +75,13 @@ async function runOfflineSync(db: UkiyoOfflineDatabase, userId: string): Promise
       try {
         await api(action.path, { method: action.method, ...(action.body ? { body: action.body } : {}) });
         await db.pending.delete(action.id);
-      } catch {
+      } catch (error) {
+        // A queued DELETE is already fulfilled if the target disappeared before a retry.
+        // This covers a lost response after the server committed the deletion.
+        if (action.method === "DELETE" && error instanceof ApiErr && error.status === 404) {
+          await db.pending.delete(action.id);
+          continue;
+        }
         return false;
       }
     }
