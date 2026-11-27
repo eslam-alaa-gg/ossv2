@@ -9,7 +9,6 @@ import { Badge, Button, Card, EmptyState, Field, PageHeader, Segmented, cn, useU
 import { api, minutesLabel, useFetch } from "@/lib/client";
 import { SOUNDS, startAmbient, type AmbientHandle } from "@/lib/ambient";
 import { YouTubeMusicPlayer } from "@/components/youtube-music";
-import { NowPlayingWidget } from "@/components/spotify";
 
 type Session = { id: string; mode: string; plannedSeconds: number; actualSeconds: number; status: string; startedAt: string; lastResumedAt?: string | null; pausedAt?: string | null; taskTitle?: string | null };
 type FocusData = { todayMinutes: number; weekMinutes: number; totalSessions: number; sessions: Session[]; running: (Session & { serverNow: number }) | null; tasks: { id: string; title: string; priority: Task["priority"] }[]; prefs: { sound: string; volume: number; preset: number } };
@@ -67,7 +66,6 @@ function FocusNowPlaying({ immersive = false }: { immersive?: boolean }) {
       {open && <div role="dialog" aria-label={t("Search YouTube Music")} className={immersive ? "absolute end-0 top-[calc(100%+10px)] z-50 max-h-[min(75vh,640px)] w-[min(92vw,390px)] overflow-y-auto rounded-2xl border border-white/15 bg-[#11131b]/92 p-3 text-white shadow-2xl backdrop-blur-2xl" : "absolute end-0 top-[calc(100%+10px)] z-50 max-h-[min(78vh,640px)] w-[min(92vw,390px)] overflow-y-auto rounded-2xl border border-white/15 bg-[#11131b]/92 p-3 text-white shadow-2xl backdrop-blur-2xl"}>
         <div className="mb-3 flex items-center justify-between"><p className="text-sm font-semibold">{t("Search music")}</p><button type="button" onClick={() => setOpen(false)} aria-label={t("Close")} className="rounded-lg p-1 text-white/60 hover:bg-white/10">×</button></div>
         <div className="space-y-3">
-          <NowPlayingWidget source="spotify" />
           <div className="rounded-xl border border-white/10 p-3">
             <YouTubeMusicPlayer compact />
           </div>
