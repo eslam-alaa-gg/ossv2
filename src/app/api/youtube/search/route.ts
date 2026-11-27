@@ -23,6 +23,7 @@ export const GET = handle(async (req) => {
     maxResults: "12",
     q,
     regionCode: "EG",
+    safeSearch: "strict",
     key,
   });
   const response = await fetch(`https://www.googleapis.com/youtube/v3/search?${params.toString()}`, {
