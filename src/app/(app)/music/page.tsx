@@ -15,7 +15,8 @@ import { api, useFetch } from "@/lib/client";
 const ERRORS: Record<string, string> = {
   access_denied: "You declined the Spotify authorization. Nothing was connected.",
   invalid_state: "The authorization response couldn't be verified (state mismatch). Please try connecting again.",
-  token_exchange_failed: "Spotify didn't accept the authorization. Check the redirect URI configured in your Spotify app.",
+  token_exchange_failed: "Spotify authorization could not be completed. Check your Spotify app configuration and try again.",
+  connection_failed: "Spotify authorized the account, but Ukiyo couldn't securely save the connection. Please try connecting again.",
   not_configured: "Spotify isn't available right now. Please try again later or contact the site administrator.",
   demo: "Spotify connection is disabled in Demo Mode. Create an account to connect your own.",
 };
