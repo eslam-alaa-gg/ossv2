@@ -239,3 +239,23 @@ No CI pass/fail result is claimed until the run completes. No local browser/devi
 ## Remaining Phase 02 scope
 
 This pass fixed one confirmed high-risk integration defect rather than rewriting already implemented systems. Other workflows (authentication, task/habit forms, preferences, offline queue, tracker persistence, study review, music integrations) still require runtime verification through the CI/API suite and browser/device testing before any further changes are justified. Do not mark them broken based on source inspection alone.
+
+### Phase 02 verification update — 2026-11-27
+
+The GitHub Actions workflow was re-checked against the latest branch head, `e69fa0c6bc1918a82efbc9846488fb64e7b91314`.
+
+- Workflow run [#274](https://github.com/eslam-alaa-gg/ossv2/actions/runs/45927971575): **SUCCESS**.
+- Steps confirmed successful: dependency installation, TypeScript typecheck, ESLint, production build, Drizzle database migrations, application startup, health check, and API end-to-end suite.
+- The E2E log explicitly reports **34/34 passed**, including authentication/session behavior, protected routes, user data isolation/IDOR, tasks/goals/habits, task XP idempotency, Focus early completion and concurrent starts, habit/heatmap aggregation, preferences/profile/avatar, CSRF, Study subjects/flashcards/review scheduling/suggestions, water/reading/learning trackers and tracker retry idempotency, Focus pause/resume and uploads, Music Bridge pairing/revocation, password reset, logout/login persistence, and account deletion.
+- The strengthened concurrent Focus regression test commit `7a7a9b022927bd4008da6f0704496e08d1c1939d` also has a successful workflow run [#273](https://github.com/eslam-alaa-gg/ossv2/actions/runs/45927957587).
+- The production build lists the expected application pages and API routes, and the CI database migrations applied successfully to a fresh PostgreSQL 16 CI database.
+
+### Phase 02 remaining verification boundaries
+
+- Browser automation is still not configured in this repository; no desktop/tablet/mobile browser interaction or visual regression run is claimed.
+- Offline queue replay, IndexedDB behavior across account switching, reconnect/network-loss edge cases, and conflict handling are not exercised by the current 34 API E2E tests.
+- Live third-party integrations (Spotify OAuth/playback, YouTube API responses, email/push delivery) and native Android/Windows bridge behavior are not proven by CI; the current suite verifies only selected authenticated API/configuration and server-side bridge workflows.
+- The Study review route currently reads a flashcard before opening the transaction that updates its schedule and inserts review history. The transaction keeps the update and history insert atomic, but concurrent reviews of the same card are not explicitly covered by the current tests. Treat this as a targeted follow-up review, not a confirmed user-visible failure.
+- A source-only pass confirmed the Study page has an in-flight review guard and that offline snapshots/queued actions are partitioned by user ID. This does not replace browser/network testing.
+
+**Updated Phase 02 outcome:** all 34 existing API E2E cases, typecheck, lint, production build, migrations, and CI health check pass on the latest branch head. Phase 02 remains **IN PROGRESS** until offline/reconnect and browser/mobile workflows are exercised; do not label those surfaces fully verified. No merge, rebase, reset, force-push, or deployment was performed.
