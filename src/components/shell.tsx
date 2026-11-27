@@ -428,13 +428,13 @@ function HabitQuickPanel() {
 
   return (
     <div ref={ref} className="relative">
-      <button type="button" onClick={() => setOpen((value) => !value)} className="header-icon-btn glass-btn btn-ghost btn-icon h-9 w-9" aria-label={t("Habit quick tracker")} title={t("Habit quick tracker")} aria-expanded={open}>
+      <button type="button" onClick={() => setOpen((value) => !value)} className="header-icon-btn grid size-10 shrink-0 place-items-center rounded-xl border-0 bg-transparent text-current transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60" aria-label={t("Habit quick tracker")} title={t("Habit quick tracker")} aria-expanded={open}>
         <Droplets className="size-[21px] stroke-[2.1]" />
       </button>
       <AnimatePresence>
         {open && (
           <motion.div initial={{ opacity: 0, y: -7, scale: .97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -5, scale: .98 }} transition={{ duration: .16 }}
-            className="popover absolute end-0 top-12 z-[80] w-[min(92vw,340px)] p-3 shadow-2xl">
+            className="popover absolute start-0 top-[calc(100%+0.65rem)] z-[80] w-[min(calc(100vw-2rem),320px)] overflow-hidden p-3 shadow-2xl">
             <div className="mb-3 flex items-center justify-between gap-2">
               <div><p className="text-sm font-semibold">{t("Quick habit tracker")}</p><p className="text-[11px] text-faint">{t("Your daily targets")}</p></div>
               <div className="flex items-center gap-1">

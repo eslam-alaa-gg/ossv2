@@ -9,7 +9,6 @@ import { Badge, Button, Card, EmptyState, Field, PageHeader, Segmented, cn, useU
 import { api, minutesLabel, useFetch } from "@/lib/client";
 import { SOUNDS, startAmbient, type AmbientHandle } from "@/lib/ambient";
 import { YouTubeMusicPlayer } from "@/components/youtube-music";
-import { NowPlayingWidget } from "@/components/spotify";
 
 type Session = { id: string; mode: string; plannedSeconds: number; actualSeconds: number; status: string; startedAt: string; lastResumedAt?: string | null; pausedAt?: string | null; taskTitle?: string | null };
 type FocusData = { todayMinutes: number; weekMinutes: number; totalSessions: number; sessions: Session[]; running: (Session & { serverNow: number }) | null; tasks: { id: string; title: string; priority: Task["priority"] }[]; prefs: { sound: string; volume: number; preset: number } };
@@ -67,7 +66,6 @@ function FocusNowPlaying({ immersive = false }: { immersive?: boolean }) {
       {open && <div role="dialog" aria-label={t("Search YouTube Music")} className={immersive ? "absolute end-0 top-[calc(100%+10px)] z-50 max-h-[min(75vh,640px)] w-[min(92vw,390px)] overflow-y-auto rounded-2xl border border-white/15 bg-[#11131b]/92 p-3 text-white shadow-2xl backdrop-blur-2xl" : "absolute end-0 top-[calc(100%+10px)] z-50 max-h-[min(78vh,640px)] w-[min(92vw,390px)] overflow-y-auto rounded-2xl border border-white/15 bg-[#11131b]/92 p-3 text-white shadow-2xl backdrop-blur-2xl"}>
         <div className="mb-3 flex items-center justify-between"><p className="text-sm font-semibold">{t("Search music")}</p><button type="button" onClick={() => setOpen(false)} aria-label={t("Close")} className="rounded-lg p-1 text-white/60 hover:bg-white/10">×</button></div>
         <div className="space-y-3">
-          <NowPlayingWidget source="spotify" />
           <div className="rounded-xl border border-white/10 p-3">
             <YouTubeMusicPlayer compact />
           </div>
@@ -473,7 +471,7 @@ export default function FocusPage() {
   if (zen) return (
     <div className="fixed inset-0 z-[90] flex min-h-[100dvh] w-screen flex-col items-center justify-start overflow-y-auto overscroll-contain p-3 pb-[max(5rem,env(safe-area-inset-bottom))] sm:justify-center sm:p-6">
       {backgroundImage ? (
-        <div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: `url(${backgroundImage})`, backgroundSize: "cover", backgroundPosition: "center center" }} aria-hidden />
+        <div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: `url(${backgroundImage})`, backgroundSize: "cover", backgroundPosition: "center center", filter: "blur(4px)", transform: "scale(1.04)" }} aria-hidden />
       ) : backgroundScene !== "none" ? (
         <FocusWallpaperLayer scene={backgroundScene} failed={wallpaperVideoFailed || !!prefs.theme.reducedMotion} onError={() => setWallpaperVideoFailed(true)} />
       ) : <div className="absolute inset-0 app-glow" />}
@@ -564,12 +562,7 @@ export default function FocusPage() {
         </div>
           </div>
       } />
-      {(backgroundImage || backgroundScene !== "none") && <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden>
-        {backgroundImage ? <div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: `url(${backgroundImage})` }} /> : <FocusWallpaperLayer scene={backgroundScene as Exclude<FocusWallpaper, "none">} failed={wallpaperVideoFailed || !!prefs.theme.reducedMotion} onError={() => setWallpaperVideoFailed(true)} />}
-        <div className="absolute inset-0 bg-gradient-to-b from-[color-mix(in_srgb,var(--bg)_48%,transparent)] via-[color-mix(in_srgb,var(--bg)_72%,transparent)] to-[var(--bg)]" style={{ opacity: backgroundOverlay / 55 }} />
-      </div>}
       <div className="relative z-10">
-      <div className="mb-4 flex justify-center"><FocusNowPlaying /></div>
       <div className="grid gap-[var(--gap)] lg:grid-cols-[1fr_340px]">
         <Card className="flex flex-col items-center py-8">
           <div className="mb-6 flex w-full flex-col items-center gap-3">
@@ -594,17 +587,6 @@ export default function FocusPage() {
             </Field>
             {task && <div className="mt-3 flex items-center gap-2 text-sm"><PriorityBadge p={task.priority} /><span className="truncate text-muted">{task.title}</span></div>}
             {data && data.tasks.length === 0 && <p className="mt-2 text-xs text-faint">{t("No pending tasks. Create one to link sessions to it.")}</p>}
-          </Card>
-          <Card>
-            <div className="mb-3 flex items-center justify-between"><h2 className="text-sm font-medium text-muted">{t("Focus background")}</h2>{backgroundImage && <Badge tone="green">{t("Ready")}</Badge>}</div>
-            <label className="glass-btn btn-secondary flex h-10 cursor-pointer items-center justify-center gap-2 text-sm">
-              <ImagePlus className="size-4" /> {t("Upload background image")}
-              <input type="file" accept="image/*" className="sr-only" onChange={(e) => { const file = e.target.files?.[0]; if (file) void uploadFocusBackground(file); e.currentTarget.value = ""; }} />
-            </label>
-            <p className="mt-2 text-xs text-faint">{t("Images are automatically compressed to a maximum of 400 KB and blurred in full-screen focus.")}</p>
-            <p className="mt-2 text-xs text-muted">{t("Tap")} <a className="text-accent underline" href="https://share.google/XH6X3uwEOF0VNJKzi" target="_blank" rel="noreferrer">{t("here")}</a> {t("to reduce image quality before uploading.")}</p>
-            {imageMessage && <p role="status" className="mt-2 text-xs text-muted">{imageMessage}</p>}
-            {backgroundImage && <button type="button" onClick={removeFocusBackground} className="mt-2 flex items-center gap-1.5 text-xs text-muted hover:text-fg"><Trash2 className="size-3.5" /> {t("Remove background")}</button>}
           </Card>
           <Card>
             <h2 className="mb-3 text-sm font-medium text-muted">{t("Your focus")}</h2>
