@@ -102,7 +102,8 @@ async function connect() {
   const verifier = randomBytes(48).toString("base64url");
   const state = randomBytes(24).toString("base64url");
   const challenge = createHash("sha256").update(verifier).digest("base64url");
-  const secure = (await headers()).get("x-forwarded-proto") === "https";
+  const forwardedProto = (await headers()).get("x-forwarded-proto")?.split(",")[0]?.trim();
+  const secure = forwardedProto === "https";
   (await cookies()).set(COOKIE, JSON.stringify({ state, verifier, uid: user.id }), { httpOnly: true, sameSite: "lax", secure, path: "/api/spotify", maxAge: 600 });
   const url = new URL("https://accounts.spotify.com/authorize");
   url.search = new URLSearchParams({
@@ -138,9 +139,19 @@ async function callback(req: NextRequest) {
   const code = sp.get("code");
   const okState = !!saved && state.length === saved.state.length && timingSafeEqual(Buffer.from(state), Buffer.from(saved.state));
   if (!saved || !okState || saved.uid !== user.id || !code) return back("error=invalid_state");
-  const r = await tokenRequest({ grant_type: "authorization_code", code, redirect_uri: await redirectUri(), code_verifier: saved.verifier });
+  let r: Awaited<ReturnType<typeof tokenRequest>>;
+  try {
+    r = await tokenRequest({ grant_type: "authorization_code", code, redirect_uri: await redirectUri(), code_verifier: saved.verifier });
+  } catch {
+    return back("error=token_exchange_failed");
+  }
   if (!r.ok) return back("error=token_exchange_failed");
-  await saveConnection(user.id, r.data);
+  try {
+    await saveConnection(user.id, r.data);
+  } catch {
+    console.error("[spotify] token persistence failed");
+    return back("error=connection_failed");
+  }
   // fetch profile once
   try {
     const me = await fetch("https://api.spotify.com/v1/me", { headers: { Authorization: `Bearer ${r.data.access_token}` }, cache: "no-store" });
