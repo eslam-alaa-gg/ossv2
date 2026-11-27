@@ -501,11 +501,11 @@ export function AppShell({ children }: { children: ReactNode }) {
       <Sidebar collapsed={collapsed} setCollapsed={toggle} />
       <div className={cn("min-h-dvh transition-[padding] duration-300", collapsed ? "lg:ps-[92px]" : "lg:ps-[272px]")}>
         <header className="app-topbar glass-panel sticky top-2 z-30 mx-auto mt-2 flex h-[54px] w-[calc(100%-1.25rem)] max-w-[1120px] items-center gap-2 px-3 py-1.5 sm:gap-3 sm:px-4 lg:px-5">
-          <button onClick={() => setCmd(true)} className="header-icon-btn glass-btn btn-ghost h-9 shrink-0 gap-2 px-2.5 sm:px-3" aria-label={t("Open command menu")} title={t("Search")}>
+          {path !== "/focus" && (<button onClick={() => setCmd(true)} className="header-icon-btn glass-btn btn-ghost h-9 shrink-0 gap-2 px-2.5 sm:px-3" aria-label={t("Open command menu")} title={t("Search")}>
             <Search className="size-[18px]" />
             <span className="hidden text-xs font-medium sm:inline">{t("Search")}</span>
             <kbd className="kbd hidden lg:inline">Ctrl / ⌘ K</kbd>
-          </button>
+          </button>)}
           <HabitQuickPanel />
           <div className="ms-auto flex min-w-0 items-center gap-1.5 sm:gap-2">
             <button type="button" onClick={() => patchUser({ language: lang === "ar" ? "en" : "ar" })} className="header-icon-btn glass-btn btn-ghost btn-icon h-9 w-9" aria-label={lang === "ar" ? t("Switch to English") : t("Switch to Arabic")} title={lang === "ar" ? t("English") : t("Arabic")}><Languages className="size-[19px]" /></button>
