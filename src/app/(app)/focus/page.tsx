@@ -475,6 +475,7 @@ export default function FocusPage() {
     <>
       <PageHeader title={t("Focus Room")} subtitle={t("Deep work, one session at a time.")} actions={
           <div className="flex items-center gap-1.5 sm:gap-2">
+          <FocusNowPlaying />
           <div className="relative">
             <Button variant="ghost" size="icon" className="size-9 rounded-full border border-line bg-card/70 backdrop-blur-xl" onClick={() => { setThemeOpen((value) => !value); setBackgroundOpen(false); setSoundOpen(false); }} aria-label={t("Focus theme")} aria-haspopup="dialog" aria-expanded={themeOpen}><Palette className="size-4" /></Button>
             {themeOpen && <div role="dialog" aria-label={t("Focus theme")} className="absolute end-0 top-[calc(100%+10px)] z-50 w-[min(90vw,300px)] rounded-2xl border border-white/15 bg-[#11131b]/90 p-3 text-white shadow-2xl backdrop-blur-2xl">
