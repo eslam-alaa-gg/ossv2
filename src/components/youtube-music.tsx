@@ -122,6 +122,8 @@ export function YouTubeMusicPlayer({ compact = false, searchOpen = true, onClose
     let cancelled = false;
     setPlayerReady(false);
     setPlaying(false);
+    setCurrentTime(0);
+    setDuration(0);
     loadYouTubeIframeApi().then(() => {
       if (cancelled || !playerMount.current || !window.YT?.Player) return;
       player.current?.destroy();
@@ -129,7 +131,7 @@ export function YouTubeMusicPlayer({ compact = false, searchOpen = true, onClose
         videoId: selected.id,
         width: "100%",
         height: "100%",
-        playerVars: { autoplay: 1, controls: 1, enablejsapi: 1, playsinline: 1, rel: 0 },
+        playerVars: { autoplay: 1, controls: 0, enablejsapi: 1, playsinline: 1, rel: 0, modestbranding: 1 },
         events: {
           onReady: (event) => {
             if (cancelled) return;
@@ -211,7 +213,7 @@ export function YouTubeMusicPlayer({ compact = false, searchOpen = true, onClose
 
   return (
     <section className={compact ? "w-full max-w-3xl space-y-3" : "mx-auto w-full max-w-3xl space-y-4"}>
-      {searchOpen && <div className="w-full rounded-[1.6rem] border border-white/15 bg-[#0b111c]/75 p-3 text-white shadow-2xl backdrop-blur-3xl sm:p-4">
+      {searchOpen && <div className="fixed right-3 top-16 z-[100] w-[min(92vw,420px)] rounded-[1.6rem] border border-white/15 bg-[#0b111c]/90 p-3 text-white shadow-2xl backdrop-blur-3xl sm:right-5 sm:top-20 sm:p-4">
         <div className="mb-3 flex items-center justify-between gap-3"><div className="flex min-w-0 items-center gap-2"><span className="grid size-8 place-items-center rounded-xl bg-white/10"><Music2 className="size-4" /></span><div className="min-w-0"><h3 className="text-sm font-semibold">YouTube Music</h3><p className="text-[11px] text-white/45">{ar ? "نتائج من بحث YouTube Music" : "Results from YouTube Music search"}</p></div></div>{onCloseSearch && <button type="button" onClick={onCloseSearch} aria-label={ar ? "إغلاق البحث" : "Close search"} className="grid size-8 place-items-center rounded-lg text-white/55 hover:bg-white/10"><span className="text-xl leading-none">×</span></button>}</div>
         <form onSubmit={search} className="flex items-center gap-2 rounded-full border border-white/10 bg-black/35 p-1.5"><Search className="ms-2 size-4 shrink-0 text-white/45" /><input className="min-w-0 flex-1 bg-transparent px-1 py-2 text-sm text-white outline-none placeholder:text-white/35" value={query} onChange={e => setQuery(e.target.value)} maxLength={120} minLength={2} placeholder={ar ? "ابحث عن أغنية أو فنان..." : "Search songs or artists..."} aria-label="Search YouTube Music" /><button type="submit" disabled={loading || query.trim().length < 2} className="rounded-full bg-white px-4 py-2 text-xs font-semibold text-slate-950 disabled:opacity-40">{loading ? "…" : ar ? "بحث" : "Search"}</button></form>
         {error && <p role="status" className="mt-2 text-xs text-amber-300">{error}</p>}
