@@ -15,14 +15,20 @@ export const POST = handle<{ kind: string }>(async (req, { kind }) => {
   if (!kinds.includes(kind)) throw new ApiError(404, "Not found.");
   const date = todayIn(a.tz);
   if (kind === "water") {
-    const d = await body(req, z.object({ ml: z.number().int().min(50).max(3000) }));
-    await db.insert(waterLogs).values({ userId: a.id, date, ml: d.ml });
+    const d = await body(req, z.object({ ml: z.number().int().min(50).max(3000), clientActionId: z.string().uuid().optional() }));
+    const values = { userId: a.id, date, ml: d.ml, ...(d.clientActionId ? { clientActionId: d.clientActionId } : {}) };
+    if (d.clientActionId) await db.insert(waterLogs).values(values).onConflictDoNothing({ target: [waterLogs.userId, waterLogs.clientActionId] });
+    else await db.insert(waterLogs).values(values);
   } else if (kind === "reading") {
-    const d = await body(req, z.object({ book: z.string().trim().min(1, "Book name is required").max(120), pages: z.number().int().min(1).max(2000) }));
-    await db.insert(readingLogs).values({ userId: a.id, date, book: d.book, pages: d.pages });
+    const d = await body(req, z.object({ book: z.string().trim().min(1, "Book name is required").max(120), pages: z.number().int().min(1).max(2000), clientActionId: z.string().uuid().optional() }));
+    const values = { userId: a.id, date, book: d.book, pages: d.pages, ...(d.clientActionId ? { clientActionId: d.clientActionId } : {}) };
+    if (d.clientActionId) await db.insert(readingLogs).values(values).onConflictDoNothing({ target: [readingLogs.userId, readingLogs.clientActionId] });
+    else await db.insert(readingLogs).values(values);
   } else {
-    const d = await body(req, z.object({ title: z.string().trim().min(1, "Title is required").max(120), explanation: z.string().max(1000).default("") }));
-    await db.insert(learningEntries).values({ userId: a.id, date, title: d.title, explanation: d.explanation });
+    const d = await body(req, z.object({ title: z.string().trim().min(1, "Title is required").max(120), explanation: z.string().max(1000).default(""), clientActionId: z.string().uuid().optional() }));
+    const values = { userId: a.id, date, title: d.title, explanation: d.explanation, ...(d.clientActionId ? { clientActionId: d.clientActionId } : {}) };
+    if (d.clientActionId) await db.insert(learningEntries).values(values).onConflictDoNothing({ target: [learningEntries.userId, learningEntries.clientActionId] });
+    else await db.insert(learningEntries).values(values);
   }
   await syncSpecialHabit(a, kind as Kind, date);
   return { ok: true };

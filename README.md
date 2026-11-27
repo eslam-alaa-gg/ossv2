@@ -1,6 +1,6 @@
-# LIFE OS — Your Life. Your Goals. Your Progress.
+# Ukiyo — Your Life. Your Goals. Your Progress.
 
-A premium personal operating system: tasks, habits, daily challenges, focus room, life goals, memory vault, achievements, weekly review, analytics, calendar, notifications, a **Spotify Music Hub**, a full **Theme Studio** (presets, accent, glass, gradients), a **Profile** system with avatar upload, and a **one-click Demo mode**.
+A premium personal operating system: tasks, habits, daily challenges, focus room, life goals, memory vault, achievements, weekly review, analytics, calendar, notifications, a **Music Hub** (Spotify, in-app YouTube playback and Music Detection), a full **Theme Studio** (presets, accent, glass, gradients), and a **Profile** system with avatar upload.
 
 ## Stack & data isolation
 
@@ -47,7 +47,7 @@ The Vercel project ossv2 is connected to this repository. Add DATABASE_URL in th
 
 ### Optional integrations
 
-- Spotify: set SPOTIFY_CLIENT_ID and optionally SPOTIFY_REDIRECT_URI. The callback is <origin>/api/spotify/callback. The Spotify PKCE flow is used; no client secret is required.
+- Spotify: set SPOTIFY_CLIENT_ID and optionally SPOTIFY_REDIRECT_URI. The callback is <origin>/api/spotify/callback. The Spotify PKCE flow is used; no client secret is required.\n- YouTube search and in-app playback: set the server-only YOUTUBE_API_KEY for YouTube Data API v3. Search results are filtered to embeddable videos and played with the official YouTube IFrame player inside Ukiyo. Some videos may still be unavailable due to owner restrictions, age/region rules or YouTube playback policy.
 - Email: set RESEND_API_KEY and a verified RESEND_FROM_EMAIL.
 - Browser push: generate VAPID keys and set VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, and VAPID_SUBJECT; schedule GET /api/cron/notify with Authorization: Bearer $CRON_SECRET.
 - Local build checks: npm run typecheck, npm run lint, and npm run build.
@@ -70,9 +70,9 @@ Authorization Code Flow with **PKCE**, `state` validated against an HttpOnly coo
 
 Playback control, seek and device transfer require **Spotify Premium** (Spotify API rule); free accounts see an explanation and an *Open in Spotify* action instead of controls. No lyrics are implemented. Album-art colours are extracted in the browser (via a host-allow-listed proxy) and drive a very faint background glow, which can be disabled.
 
-## Demo mode
+### YouTube Music search and in-app playback
 
-“Try Demo — Explore LIFE OS” calls `POST /api/auth/demo`, which creates a **fresh, private, seeded sandbox user per visitor** (random unusable password, no credentials exist to expose), signs them in through the normal session cookie, and shows a `DEMO MODE` banner. Concurrent visitors cannot affect each other; repeat clicks reuse the visitor's own session (no duplicates); sandboxes older than 6 h are purged; *Exit Demo* deletes the sandbox. Server-enforced restrictions: password change, account deletion, email actions, push, Spotify connection/control.
+The YouTube Music panel uses the server-side YouTube Data API v3 search route (`/api/youtube/search`), prioritizes YouTube's Music video category, and uses the official YouTube embedded player. Search is available in the Focus Room top-right music control and in the Dashboard Music widget when its source is set to **YouTube Music**. Selecting an embeddable result loads it inside Ukiyo; the official player controls playback, volume and seeking. This is an embedded YouTube video experience, not a private YouTube Music API integration. Availability and autoplay remain subject to YouTube and browser policies.
 
 ## Notifications
 
@@ -90,4 +90,4 @@ Playback control, seek and device transfer require **Spotify Premium** (Spotify 
 ## Known limitations
 * In-memory rate limiter (per instance) — use a shared store when scaling horizontally.
 * Calendar reminders are stored on tasks; delivery is via the notification pipeline above.
-* The restored focus timer after a page reload is reconstructed from server start time (pause history is not persisted).
+* Focus sessions restore their running or paused state from server-persisted active time; paused time is not counted toward completion.

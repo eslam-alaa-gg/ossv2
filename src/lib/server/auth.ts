@@ -63,7 +63,7 @@ export async function createSession(userId: string, days = 30) {
   const token = randomBytes(32).toString("base64url");
   const expiresAt = new Date(Date.now() + days * 86400000);
   await db.insert(sessions).values({ userId, tokenHash: sha256(token), expiresAt });
-  const secure = (await headers()).get("x-forwarded-proto") === "https";
+  const secure = process.env.NODE_ENV === "production" || (await headers()).get("x-forwarded-proto") === "https";
   (await cookies()).set(SESSION_COOKIE, token, { httpOnly: true, sameSite: "lax", secure, path: "/", expires: expiresAt });
 }
 
@@ -99,12 +99,24 @@ export function assertNotDemo(a: Authed, what: string) {
   if (a.user.isDemo) throw new ApiError(403, `${what} isn't available in Demo Mode. Create a free account to unlock it.`, "demo");
 }
 
-/* simple in-memory rate limiter (per server instance) */
+/* Bounded in-memory limiter. It is per server instance; use a shared store for
+   globally consistent limits when a distributed rate-limit service is introduced. */
 const buckets = new Map<string, { n: number; reset: number }>();
+const MAX_RATE_LIMIT_BUCKETS = 10_000;
+let rateLimitOperations = 0;
 export function rateLimit(key: string, max: number, windowMs: number) {
   const now = Date.now();
+  if ((++rateLimitOperations & 255) === 0) {
+    for (const [bucketKey, bucket] of buckets) {
+      if (bucket.reset <= now) buckets.delete(bucketKey);
+    }
+  }
   const b = buckets.get(key);
-  if (!b || b.reset < now) {
+  if (!b || b.reset <= now) {
+    if (buckets.size >= MAX_RATE_LIMIT_BUCKETS) {
+      const oldestKey = buckets.keys().next().value;
+      if (oldestKey !== undefined) buckets.delete(oldestKey);
+    }
     buckets.set(key, { n: 1, reset: now + windowMs });
     return;
   }

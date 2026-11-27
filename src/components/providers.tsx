@@ -3,7 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { api } from "@/lib/client";
 import { translate, type Lang } from "@/lib/i18n";
 import { DEFAULT_PREFS, type Prefs } from "@/lib/prefs";
-import { themeCss, type Theme } from "@/lib/theme";
+import { PRESETS, themeCss, type Theme } from "@/lib/theme";
 import type { PublicUser } from "@/lib/types";
 import { UIProvider } from "./ui";
 
@@ -48,14 +48,19 @@ export function AppProvider({ initialUser, initialPrefs, initialLang = "en", chi
   useEffect(() => {
     const root = document.documentElement;
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
-    const apply = () => (root.dataset.mode = theme.mode === "system" ? (mq.matches ? "dark" : "light") : theme.mode);
+    const apply = () => {
+      const mode = theme.mode === "system" ? (mq.matches ? "dark" : "light") : theme.mode;
+      root.dataset.mode = mode;
+      const preset = PRESETS.find((item) => item.id === theme.preset) ?? PRESETS[0];
+      document.querySelector('meta[name="theme-color"]')?.setAttribute("content", mode === "light" ? preset.l.bg : preset.d.bg);
+    };
     apply();
     root.dataset.motion = theme.reducedMotion || theme.animation === 0 ? "off" : "on";
     if (theme.mode === "system") {
       mq.addEventListener("change", apply);
       return () => mq.removeEventListener("change", apply);
     }
-  }, [theme.mode, theme.reducedMotion, theme.animation]);
+  }, [theme.mode, theme.preset, theme.reducedMotion, theme.animation]);
 
   const refresh = useCallback(async () => {
     const r = await api<{ user: PublicUser; prefs: Prefs }>("/api/me");

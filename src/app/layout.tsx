@@ -1,4 +1,7 @@
 import type { Metadata, Viewport } from "next";
+import { eq } from "drizzle-orm";
+import { db } from "@/db";
+import { customFonts } from "@/db/schema";
 import type { ReactNode } from "react";
 import { headers } from "next/headers";
 import "./globals.css";
@@ -33,6 +36,9 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const initialLang = u?.language === "ar" ? "ar" : u?.language === "en" ? "en" : /^ar(?:-|,|;|$)/i.test(preferredLanguage) ? "ar" : "en";
   const prefs = u ? parsePrefs(u.preferences) : DEFAULT_PREFS;
   const th = prefs.theme;
+  const [customFont] = u && th.font === "custom"
+    ? await db.select({ userId: customFonts.userId }).from(customFonts).where(eq(customFonts.userId, u.id)).limit(1)
+    : [];
   const lang = initialLang;
   return (
     <html lang={lang} dir={lang === "ar" ? "rtl" : "ltr"} data-mode={th.mode === "light" ? "light" : "dark"} data-mode-setting={th.mode} data-motion={th.reducedMotion || th.animation === 0 ? "off" : "on"} suppressHydrationWarning>
@@ -40,6 +46,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link rel="stylesheet" href={FONTS} />
+        {customFont && <style>{`@font-face{font-family:"UkiyoCustom";src:url("/api/me/font");font-style:normal;font-weight:400;font-display:swap;}`}</style>}
         <script dangerouslySetInnerHTML={{ __html: `try{var d=document.documentElement;if(d.dataset.modeSetting==='system'){d.dataset.mode=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}}catch(e){}` }} />
       </head>
       <body>

@@ -29,6 +29,48 @@
       "when": 1795640000000,
       "tag": "0003_music_device_bridge",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1795680000000,
+      "tag": "0004_focus_backgrounds",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1795683600000,
+      "tag": "0005_focus_pause_recovery",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1795687200000,
+      "tag": "0006_custom_fonts",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1795690800000,
+      "tag": "0007_study_learning",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1795728000000,
+      "tag": "0008_daily_study_suggestions",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1795737600000,
+      "tag": "0009_tracker_action_idempotency",
+      "breakpoints": true
     }
   ]
 }

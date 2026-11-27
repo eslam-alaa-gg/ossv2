@@ -20,7 +20,7 @@ type Dash = {
   xp: number; level: { level: number; into: number; span: number };
   recent: { key: string; title: string; desc: string; xp: number }[];
 };
-const LABELS: Record<string, string> = { progress: "Today's progress", streak: "Streak & level", focus: "Focus time", challenge: "Daily challenge", habits: "Habits", reminders: "Upcoming reminders", weekly: "Weekly summary", achievements: "Recent achievements", music: "Spotify now playing" };
+const LABELS: Record<string, string> = { progress: "Today's progress", streak: "Streak & level", focus: "Focus time", challenge: "Daily challenge", habits: "Habits", reminders: "Upcoming reminders", weekly: "Weekly summary", achievements: "Recent achievements", music: "Music player" };
 
 export default function DashboardPage() {
   const { user, prefs, savePrefs, t, lang } = useApp();
@@ -32,7 +32,7 @@ export default function DashboardPage() {
   const w = prefs.dashboard.widgets;
   const order = prefs.dashboard.order;
   const sizes = prefs.dashboard.sizes;
-  const saveDashboard = (nextOrder = order, nextSizes = sizes, nextWidgets = w) => run(() => savePrefs({ dashboard: { widgets: nextWidgets, order: nextOrder, sizes: nextSizes } }), t("Dashboard layout saved."));
+  const saveDashboard = (nextOrder = order, nextSizes = sizes, nextWidgets = w, nextMusicSource = prefs.dashboard.musicSource) => run(() => savePrefs({ dashboard: { widgets: nextWidgets, order: nextOrder, sizes: nextSizes, musicSource: nextMusicSource } }), t("Dashboard layout saved."));
   const moveWidget = (key: string, delta: number) => { const next = [...order]; const from = next.indexOf(key); const to = Math.max(0, Math.min(next.length - 1, from + delta)); if (from < 0 || from === to) return; next.splice(from, 1); next.splice(to, 0, key); void saveDashboard(next); };
   const dropWidget = (target: string) => { if (!dragging || dragging === target) { setDragging(null); setDragOver(null); return; } const next = [...order]; const from = next.indexOf(dragging); const to = next.indexOf(target); if (from < 0 || to < 0) { setDragging(null); setDragOver(null); return; } next.splice(from, 1); next.splice(to, 0, dragging); setDragging(null); setDragOver(null); void saveDashboard(next); };
   const widgetProps = (key: string) => ({ className: "dashboard-widget dashboard-widget-" + key + " dashboard-size-" + (sizes[key] ?? "standard") + (key === "challenge" ? " flex flex-col" : "") + (dragging === key ? " dashboard-widget-dragging" : "") + (dragOver === key && dragging !== key ? " dashboard-widget-drop-target" : ""), draggable: true, onDragStart: (event: DragEvent<HTMLDivElement>) => { setDragging(key); setDragOver(null); event.dataTransfer.effectAllowed = "move"; event.dataTransfer.setData("text/plain", key); }, onDragOver: (event: DragEvent<HTMLDivElement>) => { event.preventDefault(); if (dragging && dragging !== key) setDragOver(key); }, onDragLeave: () => setDragOver((current) => current === key ? null : current), onDrop: (event: DragEvent<HTMLDivElement>) => { event.preventDefault(); dropWidget(key); }, onDragEnd: () => { setDragging(null); setDragOver(null); } });
@@ -190,7 +190,7 @@ export default function DashboardPage() {
               </Card>
             )}
           </div>
-          {show("music") && <div {...widgetProps("music")}><NowPlayingWidget /></div>}
+          {show("music") && <div {...widgetProps("music")}><div className="mb-3 flex items-center justify-between gap-3"><h2 className="text-sm font-medium text-muted">{t("Music")}</h2><label className="flex items-center gap-2 text-xs text-muted"><span>{t("Source")}</span><select aria-label={t("Dashboard music source")} value={prefs.dashboard.musicSource} onChange={(e) => void saveDashboard(order, sizes, w, e.target.value as "spotify" | "detection" | "youtube")} className="max-w-36 rounded-lg border border-line bg-[var(--input)] px-2 py-1.5 text-xs"><option value="spotify">Spotify</option><option value="detection">{t("Music Detection")}</option><option value="youtube">YouTube Music</option></select></label></div><NowPlayingWidget source={prefs.dashboard.musicSource} /></div>}
           </div>
         </>
       )}

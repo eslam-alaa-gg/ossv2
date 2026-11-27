@@ -17,7 +17,7 @@ In PowerShell, set the values from the OSSv2 device pairing page:
     $env:OSSV2_BRIDGE_TOKEN = "paste-device-token"
     dotnet run --project .\OSSv2MusicBridge.csproj
 
-Keep the helper running while Spotify is playing. It polls the current Spotify media session every five seconds. Stop it with Ctrl+C.
+The helper rejects non-HTTPS URLs and sends the token in the Authorization header. Keep the helper running while Spotify is playing. It polls the current Spotify media session every five seconds. Stop it with Ctrl+C. The environment variables above are scoped to that PowerShell process; avoid saving the token in a shared script or committing it to source control.
 
 The helper does not capture audio, use a microphone, or send playback-control commands. The device can be revoked from OSSv2 at any time.
 

@@ -1,7 +1,7 @@
 {
   "name": "Ukiyo",
   "short_name": "Ukiyo",
-  "description": "Your Life. Your Goals. Your Progress.",
+  "description": "A calm personal productivity and learning workspace.",
   "start_url": "/dashboard",
   "display": "standalone",
   "background_color": "#08080b",

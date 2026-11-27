@@ -1,10 +1,10 @@
 import "server-only";
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
-import { and, eq } from "drizzle-orm";
-import { headers } from "next/headers";
+import { and, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { spotifyConnections } from "@/db/schema";
 import { ApiError } from "./api";
+import { getAppOrigin } from "./origin";
 
 export const SPOTIFY_SCOPES = [
   "user-read-playback-state",
@@ -28,13 +28,8 @@ export function spotifyConfigured() {
   return !!process.env.SPOTIFY_CLIENT_ID && !!process.env.APP_SECRET && process.env.APP_SECRET.length >= 32;
 }
 
-export async function appOrigin() {
-  if (process.env.NEXT_PUBLIC_SITE_URL) return process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, "");
-  const h = await headers();
-  const proto = h.get("x-forwarded-proto")?.split(",")[0]?.trim() || "https";
-  const host = h.get("x-forwarded-host")?.split(",")[0]?.trim() || h.get("host");
-  if (!host) throw new ApiError(500, "Unable to determine the application URL.");
-  return `${proto}://${host}`;
+export function appOrigin() {
+  return getAppOrigin();
 }
 
 export async function redirectUri() {
@@ -109,28 +104,66 @@ export async function saveConnection(userId: string, tokens: SpotifyTokenRespons
 }
 
 export async function getConnection(userId: string) {
-  const [row] = await db.select().from(spotifyConnections).where(eq(spotifyConnections.userId, userId)).limit(1);
-  if (!row) return null;
+  const [initial] = await db.select().from(spotifyConnections).where(eq(spotifyConnections.userId, userId)).limit(1);
+  if (!initial) return null;
+
   try {
-    let accessToken = decrypt(row.accessTokenEnc);
-    const refreshToken = decrypt(row.refreshTokenEnc);
-    if (row.expiresAt.getTime() <= Date.now() + 60_000) {
-      const refreshed = await tokenRequest({ grant_type: "refresh_token", refresh_token: refreshToken });
+    const initialAccessToken = decrypt(initial.accessTokenEnc);
+    const initialRefreshToken = decrypt(initial.refreshTokenEnc);
+    if (initial.expiresAt.getTime() > Date.now() + 60_000) {
+      return { ...initial, accessToken: initialAccessToken, refreshToken: initialRefreshToken };
+    }
+
+    // Refresh-token rotation must be serialized across server instances. Re-read the row
+    // only after acquiring the per-user transaction lock so a waiting request uses the
+    // newly refreshed token instead of replaying a stale refresh token.
+    return await db.transaction(async (tx) => {
+      await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`spotify-refresh:${userId}`}))`);
+      const [current] = await tx.select().from(spotifyConnections)
+        .where(eq(spotifyConnections.userId, userId)).limit(1).for("update");
+      if (!current) return null;
+
+      const accessToken = decrypt(current.accessTokenEnc);
+      const refreshToken = decrypt(current.refreshTokenEnc);
+      if (current.expiresAt.getTime() > Date.now() + 60_000) {
+        return { ...current, accessToken, refreshToken };
+      }
+
+      let refreshed: TokenResult;
+      try {
+        refreshed = await tokenRequest({ grant_type: "refresh_token", refresh_token: refreshToken });
+      } catch {
+        throw new ApiError(502, "Spotify token refresh is temporarily unavailable. Please retry.");
+      }
       if (!refreshed.ok) {
         if (refreshed.status === 400 || refreshed.status === 401) {
-          await db.delete(spotifyConnections).where(eq(spotifyConnections.userId, userId));
+          await tx.delete(spotifyConnections).where(eq(spotifyConnections.userId, userId));
           return null;
         }
         throw new ApiError(502, "Spotify token refresh failed. Please try again.");
       }
-      await saveConnection(userId, { ...refreshed.data, refresh_token: refreshed.data.refresh_token || refreshToken });
-      accessToken = refreshed.data.access_token;
-    }
-    return {
-      ...row,
-      accessToken,
-      refreshToken,
-    };
+      if (!refreshed.data.access_token || !Number.isFinite(refreshed.data.expires_in)) {
+        throw new ApiError(502, "Spotify returned an invalid refreshed token. Please retry.");
+      }
+
+      const nextRefreshToken = refreshed.data.refresh_token || refreshToken;
+      const expiresAt = new Date(Date.now() + Math.max(60, refreshed.data.expires_in) * 1000);
+      await tx.update(spotifyConnections).set({
+        accessTokenEnc: encrypt(refreshed.data.access_token),
+        refreshTokenEnc: encrypt(nextRefreshToken),
+        expiresAt,
+        scope: refreshed.data.scope || current.scope,
+        updatedAt: new Date(),
+      }).where(eq(spotifyConnections.userId, userId));
+
+      return {
+        ...current,
+        accessToken: refreshed.data.access_token,
+        refreshToken: nextRefreshToken,
+        expiresAt,
+        scope: refreshed.data.scope || current.scope,
+      };
+    });
   } catch (error) {
     if (error instanceof ApiError) throw error;
     console.error("[spotify] stored token could not be decrypted");
@@ -141,7 +174,7 @@ export async function getConnection(userId: string) {
 
 export async function spotify<T = unknown>(userId: string, path: string, options: { method?: string; body?: unknown } = {}) {
   const connection = await getConnection(userId);
-  if (!connection) throw new ApiError(401, "Connect your Spotify account first.");
+  if (!connection) throw new ApiError(401, "Your Spotify connection is missing or expired. Please reconnect.", "expired");
   const response = await fetch(`https://api.spotify.com/v1${path}`, {
     method: options.method || "GET",
     headers: {
@@ -153,10 +186,10 @@ export async function spotify<T = unknown>(userId: string, path: string, options
   });
   if (response.status === 204) return { data: null as T, status: response.status };
   const data = await response.json().catch(() => null) as T | null;
-  if (response.status === 429) throw new ApiError(429, "Spotify is rate limiting requests. Please wait and try again.");
+  if (response.status === 429) throw new ApiError(429, "Spotify is rate limiting requests. Please wait and try again.", "rate_limited");
   if (response.status === 401) {
     await db.delete(spotifyConnections).where(eq(spotifyConnections.userId, userId));
-    throw new ApiError(401, "Your Spotify connection expired. Please connect again.");
+    throw new ApiError(401, "Your Spotify connection expired. Please connect again.", "expired");
   }
   if (!response.ok) {
     const detail = data && typeof data === "object" && "error" in data ? (data as { error?: { message?: string } }).error?.message : undefined;

@@ -2,17 +2,21 @@
 /* eslint-disable @next/next/no-img-element */
 import { AnimatePresence, motion } from "framer-motion";
 import { Disc3, Link2Off, Monitor, Music2, Pause, Play, SkipBack, SkipForward, Smartphone, Speaker } from "lucide-react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { Suspense, useEffect, useState } from "react";
 import { useApp } from "@/components/providers";
+import { MusicBridgePanel } from "@/components/music-bridge";
+import { YouTubeMusicPlayer } from "@/components/youtube-music";
 import { OpenInSpotify, fmtMs, useProgress, useSpotify, type NPTrack } from "@/components/spotify";
-import { Badge, Button, Card, EmptyState, Field, PageHeader, Skeleton, Switch, useUI } from "@/components/ui";
+import { Badge, Button, Card, EmptyState, Field, PageHeader, Segmented, Skeleton, Switch, cn, useUI } from "@/components/ui";
 import { api, useFetch } from "@/lib/client";
 
 const ERRORS: Record<string, string> = {
   access_denied: "You declined the Spotify authorization. Nothing was connected.",
   invalid_state: "The authorization response couldn't be verified (state mismatch). Please try connecting again.",
-  token_exchange_failed: "Spotify didn't accept the authorization. Check the redirect URI configured in your Spotify app.",
+  token_exchange_failed: "Spotify authorization could not be completed. Check your Spotify app configuration and try again.",
+  connection_failed: "Spotify authorized the account, but Ukiyo couldn't securely save the connection. Please try connecting again.",
   not_configured: "Spotify isn't available right now. Please try again later or contact the site administrator.",
   demo: "Spotify connection is disabled in Demo Mode. Create an account to connect your own.",
 };
@@ -20,7 +24,7 @@ type Device = { id: string; name: string; type: string; active: boolean; restric
 type Recent = { playedAt: string; track: NPTrack }[];
 
 function MusicBridgeLink({ label }: { label: string }) {
-  return <a href="/music-bridge?pair=android" className="glass-btn btn-secondary inline-flex h-10 items-center gap-2 px-4 text-sm"><Smartphone className="size-4" />{label}</a>;
+  return <Link href="/music?tab=detection&pair=android" className="glass-btn btn-secondary inline-flex h-10 items-center gap-2 px-4 text-sm"><Smartphone className="size-4" />{label}</Link>;
 }
 
 function DeviceIcon({ type }: { type: string }) {
@@ -32,6 +36,10 @@ function Inner() {
   const { prefs, savePrefs, t, lang } = useApp();
   const { run, toast, confirm } = useUI();
   const sp = useSearchParams();
+  const router = useRouter();
+  const [tab, setTab] = useState<"spotify" | "youtube" | "detection">("spotify");
+  const selectTab = (value: string) => { const next = value as "spotify" | "youtube" | "detection"; setTab(next); router.replace(next === "spotify" ? "/music" : `/music?tab=${next}`, { scroll: false }); };
+  const tabControl = <Segmented value={tab} onChange={selectTab} label={t("Music sections")} options={[{ value: "spotify", label: "Spotify" }, { value: "youtube", label: "YouTube Music" }, { value: "detection", label: t("Music Detection") }]} />;
   const { status, np, error, errorCode, loadingStatus, refresh, reloadStatus, setBoost } = useSpotify();
   const progress = useProgress(np);
   const connected = !!status?.connected;
@@ -43,9 +51,18 @@ function Inner() {
   const artist = useFetch<{ name: string; genres: string[]; followers: number | null; image: string | null; url: string | null }>(connected && artistId ? `/api/spotify/artist?id=${artistId}` : null);
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => { setBoost(true); return () => setBoost(false); }, [setBoost]);
-  useEffect(() => { if (sp.get("connected")) { toast("success", t("Spotify connected")); reloadStatus(); } }, [sp]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { setBoost(tab === "spotify"); return () => setBoost(false); }, [setBoost, tab]);
+  useEffect(() => { const requested = sp.get("tab"); if (requested === "youtube" || requested === "detection") setTab(requested); else if (!requested) setTab("spotify"); if (sp.get("connected")) { toast("success", t("Spotify connected")); reloadStatus(); } }, [sp]); // eslint-disable-line react-hooks/exhaustive-deps
   const urlError = sp.get("error");
+
+  if (tab === "detection") return <><div className="mb-4">{tabControl}</div><MusicBridgePanel /></>;
+  if (tab === "youtube") {
+    return <>
+      <PageHeader title={t("Music")} subtitle={lang === "ar" ? "ابحث عن الأغاني واخترها وشغّلها داخل Ukiyo." : "Search, choose and play songs inside Ukiyo."} actions={tabControl} />
+      <Card className="mx-auto max-w-3xl"><YouTubeMusicPlayer /></Card>
+    </>;
+  }
+
 
   async function control(action: string, extra: object = {}) {
     setBusy(true);
@@ -58,12 +75,12 @@ function Inner() {
     if (await run(() => api("/api/spotify/disconnect", { method: "POST", body: {} }), t("Spotify disconnected"))) reloadStatus();
   }
 
-  if (loadingStatus) return <><PageHeader title={t("Music Hub")} /><Skeleton className="h-96" /></>;
+  if (loadingStatus) return <><PageHeader title={t("Music")} /><Skeleton className="h-96" /></>;
 
   if (!status?.configured) {
     return (
       <>
-        <PageHeader title={t("Music Hub")} subtitle={t("Your Spotify, inside Ukiyo.")} actions={<MusicBridgeLink label={lang === "ar" ? "الحصول على رمز الجهاز من Ukiyo" : "Get device token from OSSv2"} />} />
+        <PageHeader title={t("Music")} subtitle={t("Your Spotify, inside Ukiyo.")} actions={<div className="flex flex-wrap items-center justify-end gap-2">{tabControl}<MusicBridgeLink label={lang === "ar" ? "الحصول على رمز الجهاز من Ukiyo" : "Get device token from Ukiyo"} /></div>} />
         <Card className="mx-auto max-w-xl py-10 text-center">
           <span className="mx-auto mb-4 grid size-16 place-items-center rounded-3xl bg-card text-muted"><Music2 className="size-8" /></span>
           <h2 className="text-xl font-semibold">{lang === "ar" ? "Spotify غير متاح حاليًا" : "Spotify is temporarily unavailable"}</h2>
@@ -76,13 +93,13 @@ function Inner() {
   if (!connected) {
     return (
       <>
-        <PageHeader title={t("Music Hub")} subtitle={t("Your Spotify, inside Ukiyo.")} actions={<MusicBridgeLink label={lang === "ar" ? "الحصول على رمز الجهاز من Ukiyo" : "Get device token from OSSv2"} />} />
+        <PageHeader title={t("Music")} subtitle={t("Your Spotify, inside Ukiyo.")} actions={<div className="flex flex-wrap items-center justify-end gap-2">{tabControl}<MusicBridgeLink label={lang === "ar" ? "الحصول على رمز الجهاز من Ukiyo" : "Get device token from Ukiyo"} /></div>} />
         {(urlError || errorCode === "expired") && <p role="alert" className="mb-4 rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">{errorCode === "expired" ? t("Your Spotify authorization expired. Please reconnect.") : t(ERRORS[urlError!] ?? "Spotify returned an error: {error}").replace("{error}", urlError ?? "")}</p>}
         <Card className="mx-auto max-w-xl py-10 text-center">
           <span className="mx-auto mb-4 grid size-16 place-items-center rounded-3xl bg-card text-accent"><Music2 className="size-8" /></span>
           <h2 className="text-xl font-semibold">{t("Connect Spotify")}</h2>
           <p className="mx-auto mt-2 max-w-md text-sm text-muted">{t("See what's playing, browse recently played tracks, control playback (Premium) and let album artwork tint your workspace.")}</p>
-          <a href="/api/spotify/connect" className="glass-btn btn-primary mt-6 h-11 px-6"><Music2 className="size-4" /> {t("Connect Spotify")}</a>
+          <Link href="/api/spotify/connect" prefetch={false} className="glass-btn btn-primary mt-6 h-11 px-6"><Music2 className="size-4" /> {t("Connect Spotify")}</Link>
           <div className="mx-auto mt-6 max-w-sm rounded-xl bg-card p-4 text-start text-xs text-muted"><p className="mb-1.5 font-medium text-fg">{t("Permissions requested (minimum needed)")}</p><ul className="space-y-1"><li>{t("• Read your current playback & devices")}</li><li>{t("• Read recently played tracks")}</li><li>{t("• Control playback (Premium only)")}</li><li>{t("• Read your plan type to know if controls work")}</li></ul></div>
         </Card>
       </>
@@ -93,7 +110,7 @@ function Inner() {
   const ctl = "glass-btn btn-icon h-12 w-12";
   return (
     <>
-      <PageHeader title={t("Music Hub")} subtitle={t("Now playing from your Spotify account.")} actions={<><MusicBridgeLink label={lang === "ar" ? "الحصول على رمز الجهاز من Ukiyo" : "Get device token from OSSv2"} /><Badge tone="green"><span className="size-1.5 rounded-full bg-emerald-400" /> {t("Connected")}</Badge><OpenInSpotify url={track?.url} /></>} />
+      <PageHeader title={t("Music")} subtitle={t("Now playing from your Spotify account.")} actions={<>{tabControl}<MusicBridgeLink label={lang === "ar" ? "الحصول على رمز الجهاز من Ukiyo" : "Get device token from Ukiyo"} /><Badge tone="green"><span className="size-1.5 rounded-full bg-emerald-400" /> {t("Connected")}</Badge><OpenInSpotify url={track?.url} /></>} />
       {error && errorCode !== "rate_limited" && <p role="alert" className="mb-4 rounded-xl border border-amber-400/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-300">{error} <button className="underline" onClick={() => refresh().catch(() => {})}>{t("Retry")}</button></p>}
       {errorCode === "rate_limited" && <p role="status" className="mb-4 text-xs text-amber-300">{error}</p>}
 

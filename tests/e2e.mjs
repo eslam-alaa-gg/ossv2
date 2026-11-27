@@ -1,15 +1,23 @@
 // End-to-end API tests: auth, cross-user isolation (IDOR), reward validation, demo mode, profile.
 // Usage: BASE_URL=http://127.0.0.1:3000 node tests/e2e.mjs
 import assert from "node:assert/strict";
+import { createHash, randomBytes } from "node:crypto";
+import { Client as PgClient } from "pg";
 
 const BASE = process.env.BASE_URL || "http://127.0.0.1:3000";
 let passed = 0;
 const results = [];
 
 class Client {
+  static nextTestIp = 1;
+  testIp = `198.51.100.${Client.nextTestIp++}`;
   jar = {};
   async req(method, path, body, raw) {
-    const headers = {};
+    const headers = { "X-Forwarded-For": this.testIp };
+    if (!["GET", "HEAD", "OPTIONS"].includes(method)) {
+      headers.Origin = BASE;
+      headers["Sec-Fetch-Site"] = "same-origin";
+    }
     if (body !== undefined && !(body instanceof FormData)) headers["Content-Type"] = "application/json";
     const cookie = Object.entries(this.jar).map(([k, v]) => `${k}=${v}`).join("; ");
     if (cookie) headers.Cookie = cookie;
@@ -51,7 +59,7 @@ await test("session cookie is HttpOnly + SameSite", async () => {
   const c = new Client();
   const r = await c.req("POST", "/api/auth/login", { email: emailA, password: pw }, true);
   const sc = r.headers.getSetCookie().find((x) => x.startsWith("lifeos_session"));
-  assert.match(sc, /HttpOnly/i); assert.match(sc, /SameSite=lax/i);
+  assert.match(sc, /HttpOnly/i); assert.match(sc, /SameSite=lax/i); assert.match(sc, /Secure/i);
 });
 await test("duplicate email rejected, weak password rejected, wrong password rejected", async () => {
   assert.equal((await anon.req("POST", "/api/auth/signup", { email: emailA, password: pw, displayName: "Dup Dup" })).status, 409);
@@ -59,18 +67,24 @@ await test("duplicate email rejected, weak password rejected, wrong password rej
   assert.equal((await anon.req("POST", "/api/auth/login", { email: emailA, password: "wrong-password" })).status, 401);
 });
 await test("protected API routes require auth (401)", async () => {
-  for (const p of ["/api/me", "/api/tasks", "/api/habits", "/api/goals", "/api/notes", "/api/journal", "/api/focus", "/api/dashboard", "/api/analytics", "/api/export", "/api/notifications", "/api/me/avatar"]) {
+  for (const p of ["/api/me", "/api/tasks", "/api/habits", "/api/goals", "/api/notes", "/api/journal", "/api/focus", "/api/dashboard", "/api/analytics", "/api/export", "/api/notifications", "/api/me/avatar", "/api/search?q=Secret", "/api/youtube/search?q=lofi"]) {
     assert.equal((await anon.req("GET", p)).status, 401, p);
   }
+});
+await test("YouTube search rejects queries shorter than two characters", async () => {
+  assert.equal((await A.req("GET", "/api/youtube/search?q=x")).status, 400);
 });
 await test("protected pages redirect to /login", async () => {
   const r = await anon.req("GET", "/dashboard", undefined, true);
   assert.ok([307, 308].includes(r.status), `status ${r.status}`);
   assert.match(r.headers.get("location") ?? "", /\/login/);
 });
-await test("login page renders with demo button", async () => {
+await test("login page renders the current Google and email sign-in options", async () => {
   const r = await anon.req("GET", "/login");
-  assert.equal(r.status, 200); assert.match(r.text, /Try Demo/); assert.match(r.text, /or explore without an account/);
+  assert.equal(r.status, 200);
+  assert.match(r.text, /Continue with Google/);
+  assert.match(r.text, /Sign In/);
+  assert.match(r.text, /Create an account/);
 });
 
 await test("A creates task, note, goal, milestone, habit", async () => {
@@ -78,8 +92,35 @@ await test("A creates task, note, goal, milestone, habit", async () => {
   noteA = (await A.req("POST", "/api/notes", { title: "Private note A", content: "top secret" })).json.note;
   goalA = (await A.req("POST", "/api/goals", { title: "Goal A" })).json.goal;
   msA = (await A.req("POST", `/api/goals/${goalA.id}/milestones`, { title: "MS A" })).json.milestone;
-  habitA = (await A.req("POST", "/api/habits", { name: "Habit A" })).json.habit;
+  habitA = (await A.req("POST", "/api/habits", { name: "Habit A", reminderTime: "08:15" })).json.habit;
   assert.ok(taskA?.id && noteA?.id && goalA?.id && msA?.id && habitA?.id);
+  assert.equal(habitA.reminderTime, "08:15", "valid reminder times are accepted");
+});
+await test("global search finds owned tasks and note content without leaking records", async () => {
+  const taskResults = (await A.req("GET", "/api/search?q=Secret%20task")).json.results;
+  assert.ok(taskResults.some((item) => item.kind === "Task" && item.title === "Secret task A"));
+  const noteResults = (await A.req("GET", "/api/search?q=top%20secret")).json.results;
+  assert.ok(noteResults.some((item) => item.kind === "Note" && item.title === "Private note A"));
+  assert.deepEqual((await B.req("GET", "/api/search?q=top%20secret")).json.results, []);
+  assert.deepEqual((await A.req("GET", "/api/search?q=%25%25")).json.results, []);
+});
+await test("habit targets can be edited and historical daily progress persists", async () => {
+  const created = await A.req("POST", "/api/habits", { name: "Historical target test", target: 1 });
+  assert.equal(created.status, 200, created.text);
+  const id = created.json.habit.id;
+  const edited = await A.req("PATCH", `/api/habits/${id}`, { target: 2, unit: "pages" });
+  assert.equal(edited.status, 200, edited.text);
+  assert.equal(edited.json.habit.target, 2);
+  const today = (await A.req("GET", "/api/habits")).json.today;
+  const yesterday = new Date(Date.parse(today + "T00:00:00.000Z") - 86400000).toISOString().slice(0, 10);
+  assert.equal((await A.req("POST", `/api/habits/${id}/log`, { date: yesterday, amount: 1 })).status, 200);
+  assert.equal((await A.req("POST", `/api/habits/${id}/log`, { date: "2026-02-31", amount: 2 })).status, 400);
+  assert.equal((await A.req("POST", `/api/habits/${id}/log`, { date: yesterday, amount: 2 })).status, 200);
+  const refreshed = (await A.req("GET", "/api/habits")).json.habits.find((habit) => habit.id === id);
+  assert.equal(refreshed.target, 2);
+  assert.equal(refreshed.todayAmount, 0);
+  assert.ok(refreshed.history.includes(yesterday), "completed historical day remains visible after a fresh GET");
+  assert.equal(refreshed.total, 1);
 });
 await test("B cannot list A's records", async () => {
   const t = (await B.req("GET", "/api/tasks")).json.tasks, n = (await B.req("GET", "/api/notes")).json.notes, g = (await B.req("GET", "/api/goals")).json.goals, h = (await B.req("GET", "/api/habits")).json.habits;
@@ -138,6 +179,21 @@ await test("focus: cannot complete before duration elapsed; early end gives no X
   const e = await A.req("POST", `/api/focus/${s.id}`, { action: "end", activeSeconds: 14000 });
   assert.equal(e.json.xp, 0); assert.ok(e.json.session.actualSeconds <= 5);
 });
+await test("focus: concurrent starts leave exactly one active session", async () => {
+  const starts = await Promise.all([
+    A.req("POST", "/api/focus", { mode: "focus", minutes: 25 }),
+    A.req("POST", "/api/focus", { mode: "custom", minutes: 30 }),
+  ]);
+  assert.ok(starts.every((response) => response.status === 200), starts.map((response) => response.text).join("\\n"));
+  const ids = starts.map((response) => response.json.session.id);
+  const current = await A.req("GET", "/api/focus");
+  assert.ok(ids.includes(current.json.running?.id), "the active session matches one of the concurrent starts");
+  const staleId = ids.find((id) => id !== current.json.running.id);
+  assert.ok(staleId, "both start requests created distinct session records");
+  assert.equal((await A.req("POST", `/api/focus/${staleId}`, { action: "end" })).status, 409, "the superseded session must already be closed");
+  const ended = await A.req("POST", `/api/focus/${current.json.running.id}`, { action: "end" });
+  assert.equal(ended.status, 200);
+});
 await test("habit completion rewards once per day; heatmap counts verified records", async () => {
   const a = await A.req("POST", `/api/habits/${habitA.id}/log`, { amount: 1 });
   assert.equal(a.json.xp, 5);
@@ -145,8 +201,10 @@ await test("habit completion rewards once per day; heatmap counts verified recor
   const an = (await A.req("GET", "/api/analytics")).json;
   const today = an.heatmap.find((d) => d.date === an.today);
   assert.ok(today.tasks >= 1 && today.habits >= 1 && today.challenges >= 1);
+  assert.ok(today.score > 0 && today.level >= 1 && today.level <= 4, "verified activity maps to a visible heatmap intensity");
   const bn = (await B.req("GET", "/api/analytics")).json;
-  assert.equal(bn.heatmap.length, 0, "B (no completions) has an empty heatmap");
+  assert.ok(bn.heatmap.length > 0, "the heatmap returns a complete date range");
+  assert.ok(bn.heatmap.every((day) => day.score === 0 && day.tasks === 0 && day.habits === 0 && day.challenges === 0 && day.focusMinutes === 0), "B has no recorded activity in any heatmap day");
 });
 await test("opening the app does not create activity (B stays at zero)", async () => {
   await B.req("GET", "/api/dashboard");
@@ -162,6 +220,11 @@ await test("preferences are per-user and validated", async () => {
   assert.equal(ok.status, 200);
   assert.equal((await A.req("GET", "/api/me")).json.prefs.theme.accent, "#2dd4bf");
   assert.equal((await B.req("GET", "/api/me")).json.prefs.theme.accent, "#8b7cff", "B unaffected");
+  const spotifyPrefs = await A.req("PATCH", "/api/me/prefs", { spotify: { ambience: false, autoRefresh: false } });
+  assert.equal(spotifyPrefs.status, 200);
+  assert.deepEqual(spotifyPrefs.json.prefs.spotify, { ambience: false, autoRefresh: false });
+  assert.deepEqual((await A.req("GET", "/api/me")).json.prefs.spotify, { ambience: false, autoRefresh: false });
+  assert.deepEqual((await B.req("GET", "/api/me")).json.prefs.spotify, { ambience: true, autoRefresh: true }, "Spotify preferences are per-user");
   assert.equal((await A.req("PATCH", "/api/me/prefs", { bogus: 1 })).status, 400);
 });
 await test("profile: name validation, trim, email unchanged", async () => {
@@ -185,61 +248,344 @@ await test("avatar: validates type/size, per-user, replace + remove", async () =
   assert.equal((await A.req("DELETE", "/api/me/avatar")).json.avatarVersion, null);
   assert.equal((await A.req("GET", "/api/me/avatar")).status, 404);
 });
-await test("CSRF: cross-origin mutation blocked", async () => {
-  const res = await fetch(BASE + "/api/tasks", { method: "POST", headers: { "Content-Type": "application/json", Origin: "https://evil.example", Cookie: `lifeos_session=${A.jar.lifeos_session}` }, body: JSON.stringify({ title: "csrf" }) });
+await test("OAuth callback ignores attacker-controlled host headers", async () => {
+  const response = await fetch(BASE + "/auth/callback?code=missing", {
+    headers: { Host: "attacker.example", "X-Forwarded-Host": "attacker.example" },
+    redirect: "manual",
+  });
+  assert.ok(response.status >= 300 && response.status < 400);
+  assert.ok(!response.headers.get("location")?.includes("attacker.example"));
+});
+await test("API request bodies are bounded and malformed JSON is rejected", async () => {
+  const headers = { Origin: BASE, "Sec-Fetch-Site": "same-origin", "Content-Type": "application/json" };
+  const oversized = await fetch(BASE + "/api/auth/reset", { method: "POST", headers, body: `{${" ".repeat(1_000_100)}}` });
+  assert.equal(oversized.status, 413);
+  const malformed = await fetch(BASE + "/api/auth/reset", { method: "POST", headers, body: "{bad" });
+  assert.equal(malformed.status, 400);
+});
+await test("CSRF: cross-origin and metadata-free cookie mutations blocked", async () => {
+  const crossOrigin = await fetch(BASE + "/api/tasks", { method: "POST", headers: { "Content-Type": "application/json", Origin: "https://evil.example", Cookie: `lifeos_session=${A.jar.lifeos_session}` }, body: JSON.stringify({ title: "csrf" }) });
+  assert.equal(crossOrigin.status, 403);
+  const missingMetadata = await fetch(BASE + "/api/tasks", { method: "POST", headers: { "Content-Type": "application/json", Cookie: `lifeos_session=${A.jar.lifeos_session}` }, body: JSON.stringify({ title: "csrf" }) });
+  assert.equal(missingMetadata.status, 403);
+  const sameOrigin = await A.req("POST", "/api/tasks", { title: "same-origin-csrf-regression" });
+  assert.equal(sameOrigin.status, 200);
+});
+await test("CSRF: mismatched Origin is rejected even with same-origin Fetch Metadata", async () => {
+  const res = await fetch(BASE + "/api/tasks", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Origin: "https://evil.example",
+      "Sec-Fetch-Site": "same-origin",
+      Cookie: `lifeos_session=${A.jar.lifeos_session}`,
+    },
+    body: JSON.stringify({ title: "forged origin" }),
+  });
   assert.equal(res.status, 403);
 });
 await test("Spotify routes: auth required, status reflects config", async () => {
   assert.equal((await anon.req("GET", "/api/spotify/status")).status, 401);
   const s = await A.req("GET", "/api/spotify/status");
   assert.equal(s.status, 200); assert.equal(s.json.connected, false);
-  assert.equal((await A.req("GET", "/api/spotify/now-playing")).status, 401); // not connected -> typed error, no fake data
+  const missingConnection = await A.req("GET", "/api/spotify/now-playing");
+  assert.equal(missingConnection.status, 401); // no fake now-playing data when not connected
+  assert.equal(missingConnection.json.code, "expired");
   assert.equal((await A.req("GET", "/api/spotify/art?url=https://evil.example/x.png")).status, 400);
   const cb = await A.req("GET", "/api/spotify/callback?code=x&state=y", undefined, true);
   assert.match(cb.headers.get("location") ?? "", /error=invalid_state/);
 });
 
-/* ---------------- demo ---------------- */
-await test("demo login creates authenticated, seeded, isolated session", async () => {
-  const r = await D.req("POST", "/api/auth/demo", { timezone: "UTC" });
-  assert.equal(r.status, 200, r.text); assert.ok(D.jar.lifeos_session);
-  const me = (await D.req("GET", "/api/me")).json.user;
-  assert.equal(me.isDemo, true); assert.ok(me.email.endsWith("@demo.lifeos.invalid"));
-  assert.ok(!JSON.stringify(me).includes("passwordHash"));
-  const d = (await D.req("GET", "/api/dashboard")).json;
-  assert.ok(d.xp > 100 && d.streak.current >= 1 && d.upcoming.length > 0 && d.recent.length > 0);
-  assert.ok((await D.req("GET", "/api/tasks")).json.tasks.length > 20);
-  assert.ok((await D.req("GET", "/api/goals")).json.goals.length >= 3);
-  assert.ok((await D.req("GET", "/api/notes")).json.notes.length >= 5);
-  assert.ok((await D.req("GET", "/api/focus")).json.sessions.length >= 10);
-  const tasks = (await D.req("GET", "/api/tasks")).json.tasks.map((t) => t.title).join();
-  assert.ok(!tasks.includes("Secret task A"));
+
+/* ---------------- study & daily suggestions ---------------- */
+await test("study subjects and flashcards are account-scoped", async () => {
+  const subject = (await A.req("POST", "/api/study/subjects", { name: "Study isolation subject", color: "#8b7cff" })).json.subject;
+  assert.ok(subject?.id);
+  const first = (await A.req("POST", "/api/study/flashcards", { front: "What is spaced repetition?", back: "Reviewing at increasing intervals.", subjectId: subject.id })).json.card;
+  const second = (await A.req("POST", "/api/study/flashcards", { front: "Second due card", back: "A due review." })).json.card;
+  assert.ok(first?.id && second?.id);
+  assert.equal((await B.req("GET", "/api/study/subjects")).json.subjects.length, 0);
+  assert.equal((await B.req("GET", "/api/study/flashcards")).json.cards.length, 0);
+  assert.equal((await B.req("POST", "/api/study/review", { cardId: first.id, rating: "good" })).status, 404);
+  assert.equal((await B.req("POST", "/api/study/flashcards", { front: "Cross-user", back: "Must reject", subjectId: subject.id })).status, 404);
 });
-await test("demo restrictions enforced server-side", async () => {
-  for (const [m, p, b] of [["POST", "/api/me/account", { current: "x", next: "12345678" }], ["DELETE", "/api/me/account", { password: "x" }], ["POST", "/api/push", { test: true }], ["POST", "/api/auth/resend", {}], ["POST", "/api/spotify/control", { action: "play" }]]) {
-    const r = await D.req(m, p, b);
-    assert.equal(r.status, 403, `${m} ${p} -> ${r.status}`); assert.equal(r.json.code, "demo");
+
+await test("spaced repetition review updates schedule and history atomically", async () => {
+  const cards = (await A.req("GET", "/api/study/flashcards?due=1")).json.cards;
+  const card = cards.find((item) => item.front === "What is spaced repetition?");
+  assert.ok(card?.id);
+  const reviewed = await A.req("POST", "/api/study/review", { cardId: card.id, rating: "good" });
+  assert.equal(reviewed.status, 200, reviewed.text);
+  assert.equal(reviewed.json.intervalDays, 1);
+  assert.equal(reviewed.json.card.repetitions, 1);
+  assert.ok(new Date(reviewed.json.dueAt).getTime() > Date.now());
+  const dueAgain = (await A.req("GET", "/api/study/flashcards?due=1")).json.cards;
+  assert.equal(dueAgain.some((item) => item.id === card.id), false);
+  assert.equal((await B.req("POST", "/api/study/review", { cardId: card.id, rating: "easy" })).status, 404);
+});
+
+await test("all spaced-repetition ratings persist their exact next-review schedule", async () => {
+  const cases = [
+    { rating: "again", interval: 0, repetitions: 0, lapses: 1, minimumMs: 9 * 60 * 1000, maximumMs: 11 * 60 * 1000 },
+    { rating: "hard", interval: 1, repetitions: 1, lapses: 0 },
+    { rating: "good", interval: 1, repetitions: 1, lapses: 0 },
+    { rating: "easy", interval: 4, repetitions: 1, lapses: 0 },
+  ];
+  for (const item of cases) {
+    const created = await A.req("POST", "/api/study/flashcards", {
+      front: "Schedule " + item.rating,
+      back: "Persist schedule for " + item.rating,
+    });
+    assert.equal(created.status, 200, created.text);
+    const cardId = created.json.card.id;
+    const reviewedAt = Date.now();
+    const reviewed = await A.req("POST", "/api/study/review", { cardId, rating: item.rating });
+    assert.equal(reviewed.status, 200, reviewed.text);
+    assert.equal(reviewed.json.intervalDays, item.interval);
+    assert.equal(reviewed.json.card.repetitions, item.repetitions);
+    assert.equal(reviewed.json.card.lapses, item.lapses);
+    const dueMs = new Date(reviewed.json.dueAt).getTime();
+    if (item.minimumMs !== undefined) {
+      assert.ok(dueMs >= reviewedAt + item.minimumMs && dueMs <= reviewedAt + item.maximumMs, "Again schedules a ten-minute retry");
+    } else {
+      assert.ok(dueMs >= reviewedAt + item.interval * 86400000 - 2000, "review interval is reflected in dueAt");
+    }
+    const persisted = (await A.req("GET", "/api/study/flashcards")).json.cards.find((card) => card.id === cardId);
+    assert.equal(persisted.intervalDays, item.interval);
+    assert.equal(persisted.repetitions, item.repetitions);
+    assert.ok(persisted.lastReviewedAt, "last review timestamp is returned from persisted state");
+    assert.equal(persisted.easeFactor, reviewed.json.card.easeFactor);
+    assert.equal((await A.req("GET", "/api/study/flashcards?due=1")).json.cards.some((card) => card.id === cardId), false, "future-due card is excluded from the due queue");
   }
-  assert.equal((await D.req("GET", "/api/spotify/connect", undefined, true)).headers.get("location")?.includes("error=demo"), true);
 });
-await test("demo user cannot log in with password; no shared state between demo visitors", async () => {
-  const me = (await D.req("GET", "/api/me")).json.user;
-  assert.equal((await anon.req("POST", "/api/auth/login", { email: me.email, password: "anything" })).status, 401);
-  const D2 = new Client();
-  assert.equal((await D2.req("POST", "/api/auth/demo", { timezone: "UTC" })).status, 200);
-  const me2 = (await D2.req("GET", "/api/me")).json.user;
-  assert.notEqual(me.id, me2.id);
-  await D.req("POST", "/api/tasks", { title: "only-in-demo-1" });
-  assert.equal((await D2.req("GET", "/api/tasks")).json.tasks.some((t) => t.title === "only-in-demo-1"), false);
-  const reuse = await D.req("POST", "/api/auth/demo", { timezone: "UTC" });
-  assert.equal(reuse.json.reused, true, "same visitor reuses their session (no duplicate accounts)");
-  await D2.req("POST", "/api/auth/logout", {});
+
+await test("study review rejects concurrent duplicate ratings for the same card", async () => {
+  const created = await A.req("POST", "/api/study/flashcards", {
+    front: "Concurrent review guard",
+    back: "Only one review should be accepted",
+  });
+  assert.equal(created.status, 200, created.text);
+  const cardId = created.json.card.id;
+  const results = await Promise.all([
+    A.req("POST", "/api/study/review", { cardId, rating: "good" }),
+    A.req("POST", "/api/study/review", { cardId, rating: "easy" }),
+  ]);
+  assert.deepEqual(results.map((result) => result.status).sort(), [200, 409]);
+  const stored = (await A.req("GET", "/api/study/flashcards")).json.cards.find((item) => item.id === cardId);
+  assert.equal(stored.repetitions, 1);
+  assert.ok(new Date(stored.dueAt).getTime() > Date.now());
 });
-await test("exit demo destroys session and the sandbox user", async () => {
-  const me = (await D.req("GET", "/api/me")).json.user;
-  assert.equal((await D.req("POST", "/api/auth/logout", {})).status, 200);
-  assert.equal((await D.req("GET", "/api/me")).status, 401);
-  void me;
+
+await test("daily study suggestions rank study work and persist accept/dismiss decisions", async () => {
+  const initial = await A.req("GET", "/api/study/suggestions");
+  assert.equal(initial.status, 200);
+  assert.ok(initial.json.date);
+  const taskResponse = await A.req("POST", "/api/tasks", {
+    title: "Daily suggestion study task",
+    category: "Study",
+    priority: "high",
+    status: "todo",
+    dueDate: initial.json.date,
+    dueTime: "09:30",
+    tags: ["study"],
+  });
+  assert.equal(taskResponse.status, 200, taskResponse.text);
+  const task = taskResponse.json.task;
+  assert.ok(task?.id, "study task should be created before checking its suggestion");
+  const plan = (await A.req("GET", "/api/study/suggestions")).json;
+  const taskSuggestion = plan.suggestions.find((item) => item.taskId === task.id);
+  const reviewSuggestion = plan.suggestions.find((item) => item.kind === "review");
+  assert.ok(taskSuggestion, "open study task should be suggested");
+  assert.ok(reviewSuggestion, "due flashcards should produce a review suggestion");
+  assert.ok(taskSuggestion.minutes >= 1 && taskSuggestion.minutes <= 240);
+  const accepted = await A.req("POST", "/api/study/suggestions", {
+    date: plan.date, suggestionKey: taskSuggestion.key, status: "accepted",
+  });
+  assert.equal(accepted.status, 200, accepted.text);
+  assert.equal(accepted.json.ok, true);
+  const dismissed = await A.req("POST", "/api/study/suggestions", {
+    date: plan.date, suggestionKey: reviewSuggestion.key, status: "dismissed",
+  });
+  assert.equal(dismissed.json.ok, true);
+  const refreshed = (await A.req("GET", "/api/study/suggestions")).json;
+  assert.equal(refreshed.suggestions.find((item) => item.key === taskSuggestion.key).status, "accepted");
+  assert.equal(refreshed.suggestions.find((item) => item.key === reviewSuggestion.key).status, "dismissed");
+  assert.equal((await B.req("GET", "/api/study/suggestions")).json.suggestions.length, 0);
+  const expired = await A.req("POST", "/api/study/suggestions", {
+    date: "2000-01-01", suggestionKey: taskSuggestion.key, status: "accepted",
+  });
+  assert.equal(expired.status, 409);
+  assert.equal((await A.req("POST", "/api/study/suggestions", {
+    date: plan.date, suggestionKey: taskSuggestion.key, status: "invalid",
+  })).status, 400);
+});
+
+
+await test("water, reading and learning trackers persist per user and update linked habit progress", async () => {
+  const beforeHeatmap = (await A.req("GET", "/api/analytics")).json;
+  const waterHabit = (await A.req("POST", "/api/habits", { name: "Water tracker test", kind: "water", target: 2000 })).json.habit;
+  const readingHabit = (await A.req("POST", "/api/habits", { name: "Reading tracker test", kind: "reading", target: 15 })).json.habit;
+  const learningHabit = (await A.req("POST", "/api/habits", { name: "Learning tracker test", kind: "learning", target: 2 })).json.habit;
+  assert.ok(waterHabit?.id && readingHabit?.id && learningHabit?.id);
+
+  await A.req("POST", "/api/trackers/water", { ml: 500 });
+  const reading = (await A.req("POST", "/api/trackers/reading", { book: "Test book", pages: 5 })).json;
+  const learning = (await A.req("POST", "/api/trackers/learning", { title: "Test concept", explanation: "A short explanation." })).json;
+  assert.ok(reading.ok && learning.ok);
+
+  const tracker = (await A.req("GET", "/api/trackers")).json;
+  assert.equal(tracker.water.total, 500);
+  assert.equal(tracker.reading.todayPages, 5);
+  assert.equal(tracker.learning.todayCount, 1);
+  const afterHeatmap = (await A.req("GET", "/api/analytics")).json;
+  const beforeDay = beforeHeatmap.heatmap.find((day) => day.date === beforeHeatmap.today);
+  const afterDay = afterHeatmap.heatmap.find((day) => day.date === afterHeatmap.today);
+  assert.equal(afterDay.habits - beforeDay.habits, 3, "water, reading and learning each contribute once even below their targets");
+  const expectedLevel = afterDay.score >= afterHeatmap.dailyGoal ? 4 : afterDay.score >= afterHeatmap.dailyGoal * (2 / 3) ? 3 : afterDay.score >= afterHeatmap.dailyGoal / 3 ? 2 : afterDay.score > 0 ? 1 : 0;
+  assert.equal(afterDay.level, expectedLevel, "heatmap intensity follows the documented five-level thresholds");
+
+  const mine = (await A.req("GET", "/api/habits")).json.habits;
+  assert.equal(mine.find((h) => h.id === waterHabit.id).todayAmount, 500);
+  assert.equal(mine.find((h) => h.id === readingHabit.id).todayAmount, 5);
+  assert.equal(mine.find((h) => h.id === learningHabit.id).todayAmount, 1);
+
+  const other = (await B.req("GET", "/api/trackers")).json;
+  assert.equal(other.water.total, 0);
+  assert.equal(other.reading.entries.length, 0);
+  assert.equal(other.learning.entries.length, 0);
+  assert.ok(tracker.reading.entries[0]?.id);
+  assert.equal((await B.req("DELETE", `/api/trackers/reading?id=${tracker.reading.entries[0].id}`)).status, 404);
+});
+
+await test("tracker retries with the same clientActionId never duplicate persisted entries", async () => {
+  const actionId = "d6c8a4f0-91a7-4d3b-9b31-2c6f1a7e5d40";
+  const before = (await A.req("GET", "/api/trackers")).json;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    assert.equal((await A.req("POST", "/api/trackers/water", { ml: 250, clientActionId: actionId })).status, 200);
+    assert.equal((await A.req("POST", "/api/trackers/reading", { book: "Idempotent book", pages: 3, clientActionId: actionId })).status, 200);
+    assert.equal((await A.req("POST", "/api/trackers/learning", { title: "Idempotent concept", explanation: "", clientActionId: actionId })).status, 200);
+  }
+  const after = (await A.req("GET", "/api/trackers")).json;
+  assert.equal(after.water.total - before.water.total, 250);
+  assert.equal(after.reading.todayPages - before.reading.todayPages, 3);
+  assert.equal(after.learning.todayCount - before.learning.todayCount, 1);
+});
+
+
+await test("focus pause and resume preserve active time and enforce session ownership", async () => {
+  const session = (await A.req("POST", "/api/focus", { mode: "focus", minutes: 5 })).json.session;
+  assert.ok(session?.id);
+  const paused = await A.req("POST", `/api/focus/${session.id}`, { action: "pause" });
+  assert.equal(paused.status, 200, paused.text);
+  assert.equal(paused.json.session.status, "paused");
+  assert.equal((await A.req("POST", `/api/focus/${session.id}`, { action: "complete" })).status, 400);
+  assert.equal((await B.req("POST", `/api/focus/${session.id}`, { action: "resume" })).status, 404);
+  const resumed = await A.req("POST", `/api/focus/${session.id}`, { action: "resume" });
+  assert.equal(resumed.status, 200, resumed.text);
+  assert.equal(resumed.json.session.status, "running");
+  const ended = await A.req("POST", `/api/focus/${session.id}`, { action: "end" });
+  assert.equal(ended.status, 200);
+  assert.equal(ended.json.xp, 0);
+  assert.ok(ended.json.session.actualSeconds <= 5);
+});
+
+await test("focus session state transitions reject concurrent duplicate pause and resume requests", async () => {
+  const session = (await A.req("POST", "/api/focus", { mode: "focus", minutes: 5 })).json.session;
+  assert.ok(session?.id);
+  const pauses = await Promise.all([
+    A.req("POST", `/api/focus/${session.id}`, { action: "pause" }),
+    A.req("POST", `/api/focus/${session.id}`, { action: "pause" }),
+  ]);
+  assert.deepEqual(pauses.map((result) => result.status).sort(), [200, 409]);
+  const resumes = await Promise.all([
+    A.req("POST", `/api/focus/${session.id}`, { action: "resume" }),
+    A.req("POST", `/api/focus/${session.id}`, { action: "resume" }),
+  ]);
+  assert.deepEqual(resumes.map((result) => result.status).sort(), [200, 409]);
+  assert.equal((await A.req("POST", `/api/focus/${session.id}`, { action: "end" })).status, 200);
+});
+
+await test("Focus background and custom font uploads are validated and private per account", async () => {
+  const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
+  const imageForm = new FormData();
+  imageForm.append("file", new Blob([png], { type: "image/png" }), "focus.png");
+  const uploadedImage = await A.req("POST", "/api/me/focus-background", imageForm);
+  assert.equal(uploadedImage.status, 200, uploadedImage.text);
+  const image = await A.req("GET", "/api/me/focus-background", undefined, true);
+  assert.equal(image.status, 200);
+  assert.equal(image.headers.get("content-type"), "image/png");
+  assert.equal((await B.req("GET", "/api/me/focus-background")).status, 404);
+  const invalidImage = new FormData();
+  invalidImage.append("file", new Blob(["not an image"], { type: "image/png" }), "bad.png");
+  assert.equal((await A.req("POST", "/api/me/focus-background", invalidImage)).status, 400);
+  assert.equal((await A.req("DELETE", "/api/me/focus-background", {})).status, 200);
+
+  const fontForm = new FormData();
+  fontForm.append("file", new Blob([Buffer.from("wOF2test-font-signature")], { type: "font/woff2" }), "custom.woff2");
+  const uploadedFont = await A.req("POST", "/api/me/font", fontForm);
+  assert.equal(uploadedFont.status, 200, uploadedFont.text);
+  const meta = await A.req("GET", "/api/me/font?meta=1");
+  assert.equal(meta.status, 200);
+  assert.equal(meta.json.mime, "font/woff2");
+  const font = await A.req("GET", "/api/me/font", undefined, true);
+  assert.equal(font.status, 200);
+  assert.equal(font.headers.get("content-type"), "font/woff2");
+  assert.equal((await B.req("GET", "/api/me/font?meta=1")).status, 404);
+  assert.equal((await A.req("DELETE", "/api/me/font", {})).status, 200);
+});
+
+
+await test("Music Detection pairing, now-playing updates and device revocation are isolated", async () => {
+  const paired = await A.req("POST", "/api/music-bridge/pair", { platform: "android", deviceName: "Android Test Device" });
+  assert.equal(paired.status, 200, paired.text);
+  assert.ok(paired.json.device?.id && paired.json.token);
+  const deviceId = paired.json.device.id;
+  const token = paired.json.token;
+  assert.equal(typeof token, "string");
+  assert.ok(token.length >= 32);
+  const ownerDevices = await A.req("GET", "/api/music-bridge/devices");
+  assert.equal(ownerDevices.status, 200);
+  assert.equal(ownerDevices.json.devices.length, 1);
+  assert.equal("token" in ownerDevices.json.devices[0], false);
+  assert.equal("tokenHash" in ownerDevices.json.devices[0], false);
+  assert.equal((await B.req("GET", "/api/music-bridge/devices")).json.devices.length, 0);
+
+  const invalidToken = await fetch(BASE + "/api/music-bridge/push", {
+    method: "POST",
+    headers: { Authorization: "Bearer invalid-device-token", "Content-Type": "application/json" },
+    body: JSON.stringify({ title: "Should be rejected" }),
+  });
+  assert.equal(invalidToken.status, 401);
+
+  const pushed = await fetch(BASE + "/api/music-bridge/push", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      title: "Bridge test track", artist: "Test artist", album: "Test album",
+      appName: "Test player", isPlaying: true, positionMs: 12000, durationMs: 180000,
+    }),
+  });
+  assert.equal(pushed.status, 200, await pushed.text());
+  const now = await A.req("GET", "/api/music-bridge/now-playing");
+  assert.equal(now.json.idle, false);
+  assert.equal(now.json.track.title, "Bridge test track");
+  assert.equal(now.json.track.artist, "Test artist");
+  assert.equal(now.json.progressMs, 12000);
+  assert.equal((await B.req("GET", "/api/music-bridge/now-playing")).json.idle, true);
+
+  assert.equal((await A.req("POST", "/api/music-bridge/revoke", { deviceId })).status, 200);
+  const revoked = await fetch(BASE + "/api/music-bridge/push", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ title: "Should be rejected" }),
+  });
+  assert.equal(revoked.status, 401);
+  assert.equal((await A.req("GET", "/api/music-bridge/devices")).json.devices.length, 0);
+});
+
+/* ---------------- current authentication surface ---------------- */
+await test("legacy demo sign-in endpoint is not exposed", async () => {
+  assert.equal((await anon.req("POST", "/api/auth/demo", { timezone: "UTC" })).status, 404);
 });
 
 /* ---------------- logout / persistence / regular auth still works ---------------- */
@@ -249,17 +595,49 @@ await test("logout, login again, preferences & profile persisted", async () => {
   assert.equal((await A.req("POST", "/api/auth/login", { email: emailA, password: pw })).status, 200);
   const me = (await A.req("GET", "/api/me")).json;
   assert.equal(me.user.displayName, "Alice Renamed"); assert.equal(me.prefs.theme.preset, "aurora");
+  assert.deepEqual(me.prefs.spotify, { ambience: false, autoRefresh: false });
 });
 await test("password reset flow: generic response, invalid token rejected", async () => {
   const r = await anon.req("POST", "/api/auth/forgot", { email: "nobody@test.local" });
   assert.equal(r.status, 200);
   assert.equal((await anon.req("POST", "/api/auth/reset", { token: "x".repeat(40), password: "new-password-123" })).status, 400);
 });
+await test("password reset tokens are single-use under concurrent requests", async () => {
+  assert.ok(process.env.DATABASE_URL, "DATABASE_URL is required for the token-consumption integration test");
+  const c = new Client();
+  const email = `reset_race_${rnd()}@test.local`;
+  assert.equal((await c.req("POST", "/api/auth/signup", { email, password: pw, displayName: "Reset Race" })).status, 200);
+  const user = (await c.req("GET", "/api/me")).json.user;
+  const token = randomBytes(32).toString("base64url");
+  const sql = new PgClient({ connectionString: process.env.DATABASE_URL });
+  await sql.connect();
+  try {
+    await sql.query("INSERT INTO ossv2.auth_tokens (user_id, type, token_hash, expires_at) VALUES ($1, 'reset', $2, $3)", [user.id, createHash("sha256").update(token).digest("hex"), new Date(Date.now() + 60 * 60 * 1000)]);
+  } finally {
+    await sql.end();
+  }
+  const firstPassword = "reset-race-first-123";
+  const secondPassword = "reset-race-second-123";
+  const results = await Promise.all([
+    c.req("POST", "/api/auth/reset", { token, password: firstPassword }),
+    c.req("POST", "/api/auth/reset", { token, password: secondPassword }),
+  ]);
+  assert.deepEqual(results.map((result) => result.status).sort(), [200, 400]);
+  assert.equal((await c.req("GET", "/api/me")).status, 401, "reset invalidates existing sessions");
+  const winningPassword = results[0].status === 200 ? firstPassword : secondPassword;
+  assert.equal((await c.req("POST", "/api/auth/login", { email, password: winningPassword })).status, 200);
+  assert.equal((await c.req("DELETE", "/api/me/account", { password: winningPassword })).status, 200);
+});
 await test("account deletion removes data (cascade)", async () => {
   assert.equal((await B.req("DELETE", "/api/me/account", { password: "nope-nope" })).status, 400);
   assert.equal((await B.req("DELETE", "/api/me/account", { password: pw })).status, 200);
   assert.equal((await B.req("GET", "/api/me")).status, 401);
   assert.equal((await anon.req("POST", "/api/auth/login", { email: emailB, password: pw })).status, 401);
+});
+
+await test("login throttling applies across changing email addresses", async () => {
+  const attempts = await Promise.all(Array.from({ length: 35 }, (_, i) => anon.req("POST", "/api/auth/login", { email: `rate_${i}_${rnd()}@test.local`, password: "wrong-password-123" })));
+  assert.ok(attempts.some((attempt) => attempt.status === 429), "per-IP login limit must trigger despite rotating email addresses");
 });
 
 console.log(results.join("\n"));

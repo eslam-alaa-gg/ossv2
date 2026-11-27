@@ -1,12 +1,13 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
 import { motion, AnimatePresence } from "framer-motion";
-import { ExternalLink, Music2, Pause, Play } from "lucide-react";
+import { ExternalLink, Music2 } from "lucide-react";
 import Link from "next/link";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { api, ApiErr } from "@/lib/client";
 import { useApp } from "./providers";
 import { Button, Card, Progress, Skeleton } from "./ui";
+import { YouTubeMusicPlayer } from "./youtube-music";
 
 export type NPTrack = {
   id: string;
@@ -247,61 +248,115 @@ export function useProgress(np: NowPlaying | null) {
 }
 
 /** Dashboard widget */
-export function NowPlayingWidget() {
+type BridgeNowPlaying = {
+  idle: boolean;
+  playing?: boolean;
+  track?: { title: string; artist: string; album: string; artwork: string | null; appName: string };
+  device?: { id: string; name: string; platform: string };
+  progressMs?: number;
+  durationMs?: number;
+  fetchedAt?: number;
+};
+
+/** Responsive dashboard music widget; its source is selected in Dashboard preferences. */
+export function NowPlayingWidget({ source = "spotify" }: { source?: "spotify" | "detection" | "youtube" }) {
   const { t: tr } = useApp();
   const { status, np, error, errorCode, loadingStatus, refresh } = useSpotify();
   const progress = useProgress(np);
-  if (loadingStatus) return <Skeleton className="h-[148px]" />;
-  if ((!status?.configured || !status.connected) && (!np || np.idle)) {
+  const spotifyTrack = source === "spotify" && np && !np.idle ? np.track : null;
+  const [bridge, setBridge] = useState<BridgeNowPlaying | null>(null);
+
+  useEffect(() => {
+    if (source !== "detection" || spotifyTrack) return;
+    let stopped = false;
+    let inFlight = false;
+    let timer: number | null = null;
+    const load = async () => {
+      if (stopped || inFlight || document.visibilityState !== "visible") return;
+      inFlight = true;
+      try { setBridge(await api<BridgeNowPlaying>("/api/music-bridge/now-playing")); } catch { /* Music Detection is optional. */ }
+      finally { inFlight = false; }
+    };
+    const start = () => {
+      if (document.visibilityState !== "visible" || timer) return;
+      void load();
+      timer = window.setInterval(() => void load(), 10000);
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") start();
+      else if (timer) { window.clearInterval(timer); timer = null; }
+    };
+    start();
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      stopped = true;
+      if (timer) window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [source, spotifyTrack?.id]);
+
+  if (source === "youtube") {
     return (
-      <Card className="flex items-center gap-4">
-        <div className="grid size-14 place-items-center rounded-2xl bg-card text-accent"><Music2 className="size-6" /></div>
-        <div className="min-w-0 flex-1">
-          <p className="font-medium">{tr("Spotify Now Playing")}</p>
-          <p className="text-sm text-muted">{status?.configured ? tr("Connect Spotify to see what you're listening to.") : tr("Spotify isn't configured on this server yet.")}</p>
-        </div>
-        <Link href="/music" className="glass-btn btn-sm">{status?.configured ? tr("Connect") : tr("Details")}</Link>
+      <Card className="space-y-3">
+        <YouTubeMusicPlayer compact spotifyPlaying={!!np && !np.idle && np.playing} />
       </Card>
     );
   }
-  const t = np && !np.idle ? np.track : null;
+  if (source === "spotify" && loadingStatus && !bridge) return <Skeleton className="h-[148px]" />;
+  const bridgeData = source === "detection" ? bridge : null;
+  const bridgeTrack = bridgeData && !bridgeData.idle ? bridgeData.track ?? null : null;
+  const title = spotifyTrack?.title ?? bridgeTrack?.title ?? null;
+  const artists = spotifyTrack ? spotifyTrack.artists.map((artist) => artist.name).join(", ") : bridgeTrack?.artist ?? "";
+  const album = spotifyTrack?.album.name ?? bridgeTrack?.album ?? "";
+  const image = spotifyTrack?.album.image ?? bridgeTrack?.artwork ?? null;
+  const playing = spotifyTrack ? !!(np && !np.idle && np.playing) : !!bridgeTrack && !!bridge?.playing;
+  const device = spotifyTrack ? (np && !np.idle ? np.device?.name : "") : bridgeData?.device?.name ?? bridgeTrack?.appName ?? "";
+  const duration = spotifyTrack?.durationMs ?? bridgeData?.durationMs ?? 0;
+  const position = spotifyTrack ? progress : bridgeData?.progressMs ?? 0;
+  const href = source === "detection" ? "/music?tab=detection" : "/music?tab=spotify";
+
+  if (source === "spotify" && !title && (!status?.configured || !status.connected)) {
+    return (
+      <Card className="now-playing-widget flex items-center gap-4">
+        <div className="grid size-14 shrink-0 place-items-center rounded-2xl bg-card text-accent"><Music2 className="size-6" /></div>
+        <div className="min-w-0 flex-1">
+          <p className="font-medium">{tr("Music")}</p>
+          <p className="text-sm text-muted">{tr("Connect Spotify to see what's playing.")}</p>
+        </div>
+        <Link href="/music" className="glass-btn btn-sm">{tr("Connect Spotify")}</Link>
+      </Card>
+    );
+  }
+
   return (
-    <Card className="relative overflow-hidden">
-      {error && errorCode !== "rate_limited" && <p className="mb-2 text-xs text-amber-400" role="status">{error} <button className="underline" onClick={() => refresh().catch(() => {})}>{tr("Retry")}</button></p>}
-      <div className="flex items-center gap-4">
+    <Card className="now-playing-widget relative overflow-hidden">
+      {error && errorCode !== "rate_limited" && spotifyTrack && <p className="mb-2 text-xs text-amber-400" role="status">{error} <button className="underline" onClick={() => refresh().catch(() => {})}>{tr("Retry")}</button></p>}
+      <div className="now-playing-row flex items-center gap-4">
         <AnimatePresence mode="wait">
-          <motion.div key={t?.id ?? "none"} initial={{ opacity: 0, scale: 0.94 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="size-20 shrink-0 overflow-hidden rounded-2xl bg-card shadow-lg">
-            {t?.album.image ? <img src={t.album.image} alt={`${t.album.name} cover`} className="size-full object-cover" /> : <div className="grid size-full place-items-center text-muted"><Music2 /></div>}
+          <motion.div key={spotifyTrack?.id ?? bridgeTrack?.title ?? "none"} initial={{ opacity: 0, scale: 0.94 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="now-playing-artwork size-20 shrink-0 overflow-hidden rounded-2xl bg-card shadow-lg">
+            {image ? <img src={image} alt="" className="size-full object-cover" /> : <div className="grid size-full place-items-center text-muted"><Music2 /></div>}
           </motion.div>
         </AnimatePresence>
         <div className="min-w-0 flex-1">
-          {t && np && !np.idle ? (
-            <>
-              <div className="flex items-center gap-2 text-xs text-muted">
-                <span className={`size-1.5 rounded-full ${np.playing ? "bg-emerald-400" : "bg-amber-400"}`} />
-                {np.playing ? tr("Playing") : tr("Paused")} {np.device ? `· ${np.device.name}` : ""}
-              </div>
-              <p className="truncate text-base font-semibold">{t.title}</p>
-              <p className="truncate text-sm text-muted">{t.artists.map((a) => a.name).join(", ")} · {t.album.name}</p>
-              <div className="mt-2 flex items-center gap-2 text-[11px] tabular-nums text-faint">
-                <span>{fmtMs(progress)}</span>
-                <Progress value={(progress / t.durationMs) * 100} className="h-1 flex-1" />
-                <span>-{fmtMs(t.durationMs - progress)}</span>
-              </div>
-            </>
-          ) : (
-            <>
-              <p className="font-medium">{tr("Nothing playing")}</p>
-              <p className="text-sm text-muted">{tr("Start playback in Spotify and it will show up here.")}</p>
-            </>
-          )}
+          {title ? <>
+            <div className="flex items-center gap-2 text-xs text-muted">
+              <span className={`size-1.5 rounded-full ${playing ? "bg-emerald-400" : "bg-amber-400"}`} />
+              {playing ? tr("Playing") : tr("Paused")} {device ? `· ${device}` : ""}
+              {!spotifyTrack && <span className="truncate">{tr("Music Detection")}</span>}
+            </div>
+            <p className="now-playing-title truncate text-base font-semibold">{title}</p>
+            <p className="now-playing-artist truncate text-sm text-muted">{artists}{album ? ` · ${album}` : ""}</p>
+            {duration > 0 && <div className="mt-2 flex items-center gap-2 text-[11px] tabular-nums text-faint"><span>{fmtMs(position)}</span><Progress value={(position / duration) * 100} className="h-1 flex-1" /><span>-{fmtMs(duration - position)}</span></div>}
+          </> : <>
+            <p className="font-medium">{tr("Nothing playing")}</p>
+            <p className="text-sm text-muted">{source === "detection" ? tr("Start music on a paired device to show it here.") : tr("Start playback in Spotify to show it here.")}</p>
+          </>}
         </div>
-        <Link href="/music" className="glass-btn btn-icon" aria-label={tr("Open Music Hub")}>{np && !np.idle && np.playing ? <Pause className="size-4" /> : <Play className="size-4" />}</Link>
+        <Link href={href} className="glass-btn btn-icon shrink-0" aria-label={tr("Open Music")}><Music2 className="size-4" /></Link>
       </div>
     </Card>
   );
 }
-
 export function OpenInSpotify({ url, label = "Open in Spotify" }: { url?: string | null; label?: string }) {
   return (
     <a href={url ?? "https://open.spotify.com"} target="_blank" rel="noreferrer noopener" className="glass-btn">

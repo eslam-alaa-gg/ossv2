@@ -54,7 +54,7 @@ export default function SettingsPage() {
   return (
     <>
       <PageHeader title={t("Settings")} subtitle={t("Account, notifications and data.")} />
-      <div className="grid gap-[var(--gap)] lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-[var(--gap)] lg:grid-cols-2">
         <Card>
           <h2 className="mb-2 flex items-center gap-2 text-sm font-medium text-muted"><Bell className="size-4" /> {t("Notifications")}</h2>
           <div className="divide-y divide-[var(--border)]">

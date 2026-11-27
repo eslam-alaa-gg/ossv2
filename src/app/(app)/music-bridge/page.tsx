@@ -1,6 +1,7 @@
-import { Suspense } from "react";
-import { MusicBridgePanel } from "@/components/music-bridge";
+import { redirect } from "next/navigation";
 
-export default function MusicBridgePage() {
-  return <Suspense fallback={<div className="mx-auto max-w-3xl p-6"><div className="h-96 animate-pulse rounded-2xl bg-card" /></div>}><MusicBridgePanel /></Suspense>;
+export default async function MusicBridgePage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const params = await searchParams;
+  const pair = params.pair === "android" ? "&pair=android" : "";
+  redirect(`/music?tab=detection${pair}`);
 }
