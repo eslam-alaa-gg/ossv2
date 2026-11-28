@@ -493,7 +493,6 @@ export default function FocusPage() {
       ) : backgroundScene !== "none" ? (
         <div className="absolute inset-0"><FocusWallpaperLayer scene={backgroundScene as WallpaperScene} failed={wallpaperVideoFailed} reducedMotion={prefs.theme.reducedMotion} onError={() => setWallpaperVideoFailed(true)} /></div>
       ) : <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_35%,#1b2638_0%,#080d17_55%,#030509_100%)]" />}
-      {backgroundImage && <img src={backgroundImage} alt="" aria-hidden className="absolute inset-0 z-0 h-full w-full object-cover object-center" />}
       <div className="absolute inset-0 z-[1] bg-black" style={{ opacity: backgroundOverlay / 100 }} aria-hidden />
       {focusOverlaysOpen && <button type="button" aria-label={t("Close open panel")} onClick={closeFocusOverlays} className="absolute inset-0 z-30 cursor-default bg-transparent" />}
       <div className="absolute inset-x-0 top-0 z-40 flex items-center justify-end gap-2 p-3 pt-[max(.75rem,env(safe-area-inset-top))] sm:p-5">
