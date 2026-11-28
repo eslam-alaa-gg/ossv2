@@ -71,6 +71,13 @@
       "when": 1795737600000,
       "tag": "0009_tracker_action_idempotency",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1795831762639,
+      "tag": "0010_flashcard_reviews_flashcard_idx",
+      "breakpoints": true
     }
   ]
 }
