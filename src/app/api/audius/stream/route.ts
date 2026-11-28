@@ -21,12 +21,26 @@ export const GET = handle(async (req) => {
 
   // Audius intentionally redirects stream requests to distributed CDN hosts.
   // Keep the redirect instead of incorrectly requiring the final host to be audius.co.
-  const response = await fetch(url, {
-    headers,
-    redirect: "follow",
-    cache: "no-store",
-    signal: AbortSignal.timeout(15_000),
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      headers,
+      redirect: "follow",
+      cache: "no-store",
+      signal: AbortSignal.timeout(15_000),
+    });
+  } catch {
+    throw new ApiError(502, "Could not reach the Audius audio stream. Check the provider connection and try again.", "audius_stream_network_error");
+  }
+
+  if (response.status === 404) {
+    await response.body?.cancel();
+    throw new ApiError(404, "Audius could not find this track.", "audius_track_not_found");
+  }
+  if (response.status === 429) {
+    await response.body?.cancel();
+    throw new ApiError(503, "Audius streaming is rate-limited. Wait briefly and try again.", "audius_stream_rate_limited");
+  }
   if (!response.ok || !response.url) {
     await response.body?.cancel();
     throw new ApiError(502, "Audius could not provide a playable stream for this track.", "audius_stream_unavailable");

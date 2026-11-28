@@ -502,6 +502,46 @@ await test("focus pause and resume preserve active time and enforce session owne
   assert.ok(ended.json.session.actualSeconds <= 5);
 });
 
+await test("Focus stopwatch persists, pauses, resumes and can be completed without a countdown", async () => {
+  const before = (await A.req("GET", "/api/focus")).json.totalSessions;
+  const tooLong = await A.req("POST", "/api/focus", { mode: "stopwatch", minutes: 10081 });
+  assert.equal(tooLong.status, 400, "stopwatch sessions must respect the seven-day server limit");
+
+  const created = await A.req("POST", "/api/focus", { mode: "stopwatch", minutes: 10080 });
+  assert.equal(created.status, 200, created.text);
+  const session = created.json.session;
+  assert.equal(session.mode, "stopwatch");
+  assert.equal(session.plannedSeconds, 604800);
+  const restored = (await A.req("GET", "/api/focus")).json.running;
+  assert.equal(restored.mode, "stopwatch", "the active stopwatch is recoverable from the API after reload");
+
+  const paused = await A.req("POST", `/api/focus/${session.id}`, { action: "pause" });
+  assert.equal(paused.status, 200, paused.text);
+  assert.equal(paused.json.session.status, "paused");
+  const resumed = await A.req("POST", `/api/focus/${session.id}`, { action: "resume" });
+  assert.equal(resumed.status, 200, resumed.text);
+  await new Promise((resolve) => setTimeout(resolve, 1100));
+  const pausedAgain = await A.req("POST", `/api/focus/${session.id}`, { action: "pause" });
+  assert.equal(pausedAgain.status, 200, pausedAgain.text);
+  assert.ok(pausedAgain.json.session.actualSeconds >= 1, "stopwatch records elapsed active seconds");
+
+  const completed = await A.req("POST", `/api/focus/${session.id}`, { action: "complete" });
+  assert.equal(completed.status, 200, completed.text);
+  assert.equal(completed.json.session.status, "completed");
+  assert.equal(completed.json.session.mode, "stopwatch");
+  assert.equal((await A.req("GET", "/api/focus")).json.totalSessions, before + 1);
+});
+
+await test("break and rest sessions are recorded without focus rewards", async () => {
+  const created = await A.req("POST", "/api/focus", { mode: "short_break", minutes: 10 });
+  assert.equal(created.status, 200, created.text);
+  assert.equal(created.json.session.mode, "short_break");
+  const ended = await A.req("POST", `/api/focus/${created.json.session.id}`, { action: "end" });
+  assert.equal(ended.status, 200, ended.text);
+  assert.equal(ended.json.session.status, "ended");
+  assert.equal(ended.json.xp, 0);
+});
+
 await test("focus session state transitions reject concurrent duplicate pause and resume requests", async () => {
   const session = (await A.req("POST", "/api/focus", { mode: "focus", minutes: 5 })).json.session;
   assert.ok(session?.id);
@@ -524,6 +564,7 @@ await test("Focus background and custom font uploads are validated and private p
   imageForm.append("file", new Blob([png], { type: "image/png" }), "focus.png");
   const uploadedImage = await A.req("POST", "/api/me/focus-background", imageForm);
   assert.equal(uploadedImage.status, 200, uploadedImage.text);
+  assert.equal(uploadedImage.json.saved, true, "uploaded background is persisted");
   const image = await A.req("GET", "/api/me/focus-background", undefined, true);
   assert.equal(image.status, 200);
   assert.equal(image.headers.get("content-type"), "image/png");
@@ -531,6 +572,9 @@ await test("Focus background and custom font uploads are validated and private p
   const invalidImage = new FormData();
   invalidImage.append("file", new Blob(["not an image"], { type: "image/png" }), "bad.png");
   assert.equal((await A.req("POST", "/api/me/focus-background", invalidImage)).status, 400);
+  const oversizedImage = new FormData();
+  oversizedImage.append("file", new Blob([Buffer.alloc(450 * 1024 + 1)], { type: "image/png" }), "large.png");
+  assert.equal((await A.req("POST", "/api/me/focus-background", oversizedImage)).status, 413);
   assert.equal((await A.req("DELETE", "/api/me/focus-background", {})).status, 200);
 
   const fontForm = new FormData();

@@ -30,9 +30,13 @@ export const GET = handle(async () => {
 
 export const POST = handle(async (request) => {
   const auth = await requireUser();
+  const declaredLength = Number(request.headers.get("content-length") ?? 0);
+  if (Number.isFinite(declaredLength) && declaredLength > MAX + 64 * 1024) {
+    throw new ApiError(413, "Image upload is too large. Please choose an image under 450 KB.");
+  }
   const form = await request.formData().catch(() => null);
   const file = form?.get("file");
-  if (!(file instanceof File)) throw new ApiError(400, "Choose an image to upload.");
+  if (!(file instanceof File) || file.size === 0) throw new ApiError(400, "Choose a non-empty image to upload.");
   if (file.size > MAX) throw new ApiError(413, "Image is too large. Please choose an image under 450 KB.");
   const buffer = Buffer.from(await file.arrayBuffer());
   const mime = sniff(buffer);

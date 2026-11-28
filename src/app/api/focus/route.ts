@@ -25,7 +25,7 @@ export const GET = handle(async () => {
     .orderBy(desc(focusSessions.startedAt))
     .limit(15);
   const [running] = await db.select().from(focusSessions).where(and(eq(focusSessions.userId, a.id), inArray(focusSessions.status, ["running", "paused"]))).limit(1);
-  const total = (await db.execute(sql`select count(*)::int c from ossv2.focus_sessions where user_id=${a.id} and status='completed' and mode in ('focus','custom')`)).rows[0] as { c: number };
+  const total = (await db.execute(sql`select count(*)::int c from ossv2.focus_sessions where user_id=${a.id} and status='completed' and mode in ('focus','custom','stopwatch')`)).rows[0] as { c: number };
   const pending = await db.select({ id: tasks.id, title: tasks.title, priority: tasks.priority }).from(tasks).where(and(eq(tasks.userId, a.id), sql`${tasks.status} in ('todo','in_progress')`)).limit(100);
   void addDays;
   return {
@@ -40,7 +40,7 @@ export const GET = handle(async () => {
 
 export const POST = handle(async (req) => {
   const a = await requireUser();
-  const d = await body(req, z.object({ mode: z.enum(["focus", "short_break", "long_break", "custom"]), minutes: z.number().int().min(1).max(10080), taskId: z.string().uuid().nullable().default(null) }));
+  const d = await body(req, z.object({ mode: z.enum(["focus", "short_break", "long_break", "custom", "stopwatch"]), minutes: z.number().int().min(1).max(10080), taskId: z.string().uuid().nullable().default(null) }));
   if (d.taskId) await ownTask(a, d.taskId);
   // Serialize session starts per user and keep closing the previous session
   // plus creating the replacement atomic. This prevents concurrent starts from

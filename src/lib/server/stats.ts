@@ -41,7 +41,7 @@ export async function activityByDay(userId: string, tz: string, from: string, to
     for (const date of activeDates) if (days[date] && !completedSpecial.has(`${date}:${kind}`)) days[date].habits++;
   }
   for (const r of challengeRows) if (r.completedAt) { const k = todayIn(tz, r.completedAt); if (days[k]) days[k].challenges++; }
-  for (const r of focusRows) if (r.endedAt && (r.mode === "focus" || r.mode === "custom")) { const k = todayIn(tz, r.endedAt); if (days[k]) { days[k].focus++; days[k].focusMinutes += Math.floor(r.actualSeconds / 60); } }
+  for (const r of focusRows) if (r.endedAt && (r.mode === "focus" || r.mode === "custom" || r.mode === "stopwatch")) { const k = todayIn(tz, r.endedAt); if (days[k]) { days[k].focus++; days[k].focusMinutes += Math.floor(r.actualSeconds / 60); } }
   for (const r of milestoneRows) if (r.completedAt) { const k = todayIn(tz, r.completedAt); if (days[k]) days[k].milestones++; }
   for (const d of Object.values(days)) finish(d, dailyGoal);
   return days;
