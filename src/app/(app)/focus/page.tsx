@@ -1,7 +1,7 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
 import { ImagePlus, Keyboard, Maximize2, Minimize2, Palette, Pause, Play, RotateCcw, Search, SlidersHorizontal, Square, Trash2, Video, X } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { useApp } from "@/components/providers";
 import { type Task } from "@/components/task-form";
 import { Badge, Button, Card, EmptyState, Field, cn, useUI } from "@/components/ui";
@@ -420,7 +420,7 @@ export default function FocusPage() {
   );
 
   if (zen) return (
-    <main className="fixed inset-0 z-[9999] isolate h-[100dvh] w-screen overflow-hidden bg-[#05070c] text-white">
+    <main style={{ "--accent": "#a78bfa", "--accent-rgb": "167,139,250", "--input": "rgba(255,255,255,.14)", "--muted": "rgba(255,255,255,.65)", "--faint": "rgba(255,255,255,.42)" } as CSSProperties} className="fixed inset-0 z-[9999] isolate h-[100dvh] w-screen overflow-hidden bg-[#05070c] text-white">
       {backgroundImage ? (
         <img src={backgroundImage} alt="" className="absolute inset-0 h-full w-full object-cover object-center" aria-hidden />
       ) : backgroundScene !== "none" ? (
