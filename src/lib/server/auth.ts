@@ -114,8 +114,9 @@ export function rateLimit(key: string, max: number, windowMs: number) {
   const b = buckets.get(key);
   if (!b || b.reset <= now) {
     if (buckets.size >= MAX_RATE_LIMIT_BUCKETS) {
-      const oldestKey = buckets.keys().next().value;
-      if (oldestKey !== undefined) buckets.delete(oldestKey);
+      // Expired buckets were pruned above. Keep active limits intact instead
+      // of evicting one and allowing a unique-key burst to bypass that limit.
+      throw new ApiError(429, "Rate limit capacity reached. Please try again shortly.");
     }
     buckets.set(key, { n: 1, reset: now + windowMs });
     return;
