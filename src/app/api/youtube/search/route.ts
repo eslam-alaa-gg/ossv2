@@ -74,13 +74,17 @@ export const GET = handle(async (req) => {
   if (q.length < 2) throw new ApiError(400, "Enter at least 2 characters to search.");
   rateLimit(`youtube-music-search:user:${auth.id}`, 12, 60_000);
   rateLimit(`youtube-music-search:ip:${await clientIp()}`, 30, 60_000);
+  // Prefer the supported YouTube Data API when configured. Keep the existing
+  // YouTube Music WEB_REMIX path as a compatibility fallback for deployments
+  // without a usable API key or when the official search returns no results.
+  const official = await searchWithDataApi(q).catch(() => null);
+  if (official?.length) return { results: official };
+
   try {
-    const results = await searchWithMusicWeb(q);
-    if (results.length) return { results };
+    const fallback = await searchWithMusicWeb(q);
+    if (fallback.length) return { results: fallback };
   } catch {
-    // WEB_REMIX is undocumented and its client configuration can change; use the supported API fallback.
+    // WEB_REMIX is undocumented and its client configuration can change.
   }
-  const fallback = await searchWithDataApi(q).catch(() => null);
-  if (fallback?.length) return { results: fallback };
   throw new ApiError(502, "YouTube Music search is temporarily unavailable. Check the server-side YOUTUBE_API_KEY and try again.", "music_search_unavailable");
 });
