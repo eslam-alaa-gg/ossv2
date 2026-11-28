@@ -71,11 +71,11 @@ export function AudiusPlayer({ compact = false, searchOpen = true, mixerOpen = f
     const playId = ++playRequest.current;
     setLoadingTrack(track.id); setError(""); setPlaying(false);
     try {
-      const data = await api<{ streamUrl: string }>("/api/audius/stream?id=" + encodeURIComponent(track.id));
+      // The authenticated same-origin route resolves Audius' distributed CDN redirect.
+      // The browser then streams directly from the returned HTTPS CDN URL.
+      const streamUrl = "/api/audius/stream?id=" + encodeURIComponent(track.id);
       if (playId !== playRequest.current || !audio.current) return;
-      const stream = new URL(data.streamUrl);
-      if (stream.protocol !== "https:") throw new Error("Audius returned an invalid audio stream.");
-      audio.current.src = stream.toString(); audio.current.load();
+      audio.current.src = streamUrl; audio.current.load();
       setSelected(track); setCurrentTime(0); setDuration(track.duration || 0);
       await audio.current.play();
       if (playId === playRequest.current) setPlaying(true);
