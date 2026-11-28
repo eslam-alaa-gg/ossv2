@@ -42,7 +42,17 @@ const PHOTO_WALLPAPERS: { id: PhotoWallpaper; label: string; image: string }[] =
   { id: "photo-sunset", label: "Soft Sunset", image: "https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?w=1200&auto=format&fit=crop&q=82" },
   { id: "photo-forest", label: "Forest Path", image: "https://images.unsplash.com/photo-1448375240586-882707db888b?w=1200&auto=format&fit=crop&q=82" },
 ];
-const mmss = (s: number) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+const mmss = (s: number) => {
+  const totalMinutes = Math.max(0, Math.floor(s / 60));
+  const seconds = String(Math.max(0, s % 60)).padStart(2, "0");
+  if (totalMinutes >= 1440) {
+    const days = Math.floor(totalMinutes / 1440);
+    const hours = Math.floor((totalMinutes % 1440) / 60);
+    const minutes = totalMinutes % 60;
+    return `${days}d ${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+  }
+  return `${String(totalMinutes).padStart(2, "0")}:${seconds}`;
+};
 
 function FocusWallpaperLayer({ scene, failed, onError }: { scene: Exclude<FocusWallpaper, "none">; failed: boolean; onError: () => void }) {
   const photo = PHOTO_WALLPAPERS.find((item) => item.id === scene);
@@ -363,14 +373,14 @@ export default function FocusPage() {
           </svg>
           <div className="text-center">
             <p className="text-xs uppercase tracking-[0.25em] text-faint">{t(MODES.find((m) => m.value === mode)?.label ?? "Focus")}</p>
-            <p role="timer" aria-live="off" className="my-1 text-[clamp(3.2rem,14vw,5.5rem)] font-light tabular-nums leading-none tracking-tight">{mmss(remaining)}</p>
+            <p role="timer" aria-live="off" className={`my-1 ${remaining >= 86400 ? "text-[clamp(2rem,8vw,3.6rem)]" : "text-[clamp(3.2rem,14vw,5.5rem)]"} font-light tabular-nums leading-none tracking-tight`}>{mmss(remaining)}</p>
             <p className="mx-auto max-w-[14rem] truncate text-sm text-muted">{task ? task.title : phase === "idle" ? t("Ready when you are") : t("Stay with it")}</p>
           </div>
         </div>
       ) : timerStyle === "digital" ? (
         <div className="flex min-h-[220px] w-full max-w-[520px] flex-col items-center justify-center rounded-[32px] border border-white/10 bg-black/25 px-5 py-9 shadow-2xl backdrop-blur-xl">
           <p className="text-xs uppercase tracking-[0.28em] text-white/55">{t(MODES.find((m) => m.value === mode)?.label ?? "Focus")}</p>
-          <p role="timer" aria-live="off" className="my-5 font-mono text-[clamp(4rem,17vw,7.5rem)] font-light leading-none tracking-[-0.08em] text-white tabular-nums">{mmss(remaining)}</p>
+          <p role="timer" aria-live="off" className={`my-5 font-mono ${remaining >= 86400 ? "text-[clamp(2.5rem,10vw,4.5rem)]" : "text-[clamp(4rem,17vw,7.5rem)]"} font-light leading-none tracking-[-0.08em] text-white tabular-nums`}>{mmss(remaining)}</p>
           <div className="h-1.5 w-full max-w-[340px] overflow-hidden rounded-full bg-white/15"><div className="h-full rounded-full bg-white/80 transition-[width] duration-500" style={{ width: `${pct}%` }} /></div>
           <p className="mt-4 max-w-[80%] truncate text-sm text-white/65">{task?.title ?? t("Ready when you are")}</p>
         </div>
@@ -384,14 +394,14 @@ export default function FocusPage() {
           </svg>
           <div className="text-center">
             <p className="text-xs uppercase tracking-[0.25em] text-faint">{t(MODES.find((m) => m.value === mode)?.label ?? "Focus")}</p>
-            <p role="timer" aria-live="off" className="my-2 text-[clamp(3.2rem,14vw,5.5rem)] font-light tabular-nums leading-none tracking-tight">{mmss(remaining)}</p>
+            <p role="timer" aria-live="off" className={`my-2 ${remaining >= 86400 ? "text-[clamp(2rem,8vw,3.6rem)]" : "text-[clamp(3.2rem,14vw,5.5rem)]"} font-light tabular-nums leading-none tracking-tight`}>{mmss(remaining)}</p>
             <p className="mx-auto max-w-[14rem] truncate text-sm text-muted">{task?.title ?? t("Stay with it")}</p>
           </div>
         </div>
       ) : timerStyle === "minimal" ? (
         <div className="flex min-h-[220px] w-full flex-col items-center justify-center py-8">
           <p className="mb-4 text-xs uppercase tracking-[0.32em] text-faint">{t(MODES.find((m) => m.value === mode)?.label ?? "Focus")}</p>
-          <p role="timer" aria-live="off" className="text-[clamp(5rem,22vw,10rem)] font-extralight leading-none tracking-[-0.09em] tabular-nums">{mmss(remaining)}</p>
+          <p role="timer" aria-live="off" className={`font-extralight leading-none tracking-[-0.09em] tabular-nums ${remaining >= 86400 ? "text-[clamp(3rem,12vw,5rem)]" : "text-[clamp(5rem,22vw,10rem)]"}`}>{mmss(remaining)}</p>
           <div className="mt-7 h-px w-28 bg-gradient-to-r from-transparent via-[var(--accent)] to-transparent" />
           <p className="mt-4 max-w-[80%] truncate text-sm text-muted">{task?.title ?? t("Stay with it")}</p>
         </div>
@@ -399,7 +409,7 @@ export default function FocusPage() {
         <div className="flex min-h-[220px] w-full max-w-[520px] flex-col justify-center rounded-3xl border border-line bg-card/70 p-6 sm:p-9">
           <div className="mb-3 flex items-end justify-between gap-3">
             <div><p className="text-xs uppercase tracking-[0.2em] text-faint">{t(MODES.find((m) => m.value === mode)?.label ?? "Focus")}</p><p className="mt-2 text-sm text-muted">{task?.title ?? t("Ready when you are")}</p></div>
-            <p role="timer" aria-live="off" className="text-[clamp(3.5rem,13vw,6rem)] font-light leading-none tracking-tight tabular-nums">{mmss(remaining)}</p>
+            <p role="timer" aria-live="off" className={`font-light leading-none tracking-tight tabular-nums ${remaining >= 86400 ? "text-[clamp(2.5rem,10vw,4.5rem)]" : "text-[clamp(3.5rem,13vw,6rem)]"}`}>{mmss(remaining)}</p>
           </div>
           <div className="h-3 w-full overflow-hidden rounded-full bg-[var(--input)]"><div className="h-full rounded-full bg-accent transition-[width] duration-500" style={{ width: `${pct}%` }} /></div>
           <p className="mt-3 text-end text-xs tabular-nums text-faint">{Math.round(pct)}%</p>
