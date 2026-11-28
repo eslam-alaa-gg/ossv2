@@ -20,10 +20,25 @@ export const GET = handle(async (req) => {
   url.search = new URLSearchParams({ query, limit: "15", app_name: "OSSv2" }).toString();
   const headers: Record<string, string> = { Accept: "application/json" };
   if (process.env.AUDIUS_API_KEY) headers["x-api-key"] = process.env.AUDIUS_API_KEY;
-  const response = await fetch(url, { headers, cache: "no-store", signal: AbortSignal.timeout(12_000) });
-  if (!response.ok) throw new ApiError(502, "Audius search is temporarily unavailable.", "audius_search_unavailable");
-  const payload = await response.json() as { data?: AudiusTrack[] };
-  const results = (Array.isArray(payload.data) ? payload.data : []).flatMap((track) => {
+  let response: Response;
+  try {
+    response = await fetch(url, { headers, cache: "no-store", signal: AbortSignal.timeout(12_000) });
+  } catch {
+    throw new ApiError(502, "Could not reach Audius search. Check the provider connection and try again.", "audius_search_network_error");
+  }
+
+  if (response.status === 429) {
+    throw new ApiError(503, "Audius search is rate-limited. Wait briefly and try again.", "audius_search_rate_limited");
+  }
+  if (!response.ok) {
+    throw new ApiError(502, "Audius search is temporarily unavailable.", "audius_search_unavailable");
+  }
+
+  const payload = await response.json().catch(() => null) as { data?: AudiusTrack[] } | null;
+  if (!payload || !Array.isArray(payload.data)) {
+    throw new ApiError(502, "Audius returned an invalid search response. Try again shortly.", "audius_search_invalid_response");
+  }
+  const results = payload.data.flatMap((track) => {
     const id = track.id === undefined ? "" : String(track.id);
     const title = typeof track.title === "string" ? track.title.trim() : "";
     if (!/^[A-Za-z0-9_-]{1,128}$/.test(id) || !title || track.is_streamable === false) return [];
