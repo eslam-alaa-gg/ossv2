@@ -1,6 +1,8 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
 import { ImagePlus, Keyboard, Maximize2, Minimize2, Palette, Pause, Play, RotateCcw, Search, SlidersHorizontal, Square, Trash2, Video, X } from "lucide-react";
+import type { CSSProperties } from "react";
+import { PRESETS as FOCUS_THEME_PRESETS } from "@/lib/theme";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useApp } from "@/components/providers";
 import { type Task } from "@/components/task-form";
@@ -76,6 +78,7 @@ export default function FocusPage() {
   const [backgroundOverlay, setBackgroundOverlay] = useState(prefs.focus.overlay);
   const [wallpaperVideoFailed, setWallpaperVideoFailed] = useState(false);
   const [timerStyle, setTimerStyle] = useState<TimerStyle>(prefs.focus.timerStyle);
+  const focusTheme = FOCUS_THEME_PRESETS.find((item) => item.id === prefs.focus.themePreset) ?? FOCUS_THEME_PRESETS[0];
   useEffect(() => { setBackgroundScene(prefs.focus.background); setTimerStyle(prefs.focus.timerStyle); setBackgroundOverlay(prefs.focus.overlay); setWallpaperVideoFailed(false); }, [prefs.focus.background, prefs.focus.timerStyle, prefs.focus.overlay]);
   const [imageMessage, setImageMessage] = useState("");
   const endAt = useRef(0);
@@ -412,7 +415,7 @@ export default function FocusPage() {
   );
 
   if (zen) return (
-    <main className="fixed inset-0 z-[9999] isolate h-[100dvh] w-screen overflow-hidden bg-[#05070c] text-white">
+    <main className="fixed inset-0 z-[9999] isolate h-[100dvh] w-screen overflow-hidden bg-[#05070c] text-white" style={{ "--accent": focusTheme.accent, "--on-accent": "#ffffff", backgroundColor: focusTheme.d.bg } as CSSProperties}>
       {backgroundImage ? (
         <img src={backgroundImage} alt="" className="absolute inset-0 h-full w-full object-cover object-center" aria-hidden />
       ) : backgroundScene !== "none" ? (
@@ -427,7 +430,7 @@ export default function FocusPage() {
             <label className="mb-3 block text-xs text-white/65">{t("Focus on a task (optional)")}
               <select className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/25 px-3 py-2.5 text-sm text-white" value={taskId} onChange={(e) => setTaskId(e.target.value)} disabled={phase !== "idle"}><option value="">{t("No task — general focus")}</option>{data?.tasks.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}</select>
             </label>
-            <p className="mb-3 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-xs leading-relaxed text-white/65">{t("The immersive Focus Room keeps its own dark appearance. Website themes remain available in Theme Studio.")}</p>
+            <p className="mb-2 text-xs font-medium text-white/65">{t("Focus Room theme")}</p><div className="grid grid-cols-3 gap-2">{FOCUS_THEME_PRESETS.map(item => <button key={item.id} type="button" onClick={() => void savePrefs({ focus: { ...prefs.focus, themePreset: item.id } })} aria-pressed={prefs.focus.themePreset === item.id} className={cn("flex items-center gap-2 rounded-xl border p-2 text-[11px]", prefs.focus.themePreset === item.id ? "border-white/70 bg-white/15" : "border-white/10 bg-white/5 text-white/65")}><span className="size-3 shrink-0 rounded-full" style={{ background: item.accent }} />{t(item.name)}</button>)}</div>
             <p className="mb-2 text-xs font-medium text-white/65">{t("Focus mode")}</p>
             <div className="grid grid-cols-2 gap-2">{MODES.map(m => <button key={m.value} type="button" disabled={phase !== "idle"} onClick={() => pickMode(m.value)} aria-pressed={mode === m.value} className={cn("rounded-xl border px-3 py-2.5 text-xs transition", mode === m.value ? "border-white/70 bg-white/15 text-white" : "border-white/10 bg-white/5 text-white/65 hover:bg-white/10")}>{t(m.label)}</button>)}</div>
             <p className="mb-2 mt-4 text-xs font-medium text-white/65">{t("Timer style")}</p>
