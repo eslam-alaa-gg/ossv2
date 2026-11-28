@@ -55,14 +55,14 @@ async function searchWithDataApi(query: string): Promise<MusicResult[] | null> {
   const key = process.env.YOUTUBE_API_KEY;
   if (!key) return null;
   const url = new URL("https://www.googleapis.com/youtube/v3/search");
-  url.search = new URLSearchParams({ part: "snippet", type: "video", maxResults: "15", q: query, key }).toString();
+  url.search = new URLSearchParams({ part: "snippet", type: "video", videoEmbeddable: "true", maxResults: "15", q: query, key }).toString();
   const response = await fetch(url, { signal: AbortSignal.timeout(12000), next: { revalidate: 60 } });
   if (!response.ok) return null;
   const payload = await response.json();
   const results = collectDataApiResults(payload);
   if (results.length) return results;
   const broadUrl = new URL("https://www.googleapis.com/youtube/v3/search");
-  broadUrl.search = new URLSearchParams({ part: "snippet", type: "video", maxResults: "15", q: `${query} music`, key }).toString();
+  broadUrl.search = new URLSearchParams({ part: "snippet", type: "video", videoEmbeddable: "true", maxResults: "15", q: `${query} music`, key }).toString();
   const broadResponse = await fetch(broadUrl, { signal: AbortSignal.timeout(12000), next: { revalidate: 60 } });
   return broadResponse.ok ? collectDataApiResults(await broadResponse.json()) : null;
 }
@@ -90,13 +90,13 @@ export const GET = handle(async (req) => {
   if (q.length < 2) throw new ApiError(400, "Enter at least 2 characters to search.");
   rateLimit(`youtube-music-search:user:${auth.id}`, 12, 60_000);
   rateLimit(`youtube-music-search:ip:${await clientIp()}`, 30, 60_000);
+  const officialResults = await searchWithDataApi(q).catch(() => null);
+  if (officialResults?.length) return { results: officialResults };
   try {
-    const results = await searchWithMusicWeb(q);
-    if (results.length) return { results };
+    const fallback = await searchWithMusicWeb(q);
+    if (fallback.length) return { results: fallback };
   } catch {
-    // WEB_REMIX is undocumented and its client configuration can change; use the supported API fallback.
+    // YouTube Music web search is an undocumented fallback; the official Data API is the primary search source.
   }
-  const fallback = await searchWithDataApi(q).catch(() => null);
-  if (fallback?.length) return { results: fallback };
   throw new ApiError(502, "YouTube Music search is temporarily unavailable. Check the server-side YOUTUBE_API_KEY and try again.", "music_search_unavailable");
 });
