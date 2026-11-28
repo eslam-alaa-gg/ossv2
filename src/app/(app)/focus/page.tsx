@@ -76,6 +76,7 @@ export default function FocusPage() {
   const [themeOpen, setThemeOpen] = useState(false);
   const [musicSearchOpen, setMusicSearchOpen] = useState(false);
   const [mixerOpen, setMixerOpen] = useState(false);
+  const [focusMusicProvider, setFocusMusicProvider] = useState<"youtube" | "audius">(prefs.dashboard.musicSource === "audius" ? "audius" : "youtube");
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
   const [backgroundUploading, setBackgroundUploading] = useState(false);
   const [backgroundScene, setBackgroundScene] = useState<FocusWallpaper>(prefs.focus.background);
@@ -86,7 +87,7 @@ export default function FocusPage() {
   const focusTheme = FOCUS_THEME_PRESETS.find((item) => item.id === prefs.focus.themePreset) ?? FOCUS_THEME_PRESETS[0];
   const focusAccentRgb = [1, 3, 5].map((offset) => Number.parseInt(focusTheme.accent.slice(offset, offset + 2), 16)).join(", ");
   const focusThemeStyle = { "--accent": focusTheme.accent, "--accent-rgb": focusAccentRgb, "--on-accent": "#ffffff", backgroundColor: focusTheme.d.bg } as CSSProperties;
-  const focusPageStyle = { ...focusThemeStyle, ...(backgroundImage ? { backgroundImage: `linear-gradient(rgba(5,7,12,${Math.max(0.28, backgroundOverlay / 100)}), rgba(5,7,12,${Math.max(0.38, backgroundOverlay / 100)})), url("${backgroundImage}")`, backgroundSize: "cover", backgroundPosition: "center" } : {}) } as CSSProperties;
+  const focusPageStyle = focusThemeStyle;
   useEffect(() => { setBackgroundScene(prefs.focus.background); setTimerStyle(prefs.focus.timerStyle); setBackgroundOverlay(prefs.focus.overlay); setWallpaperVideoFailed(false); }, [prefs.focus.background, prefs.focus.timerStyle, prefs.focus.overlay]);
   const [imageMessage, setImageMessage] = useState("");
   const endAt = useRef(0);
@@ -154,7 +155,10 @@ export default function FocusPage() {
     if (!r) { finishing.current = false; return; }
     toast("success", r.xp ? ` ${t("Focus session complete")} · +${r.xp} XP` : t("Session complete"));
     r.unlocked.forEach((u) => toast("success", t(u)));
-    setPhase("idle"); setSid(null); setRemaining(mode === "stopwatch" ? 0 : minutes * 60); finishing.current = false; reload();
+    setPhase("idle"); setSid(null);
+    const resetSeconds = mode === "stopwatch" ? 0 : minutes * 60;
+    setRemaining(resetSeconds); setPlanned(mode === "stopwatch" ? MAX_SESSION_SECONDS : resetSeconds);
+    endAt.current = 0; finishing.current = false; reload();
   }, [run, toast, minutes, mode, reload]);
 
   useEffect(() => {
@@ -331,7 +335,10 @@ export default function FocusPage() {
         const result = await run(() => api(`/api/focus/${sid}`, { body: { action, activeSeconds } }), reset ? undefined : t("Session ended — time so far was recorded"));
         if (!result) return false;
       }
-      setPhase("idle"); setSid(null); setRemaining(mode === "stopwatch" ? 0 : minutes * 60); setPlanned(mode === "stopwatch" ? MAX_SESSION_SECONDS : minutes * 60); reload();
+      setPhase("idle"); setSid(null);
+      const resetSeconds = mode === "stopwatch" ? 0 : minutes * 60;
+      setRemaining(resetSeconds); setPlanned(mode === "stopwatch" ? MAX_SESSION_SECONDS : resetSeconds);
+      endAt.current = 0; reload();
       return true;
     } finally { transitioning.current = false; }
   }
@@ -486,7 +493,7 @@ export default function FocusPage() {
       ) : backgroundScene !== "none" ? (
         <div className="absolute inset-0"><FocusWallpaperLayer scene={backgroundScene as WallpaperScene} failed={wallpaperVideoFailed} reducedMotion={prefs.theme.reducedMotion} onError={() => setWallpaperVideoFailed(true)} /></div>
       ) : <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_35%,#1b2638_0%,#080d17_55%,#030509_100%)]" />}
-      <div className="absolute inset-0 bg-black/35" style={{ opacity: backgroundOverlay / 100 }} aria-hidden />
+      <div className="absolute inset-0 z-[1] bg-black" style={{ opacity: backgroundOverlay / 100 }} aria-hidden />
       {focusOverlaysOpen && <button type="button" aria-label={t("Close open panel")} onClick={closeFocusOverlays} className="absolute inset-0 z-30 cursor-default bg-transparent" />}
       <div className="absolute inset-x-0 top-0 z-40 flex items-center justify-end gap-2 p-3 pt-[max(.75rem,env(safe-area-inset-top))] sm:p-5">
         <div className="relative">
@@ -520,11 +527,17 @@ export default function FocusPage() {
         <button type="button" onClick={() => void toggleZen()} aria-label={t("Exit fullscreen focus")} className="grid size-9 sm:size-10 place-items-center rounded-xl sm:rounded-2xl border border-white/15 bg-black/25 text-white shadow-lg backdrop-blur-2xl transition hover:bg-white/15"><Minimize2 className="size-5" /></button>
       </div>
       {shortcutsOpen && <div role="dialog" aria-label={t("Keyboard shortcuts")} className="absolute right-3 top-16 z-40 w-[min(90vw,300px)] rounded-2xl border border-white/15 bg-[#101622]/90 p-4 text-xs text-white shadow-2xl backdrop-blur-3xl"><div className="mb-2 flex items-center justify-between"><p className="font-semibold">{t("Keyboard shortcuts")}</p><button type="button" onClick={() => setShortcutsOpen(false)} aria-label={t("Close")}><X className="size-4" /></button></div><ul className="space-y-2"><li className="flex justify-between"><kbd className="kbd">Space</kbd>{t("Start / pause")}</li><li className="flex justify-between"><kbd className="kbd">F</kbd>{t("Immersive mode")}</li><li className="flex justify-between"><kbd className="kbd">S</kbd>{t("Skip phase")}</li><li className="flex justify-between"><kbd className="kbd">E</kbd>{t("End session and exit")}</li><li className="flex justify-between"><kbd className="kbd">Esc</kbd>{t("Exit immersive mode")}</li></ul></div>}
-      <div className="relative z-10 flex h-full w-full flex-col items-center justify-start overflow-y-auto px-3 pb-[max(1rem,env(safe-area-inset-bottom))] pt-16 sm:justify-center sm:px-8 sm:pt-20">
-        <div className="flex w-full max-w-4xl flex-col items-center">
+      <div className="relative z-40 flex h-full w-full flex-col items-center justify-start overflow-y-auto px-3 pb-[max(1rem,env(safe-area-inset-bottom))] pt-16 sm:justify-center sm:px-8 sm:pt-20" onClick={(event) => { if (event.target === event.currentTarget) closeFocusOverlays(); }}>
+        <div className="flex w-full max-w-4xl flex-col items-center" onClick={(event) => { const target = event.target; if (!(target instanceof Element) || !target.closest('[role="dialog"], [data-focus-overlay-safe]')) closeFocusOverlays(); }}>
           {timer}
           <div className="mt-5 flex w-full justify-center">
-            {prefs.dashboard.musicSource === "youtube" ? <YouTubeMusicPlayer compact searchPlacement="viewport" searchOpen={musicSearchOpen} mixerOpen={mixerOpen} onCloseSearch={() => setMusicSearchOpen(false)} onCloseMixer={() => setMixerOpen(false)} /> : prefs.dashboard.musicSource === "audius" ? <AudiusPlayer compact searchPlacement="viewport" searchOpen={musicSearchOpen} mixerOpen={mixerOpen} onCloseSearch={() => setMusicSearchOpen(false)} onCloseMixer={() => setMixerOpen(false)} /> : <NowPlayingWidget source={prefs.dashboard.musicSource} />}
+            <div className="w-full space-y-2">
+              <div className="flex items-center justify-center gap-1.5" role="group" aria-label={t("Focus music provider")} data-focus-overlay-safe>
+                <button type="button" onClick={() => setFocusMusicProvider("youtube")} aria-pressed={focusMusicProvider === "youtube"} className={cn("rounded-full border px-3 py-1.5 text-[11px] font-medium transition", focusMusicProvider === "youtube" ? "border-white/50 bg-white/15 text-white" : "border-white/10 bg-black/20 text-white/55 hover:bg-white/10")}>YouTube Music</button>
+                <button type="button" onClick={() => setFocusMusicProvider("audius")} aria-pressed={focusMusicProvider === "audius"} className={cn("rounded-full border px-3 py-1.5 text-[11px] font-medium transition", focusMusicProvider === "audius" ? "border-white/50 bg-white/15 text-white" : "border-white/10 bg-black/20 text-white/55 hover:bg-white/10")}>Audius</button>
+              </div>
+              {focusMusicProvider === "youtube" ? <YouTubeMusicPlayer compact searchPlacement="viewport" searchOpen={musicSearchOpen} mixerOpen={mixerOpen} onCloseSearch={() => setMusicSearchOpen(false)} onCloseMixer={() => setMixerOpen(false)} /> : <AudiusPlayer compact searchPlacement="viewport" searchOpen={musicSearchOpen} mixerOpen={mixerOpen} onCloseSearch={() => setMusicSearchOpen(false)} onCloseMixer={() => setMixerOpen(false)} />}
+            </div>
           </div>
         </div>
       </div>
@@ -533,8 +546,8 @@ export default function FocusPage() {
 
   return (
     <div className="focus-zone-surface relative isolate mx-auto flex min-h-[calc(100dvh-8rem)] w-full max-w-5xl flex-col items-center justify-center overflow-hidden rounded-[2rem] px-3 py-6 sm:px-6" style={focusPageStyle}>
-      {!backgroundImage && backgroundScene !== "none" && <FocusWallpaperLayer scene={backgroundScene} failed={wallpaperVideoFailed} reducedMotion={prefs.theme.reducedMotion} onError={() => setWallpaperVideoFailed(true)} />}
-      {!backgroundImage && backgroundScene !== "none" && <div className="absolute inset-0 z-[1] bg-black" style={{ opacity: backgroundOverlay / 100 }} aria-hidden />}
+      {backgroundImage ? <img src={backgroundImage} alt="" aria-hidden className="absolute inset-0 z-0 h-full w-full object-cover object-center" /> : backgroundScene !== "none" && <FocusWallpaperLayer scene={backgroundScene} failed={wallpaperVideoFailed} reducedMotion={prefs.theme.reducedMotion} onError={() => setWallpaperVideoFailed(true)} />}
+      {(backgroundImage || backgroundScene !== "none") && <div className="absolute inset-0 z-[1] bg-black" style={{ opacity: backgroundOverlay / 100 }} aria-hidden />}
       <div className="relative z-10 flex w-full flex-col items-center">
       <section className="w-full max-w-2xl rounded-[2rem] border border-line bg-card/55 p-5 shadow-xl backdrop-blur-2xl sm:p-8">
         <div className="mb-5 flex items-center justify-between gap-3"><div><p className="text-xs uppercase tracking-[.2em] text-muted">{t("Focus Room")}</p><p className="mt-1 text-sm text-faint">{task?.title ?? t("Deep work, one session at a time.")}</p></div><Button variant="ghost" size="icon" className="size-11 rounded-2xl border border-line bg-card/70" onClick={toggleZen} aria-label={t("Fullscreen focus mode")}><Maximize2 className="size-5" /></Button></div>
