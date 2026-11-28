@@ -193,6 +193,30 @@ await test("focus: cannot complete before duration elapsed; early end gives no X
   const e = await A.req("POST", `/api/focus/${s.id}`, { action: "end", activeSeconds: 14000 });
   assert.equal(e.json.xp, 0); assert.ok(e.json.session.actualSeconds <= 5);
 });
+await test("focus background: authenticated image upload persists and can be fetched", async () => {
+  const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/pXcAAAAASUVORK5CYII=", "base64");
+  const form = new FormData();
+  form.append("file", new Blob([png], { type: "image/png" }), "focus.png");
+  const saved = await A.req("POST", "/api/me/focus-background", form);
+  assert.equal(saved.status, 200, saved.text);
+  const fetched = await A.req("GET", "/api/me/focus-background", undefined, true);
+  assert.equal(fetched.status, 200);
+  assert.match(fetched.headers.get("content-type") || "", /image\\/png/);
+  assert.deepEqual(Buffer.from(await fetched.arrayBuffer()), png);
+  assert.equal((await B.req("GET", "/api/me/focus-background")).status, 404);
+  assert.equal((await A.req("DELETE", "/api/me/focus-background")).status, 200);
+  assert.equal((await A.req("GET", "/api/me/focus-background")).status, 404);
+});
+
+await test("focus timer: pause, resume and seven-day duration remain valid", async () => {
+  const started = await A.req("POST", "/api/focus", { mode: "custom", minutes: 10080 });
+  assert.equal(started.status, 200, started.text);
+  const id = started.json.session.id;
+  assert.equal(started.json.session.plannedSeconds, 604800);
+  assert.equal((await A.req("POST", `/api/focus/${id}`, { action: "pause" })).status, 200);
+  assert.equal((await A.req("POST", `/api/focus/${id}`, { action: "resume" })).status, 200);
+  assert.equal((await A.req("POST", `/api/focus/${id}`, { action: "end" })).status, 200);
+});
 await test("focus: concurrent starts leave exactly one active session", async () => {
   const starts = await Promise.all([
     A.req("POST", "/api/focus", { mode: "focus", minutes: 25 }),
