@@ -13,44 +13,21 @@ type FocusData = { todayMinutes: number; weekMinutes: number; totalSessions: num
 type Mode = "focus" | "short_break" | "long_break" | "custom";
 const MODES: { value: Mode; label: string; min: number }[] = [{ value: "focus", label: "Standard Focus", min: 25 }, { value: "short_break", label: "Short Break", min: 5 }, { value: "long_break", label: "Long Break", min: 15 }, { value: "custom", label: "Custom Session", min: 30 }];
 const PRESETS = [25, 50, 120];
-type VideoWallpaper = "forest" | "ocean" | "rain" | "sunset" | "cosmos";
-type PhotoWallpaper = "photo-mountains" | "photo-lake" | "photo-coast" | "photo-sunset" | "photo-forest";
-type FocusWallpaper = "none" | VideoWallpaper | PhotoWallpaper;
+type LiveWallpaper = "forest" | "ocean" | "rain" | "sunset" | "cosmos" | "aurora";
+type FocusWallpaper = "none" | LiveWallpaper;
 type TimerStyle = "ring" | "digital" | "minimal" | "bar" | "orbit";
-const WALLPAPER_VIDEO_URLS: Record<VideoWallpaper, string> = {
-  forest: "https://assets.mixkit.co/videos/preview/mixkit-waterfall-in-forest-2213-large.mp4",
-  ocean: "https://assets.mixkit.co/videos/preview/mixkit-waves-coming-to-the-beach-5016-large.mp4",
-  rain: "https://assets.mixkit.co/videos/preview/mixkit-window-on-a-rainy-day-2846-large.mp4",
-  sunset: "https://assets.mixkit.co/videos/preview/mixkit-sunset-behind-the-skyline-on-the-beach-over-the-sea-51445-large.mp4",
-  cosmos: "https://assets.mixkit.co/videos/preview/mixkit-stars-in-space-background-1610-large.mp4",
-};
-const WALLPAPERS: { id: Exclude<FocusWallpaper, "none">; label: string; hint: string }[] = [
-  { id: "forest", label: "Misty Forest", hint: "Soft green light and drifting fog" },
-  { id: "ocean", label: "Ocean Drift", hint: "Deep blue waves and moving light" },
-  { id: "rain", label: "Rainy Window", hint: "Quiet rain and blurred city lights" },
-  { id: "sunset", label: "Golden Hour", hint: "Warm sunset clouds and soft glow" },
-  { id: "cosmos", label: "Deep Space", hint: "Slow stars and violet nebula" },
-];
-const PHOTO_WALLPAPERS: { id: PhotoWallpaper; label: string; image: string }[] = [
-  { id: "photo-mountains", label: "Mountain Escape", image: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1200&auto=format&fit=crop&q=82" },
-  { id: "photo-lake", label: "Quiet Lake", image: "https://images.unsplash.com/photo-1470770841072-f978cf4d019e?w=1200&auto=format&fit=crop&q=82" },
-  { id: "photo-coast", label: "Ocean Calm", image: "https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=1200&auto=format&fit=crop&q=82" },
-  { id: "photo-sunset", label: "Soft Sunset", image: "https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?w=1200&auto=format&fit=crop&q=82" },
-  { id: "photo-forest", label: "Forest Path", image: "https://images.unsplash.com/photo-1448375240586-882707db888b?w=1200&auto=format&fit=crop&q=82" },
+const WALLPAPERS: { id: LiveWallpaper; label: string; hint: string }[] = [
+  { id: "forest", label: "Misty Forest", hint: "Slow forest mist and soft green light" },
+  { id: "ocean", label: "Ocean Drift", hint: "Deep blue waves and moving reflections" },
+  { id: "rain", label: "Rainy Window", hint: "Gentle rain and distant city glow" },
+  { id: "sunset", label: "Golden Hour", hint: "Warm sunset clouds and a slow golden glow" },
+  { id: "cosmos", label: "Deep Space", hint: "Drifting stars and a quiet violet nebula" },
+  { id: "aurora", label: "Northern Lights", hint: "Soft aurora ribbons moving across a night sky" },
 ];
 const mmss = (s: number) => { const total = Math.max(0, Math.floor(s)); const days = Math.floor(total / 86400); const hours = Math.floor((total % 86400) / 3600); const minutes = Math.floor((total % 3600) / 60); const seconds = total % 60; if (days) return `${days}d ${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`; if (hours) return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`; return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`; };
 
-function FocusWallpaperLayer({ scene, failed, onError }: { scene: Exclude<FocusWallpaper, "none">; failed: boolean; onError: () => void }) {
-  const photo = PHOTO_WALLPAPERS.find((item) => item.id === scene);
-  if (photo) return <div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: `url("${photo.image}")` }} aria-hidden />;
-  return (
-    <div className={`focus-wallpaper focus-wallpaper-${scene}`} aria-hidden>
-      {!failed && <video key={scene} autoPlay muted loop playsInline preload="metadata" tabIndex={-1} onError={onError} className="absolute inset-0 size-full object-cover">
-        <source src={WALLPAPER_VIDEO_URLS[scene as VideoWallpaper]} type="video/mp4" />
-      </video>}
-      <div className="absolute inset-0 bg-black/25" />
-    </div>
-  );
+function FocusWallpaperLayer({ scene }: { scene: Exclude<FocusWallpaper, "none"> }) {
+  return <div className={`focus-wallpaper focus-wallpaper-${scene}`} aria-hidden />;
 }
 
 export default function FocusPage() {
@@ -78,9 +55,8 @@ export default function FocusPage() {
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
   const [backgroundScene, setBackgroundScene] = useState<FocusWallpaper>(prefs.focus.background);
   const [backgroundOverlay, setBackgroundOverlay] = useState(prefs.focus.overlay);
-  const [wallpaperVideoFailed, setWallpaperVideoFailed] = useState(false);
   const [timerStyle, setTimerStyle] = useState<TimerStyle>(prefs.focus.timerStyle);
-  useEffect(() => { setBackgroundScene(prefs.focus.background); setTimerStyle(prefs.focus.timerStyle); setBackgroundOverlay(prefs.focus.overlay); setWallpaperVideoFailed(false); }, [prefs.focus.background, prefs.focus.timerStyle, prefs.focus.overlay]);
+  useEffect(() => { setBackgroundScene(prefs.focus.background); setTimerStyle(prefs.focus.timerStyle); setBackgroundOverlay(prefs.focus.overlay); }, [prefs.focus.background, prefs.focus.timerStyle, prefs.focus.overlay]);
   const [imageMessage, setImageMessage] = useState("");
   const endAt = useRef(0);
   const finishing = useRef(false);
@@ -237,7 +213,6 @@ export default function FocusPage() {
 
   async function selectWallpaper(id: FocusWallpaper) {
     setBackgroundScene(id);
-    setWallpaperVideoFailed(false);
     try {
       await savePrefs({ focus: { ...prefs.focus, background: id, timerStyle, overlay: backgroundOverlay } });
     } catch {
@@ -306,6 +281,15 @@ export default function FocusPage() {
     if (phase !== "idle" && !(await end(false))) return;
     if (zen) await toggleZen();
   }
+  function closeFloatingPanels() {
+    setThemeOpen(false);
+    setBackgroundOpen(false);
+    setMusicSearchOpen(false);
+    setMixerOpen(false);
+    setShortcutsOpen(false);
+    setDurationOpen(false);
+  }
+
   async function toggleZen() {
     if (!zen) {
       try {
@@ -422,10 +406,10 @@ export default function FocusPage() {
   if (zen) return (
     <main style={{ "--accent": "#a78bfa", "--accent-rgb": "167,139,250", "--input": "rgba(255,255,255,.14)", "--muted": "rgba(255,255,255,.65)", "--faint": "rgba(255,255,255,.42)" } as CSSProperties} className="fixed inset-0 z-[9999] isolate h-[100dvh] w-screen overflow-hidden bg-[#05070c] text-white">
       {backgroundImage ? (
-        <img src={backgroundImage} alt="" className="absolute inset-0 h-full w-full object-cover object-center" aria-hidden />
+        <img src={backgroundImage} alt="" onClick={closeFloatingPanels} className="absolute inset-0 h-full w-full object-cover object-center" aria-hidden />
       ) : backgroundScene !== "none" ? (
-        <div className="absolute inset-0"><FocusWallpaperLayer scene={backgroundScene} failed={wallpaperVideoFailed} onError={() => setWallpaperVideoFailed(true)} /></div>
-      ) : <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_35%,#1b2638_0%,#080d17_55%,#030509_100%)]" />}
+        <div className="absolute inset-0" onClick={closeFloatingPanels}><FocusWallpaperLayer scene={backgroundScene} /></div>
+      ) : <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_35%,#1b2638_0%,#080d17_55%,#030509_100%)]" onClick={closeFloatingPanels} />}
       <div className="absolute inset-0 bg-black/35" style={{ opacity: backgroundOverlay / 100 }} aria-hidden />
       <div className="absolute inset-x-0 top-0 z-40 flex items-center justify-end gap-2 p-3 pt-[max(.75rem,env(safe-area-inset-top))] sm:p-5">
         <div className="relative">
@@ -448,11 +432,9 @@ export default function FocusPage() {
           <button type="button" onClick={() => { setBackgroundOpen(v => !v); setThemeOpen(false); setMusicSearchOpen(false); setMixerOpen(false); setShortcutsOpen(false); }} aria-label={t("Focus background")} aria-expanded={backgroundOpen} className="grid size-9 sm:size-10 place-items-center rounded-xl sm:rounded-2xl border border-white/15 bg-black/25 text-white shadow-lg backdrop-blur-2xl transition hover:bg-white/15"><Video className="size-5" /></button>
           {backgroundOpen && <div role="dialog" aria-label={t("Focus background")} className="absolute end-0 top-[calc(100%+10px)] max-h-[min(78dvh,650px)] w-[min(92vw,370px)] overflow-y-auto rounded-3xl border border-white/15 bg-[#101622]/92 p-3 text-white shadow-2xl backdrop-blur-3xl">
             <div className="mb-3 flex items-center justify-between"><h2 className="text-sm font-semibold">{t("Focus background")}</h2><button type="button" onClick={() => setBackgroundOpen(false)} aria-label={t("Close")} className="rounded-xl p-2 text-white/65 hover:bg-white/10"><X className="size-4" /></button></div>
-            <p className="mb-2 text-[11px] text-white/55">{t("Choose one of five looping video wallpapers. Your selection is saved to your account.")}</p>
-            <div className="grid grid-cols-2 gap-2">{WALLPAPERS.map(w => <button key={w.id} type="button" onClick={() => void selectWallpaper(w.id)} aria-pressed={backgroundScene === w.id} className={cn("overflow-hidden rounded-xl border text-start", backgroundScene === w.id ? "border-white/80" : "border-white/10")}><div className={`focus-wallpaper-preview focus-wallpaper-${w.id}`} /><span className="block px-2 py-2 text-xs">{t(w.label)}</span></button>)}
+            <p className="mb-2 text-[11px] text-white/55">{t("Choose one of six animated Focus wallpapers. Your selection is saved to your account.")}</p>
+            <div className="grid grid-cols-2 gap-2">{WALLPAPERS.map(w => <button key={w.id} type="button" onClick={() => void selectWallpaper(w.id)} aria-pressed={backgroundScene === w.id} className={cn("overflow-hidden rounded-xl border text-start", backgroundScene === w.id ? "border-white/80" : "border-white/10")}><div className={`focus-wallpaper-preview focus-wallpaper-${w.id}`} /><span className="block px-2 py-2 text-xs">{t(w.label)}</span><span className="block px-2 pb-2 text-[10px] text-white/45">{t(w.hint)}</span></button>)}
               <button type="button" onClick={() => void selectWallpaper("none")} aria-pressed={backgroundScene === "none"} className="rounded-xl border border-white/10 py-5 text-xs text-white/65">{t("No wallpaper")}</button></div>
-            <p className="mb-2 mt-4 text-[11px] font-semibold uppercase tracking-wider text-white/55">{t("Wallpaper library")}</p>
-            <div className="grid grid-cols-2 gap-2">{PHOTO_WALLPAPERS.map(w => <button key={w.id} type="button" onClick={() => void selectWallpaper(w.id)} aria-pressed={backgroundScene === w.id} className={cn("overflow-hidden rounded-xl border text-start", backgroundScene === w.id ? "border-white/80" : "border-white/10")}><div className="h-16 bg-cover bg-center" style={{backgroundImage:`url("${w.image}")`}}/><span className="block px-2 py-2 text-xs">{t(w.label)}</span></button>)}</div>
             <label className="mt-3 flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/10 text-xs"><ImagePlus className="size-4" />{t("Upload background image")}<input type="file" accept="image/*" className="sr-only" onChange={e => {const file=e.target.files?.[0];if(file)void uploadFocusBackground(file);e.currentTarget.value="";}} /></label>
             {imageMessage && <p role="status" className="mt-2 text-xs text-white/65">{imageMessage}</p>}
             {backgroundImage && <button type="button" onClick={removeFocusBackground} className="mt-2 flex items-center gap-1.5 text-xs text-white/55"><Trash2 className="size-3.5" />{t("Remove background image")}</button>}
@@ -463,7 +445,7 @@ export default function FocusPage() {
         <button type="button" onClick={() => void toggleZen()} aria-label={t("Exit fullscreen focus")} className="grid size-9 sm:size-10 place-items-center rounded-xl sm:rounded-2xl border border-white/15 bg-black/25 text-white shadow-lg backdrop-blur-2xl transition hover:bg-white/15"><Minimize2 className="size-5" /></button>
       </div>
       {shortcutsOpen && <div role="dialog" aria-label={t("Keyboard shortcuts")} className="absolute right-3 top-16 z-40 w-[min(90vw,300px)] rounded-2xl border border-white/15 bg-[#101622]/90 p-4 text-xs text-white shadow-2xl backdrop-blur-3xl"><div className="mb-2 flex items-center justify-between"><p className="font-semibold">{t("Keyboard shortcuts")}</p><button type="button" onClick={() => setShortcutsOpen(false)} aria-label={t("Close")}><X className="size-4" /></button></div><ul className="space-y-2"><li className="flex justify-between"><kbd className="kbd">Space</kbd>{t("Start / pause")}</li><li className="flex justify-between"><kbd className="kbd">F</kbd>{t("Immersive mode")}</li><li className="flex justify-between"><kbd className="kbd">S</kbd>{t("Skip phase")}</li><li className="flex justify-between"><kbd className="kbd">E</kbd>{t("End session and exit")}</li><li className="flex justify-between"><kbd className="kbd">Esc</kbd>{t("Exit immersive mode")}</li></ul></div>}
-      <div className="relative z-10 flex h-full w-full flex-col items-center justify-start overflow-y-auto px-3 pb-[max(1rem,env(safe-area-inset-bottom))] pt-16 sm:justify-center sm:px-8 sm:pt-20">
+      <div className="relative z-10 flex h-full w-full flex-col items-center justify-start overflow-y-auto px-3 pb-[max(1rem,env(safe-area-inset-bottom))] pt-16 sm:justify-center sm:px-8 sm:pt-20" onClick={(event) => { if (event.target === event.currentTarget) closeFloatingPanels(); }}>
         <div className="flex w-full max-w-4xl flex-col items-center">
           {timer}
           <div className="mt-5 flex w-full justify-center">
