@@ -196,13 +196,16 @@ export default function FocusPage() {
       const form = new FormData();
       const mime = result.type === "image/webp" ? "image/webp" : "image/jpeg";
       form.append("file", new File([result], mime === "image/webp" ? "focus-background.webp" : "focus-background.jpg", { type: mime }));
-      const response = await fetch("/api/me/focus-background", { method: "POST", body: form });
+      const response = await fetch("/api/me/focus-background", { method: "POST", body: form, cache: "no-store" });
       if (!response.ok) {
         const payload = await response.json().catch(() => null);
         throw new Error(payload?.error || t("Image upload failed."));
       }
-      setBackgroundImage(URL.createObjectURL(result));
-      setImageMessage(t("Background image saved to your account. It appears in the Focus Room and immersive focus mode."));
+      setBackgroundImage((previous) => {
+        if (previous?.startsWith("blob:")) URL.revokeObjectURL(previous);
+        return URL.createObjectURL(result!);
+      });
+      setImageMessage(t("Background image saved to your account and applied. It will appear in immersive Focus mode."));
     } catch (e) {
       setImageMessage(e instanceof Error ? e.message : t("Image upload failed."));
     } finally {
@@ -211,7 +214,7 @@ export default function FocusPage() {
   }
   async function removeFocusBackground() {
     try {
-      const response = await fetch("/api/me/focus-background", { method: "DELETE" });
+      const response = await fetch("/api/me/focus-background", { method: "DELETE", cache: "no-store" });
       if (!response.ok) throw new Error(t("Could not remove the background."));
       setBackgroundImage(null);
       setImageMessage(t("Background image removed from your account."));
