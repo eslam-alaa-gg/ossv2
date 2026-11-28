@@ -426,8 +426,8 @@ export default function FocusPage() {
             <div className="mb-3 flex items-center justify-between"><h2 className="text-sm font-semibold">{t("Focus settings")}</h2><button type="button" onClick={() => setThemeOpen(false)} aria-label={t("Close")} className="rounded-xl p-2 text-white/65 hover:bg-white/10"><X className="size-4" /></button></div>
             <label className="mb-3 block text-xs text-white/65">{t("Focus on a task (optional)")}
               <select className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/25 px-3 py-2.5 text-sm text-white" value={taskId} onChange={(e) => setTaskId(e.target.value)} disabled={phase !== "idle"}><option value="">{t("No task — general focus")}</option>{data?.tasks.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}</select>
-            <p className="mb-3 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-xs leading-relaxed text-white/65">{t("The immersive Focus Room keeps its own dark appearance. Website themes remain available in Theme Studio.")}</p>
             </label>
+            <p className="mb-3 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-xs leading-relaxed text-white/65">{t("The immersive Focus Room keeps its own dark appearance. Website themes remain available in Theme Studio.")}</p>
             <p className="mb-2 text-xs font-medium text-white/65">{t("Focus mode")}</p>
             <div className="grid grid-cols-2 gap-2">{MODES.map(m => <button key={m.value} type="button" disabled={phase !== "idle"} onClick={() => pickMode(m.value)} aria-pressed={mode === m.value} className={cn("rounded-xl border px-3 py-2.5 text-xs transition", mode === m.value ? "border-white/70 bg-white/15 text-white" : "border-white/10 bg-white/5 text-white/65 hover:bg-white/10")}>{t(m.label)}</button>)}</div>
             <p className="mb-2 mt-4 text-xs font-medium text-white/65">{t("Timer style")}</p>
