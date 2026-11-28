@@ -524,6 +524,7 @@ await test("Focus background and custom font uploads are validated and private p
   imageForm.append("file", new Blob([png], { type: "image/png" }), "focus.png");
   const uploadedImage = await A.req("POST", "/api/me/focus-background", imageForm);
   assert.equal(uploadedImage.status, 200, uploadedImage.text);
+  assert.equal(uploadedImage.json.saved, true, "uploaded background is persisted");
   const image = await A.req("GET", "/api/me/focus-background", undefined, true);
   assert.equal(image.status, 200);
   assert.equal(image.headers.get("content-type"), "image/png");
@@ -531,6 +532,9 @@ await test("Focus background and custom font uploads are validated and private p
   const invalidImage = new FormData();
   invalidImage.append("file", new Blob(["not an image"], { type: "image/png" }), "bad.png");
   assert.equal((await A.req("POST", "/api/me/focus-background", invalidImage)).status, 400);
+  const oversizedImage = new FormData();
+  oversizedImage.append("file", new Blob([Buffer.alloc(450 * 1024 + 1)], { type: "image/png" }), "large.png");
+  assert.equal((await A.req("POST", "/api/me/focus-background", oversizedImage)).status, 413);
   assert.equal((await A.req("DELETE", "/api/me/focus-background", {})).status, 200);
 
   const fontForm = new FormData();

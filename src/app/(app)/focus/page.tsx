@@ -86,6 +86,7 @@ export default function FocusPage() {
   const [musicSearchOpen, setMusicSearchOpen] = useState(false);
   const [mixerOpen, setMixerOpen] = useState(false);
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
+  const [backgroundUploading, setBackgroundUploading] = useState(false);
   const [backgroundScene, setBackgroundScene] = useState<FocusWallpaper>(prefs.focus.background);
   const [backgroundOverlay, setBackgroundOverlay] = useState(prefs.focus.overlay);
   const [wallpaperVideoFailed, setWallpaperVideoFailed] = useState(false);
@@ -182,8 +183,11 @@ export default function FocusPage() {
   const pickMode = (m: Mode) => { if (phase !== "idle") return; setMode(m); setDuration(MODES.find((x) => x.value === m)!.min); };
 
   async function uploadFocusBackground(file: File) {
+    if (backgroundUploading) return;
     if (!file.type.startsWith("image/")) { setImageMessage(t("Choose an image file.")); return; }
     const objectUrl = URL.createObjectURL(file);
+    setBackgroundUploading(true);
+    setImageMessage(t("Preparing your background image…"));
     try {
       const img = new Image();
       img.src = objectUrl;
@@ -220,6 +224,7 @@ export default function FocusPage() {
     } catch (e) {
       setImageMessage(e instanceof Error ? e.message : t("Image upload failed."));
     } finally {
+      setBackgroundUploading(false);
       URL.revokeObjectURL(objectUrl);
     }
   }
@@ -463,8 +468,9 @@ export default function FocusPage() {
               <button type="button" onClick={() => void selectWallpaper("none")} aria-pressed={backgroundScene === "none"} className="rounded-xl border border-white/10 py-5 text-xs text-white/65">{t("No wallpaper")}</button></div>
             <p className="mb-2 mt-4 text-[11px] font-semibold uppercase tracking-wider text-white/55">{t("Wallpaper library")}</p>
             <div className="grid grid-cols-2 gap-2">{PHOTO_WALLPAPERS.map(w => <button key={w.id} type="button" onClick={() => void selectWallpaper(w.id)} aria-pressed={backgroundScene === w.id} className={cn("overflow-hidden rounded-xl border text-start", backgroundScene === w.id ? "border-white/80" : "border-white/10")}><div className="h-16 bg-cover bg-center" style={{backgroundImage:`url("${w.image}")`}}/><span className="block px-2 py-2 text-xs">{t(w.label)}</span></button>)}</div>
-            <label className="mt-3 flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/10 text-xs"><ImagePlus className="size-4" />{t("Upload background image")}<input type="file" accept="image/*" className="sr-only" onChange={e => {const file=e.target.files?.[0];if(file)void uploadFocusBackground(file);e.currentTarget.value="";}} /></label>
-            {imageMessage && <p role="status" className="mt-2 text-xs text-white/65">{imageMessage}</p>}
+            <label aria-disabled={backgroundUploading} className={cn("mt-3 flex h-11 items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/10 text-xs", backgroundUploading ? "cursor-wait opacity-60" : "cursor-pointer hover:bg-white/15")}><ImagePlus className="size-4" />{backgroundUploading ? t("Uploading…") : t("Upload background image")}<input type="file" accept="image/jpeg,image/png,image/webp,image/avif" disabled={backgroundUploading} className="sr-only" onChange={e => {const file=e.currentTarget.files?.[0];if(file)void uploadFocusBackground(file);e.currentTarget.value="";}} /></label>
+            {backgroundImage && <div className="mt-3 overflow-hidden rounded-xl border border-white/10"><img src={backgroundImage} alt={t("Uploaded focus background preview")} className="h-24 w-full object-cover" /><p className="px-2 py-1.5 text-[10px] text-white/60">{t("Your uploaded background is saved to your account.")}</p></div>}
+            {imageMessage && <p role="status" aria-live="polite" className="mt-2 text-xs text-white/65">{imageMessage}</p>}
             {backgroundImage && <button type="button" onClick={removeFocusBackground} className="mt-2 flex items-center gap-1.5 text-xs text-white/55"><Trash2 className="size-3.5" />{t("Remove background image")}</button>}
           </div>}
         </div>
@@ -477,7 +483,7 @@ export default function FocusPage() {
         <div className="flex w-full max-w-4xl flex-col items-center">
           {timer}
           <div className="mt-5 flex w-full justify-center">
-            {prefs.dashboard.musicSource === "youtube" ? <YouTubeMusicPlayer compact searchOpen={musicSearchOpen} mixerOpen={mixerOpen} onCloseSearch={() => setMusicSearchOpen(false)} onCloseMixer={() => setMixerOpen(false)} /> : prefs.dashboard.musicSource === "audius" ? <AudiusPlayer compact searchOpen={musicSearchOpen} mixerOpen={mixerOpen} onCloseSearch={() => setMusicSearchOpen(false)} onCloseMixer={() => setMixerOpen(false)} /> : <NowPlayingWidget source={prefs.dashboard.musicSource} />}
+            {prefs.dashboard.musicSource === "youtube" ? <YouTubeMusicPlayer compact searchPlacement="viewport" searchOpen={musicSearchOpen} mixerOpen={mixerOpen} onCloseSearch={() => setMusicSearchOpen(false)} onCloseMixer={() => setMixerOpen(false)} /> : prefs.dashboard.musicSource === "audius" ? <AudiusPlayer compact searchPlacement="viewport" searchOpen={musicSearchOpen} mixerOpen={mixerOpen} onCloseSearch={() => setMusicSearchOpen(false)} onCloseMixer={() => setMixerOpen(false)} /> : <NowPlayingWidget source={prefs.dashboard.musicSource} />}
           </div>
         </div>
       </div>
@@ -485,7 +491,7 @@ export default function FocusPage() {
   );
 
   return (
-    <div className="mx-auto flex min-h-[calc(100dvh-8rem)] w-full max-w-5xl flex-col items-center justify-center px-3 py-6 sm:px-6">
+    <div className="relative isolate mx-auto flex min-h-[calc(100dvh-8rem)] w-full max-w-5xl flex-col items-center justify-center overflow-hidden rounded-[2rem] px-3 py-6 sm:px-6" style={backgroundImage ? { backgroundImage: `linear-gradient(rgba(5,7,12,${Math.max(0.28, backgroundOverlay / 100)}), rgba(5,7,12,${Math.max(0.38, backgroundOverlay / 100)})), url("${backgroundImage}")`, backgroundSize: "cover", backgroundPosition: "center" } : undefined}>
       <section className="w-full max-w-2xl rounded-[2rem] border border-line bg-card/55 p-5 shadow-xl backdrop-blur-2xl sm:p-8">
         <div className="mb-5 flex items-center justify-between gap-3"><div><p className="text-xs uppercase tracking-[.2em] text-muted">{t("Focus Room")}</p><p className="mt-1 text-sm text-faint">{task?.title ?? t("Deep work, one session at a time.")}</p></div><Button variant="ghost" size="icon" className="size-11 rounded-2xl border border-line bg-card/70" onClick={toggleZen} aria-label={t("Fullscreen focus mode")}><Maximize2 className="size-5" /></Button></div>
         {timer}
