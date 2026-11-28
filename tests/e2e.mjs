@@ -67,12 +67,14 @@ await test("duplicate email rejected, weak password rejected, wrong password rej
   assert.equal((await anon.req("POST", "/api/auth/login", { email: emailA, password: "wrong-password" })).status, 401);
 });
 await test("protected API routes require auth (401)", async () => {
-  for (const p of ["/api/me", "/api/tasks", "/api/habits", "/api/goals", "/api/notes", "/api/journal", "/api/focus", "/api/dashboard", "/api/analytics", "/api/export", "/api/notifications", "/api/me/avatar", "/api/search?q=Secret", "/api/youtube/search?q=lofi"]) {
+  for (const p of ["/api/me", "/api/tasks", "/api/habits", "/api/goals", "/api/notes", "/api/journal", "/api/focus", "/api/dashboard", "/api/analytics", "/api/export", "/api/notifications", "/api/me/avatar", "/api/search?q=Secret", "/api/youtube/search?q=lofi", "/api/audius/search?q=lofi"]) {
     assert.equal((await anon.req("GET", p)).status, 401, p);
   }
 });
 await test("YouTube search rejects queries shorter than two characters", async () => {
   assert.equal((await A.req("GET", "/api/youtube/search?q=x")).status, 400);
+  assert.equal((await A.req("GET", "/api/audius/search?q=x")).status, 400);
+  assert.equal((await A.req("GET", "/api/audius/stream?id=bad/id")).status, 400);
 });
 await test("protected pages redirect to /login", async () => {
   const r = await anon.req("GET", "/dashboard", undefined, true);
@@ -231,6 +233,11 @@ await test("preferences are per-user and validated", async () => {
   assert.deepEqual(spotifyPrefs.json.prefs.spotify, { ambience: false, autoRefresh: false });
   assert.deepEqual((await A.req("GET", "/api/me")).json.prefs.spotify, { ambience: false, autoRefresh: false });
   assert.deepEqual((await B.req("GET", "/api/me")).json.prefs.spotify, { ambience: true, autoRefresh: true }, "Spotify preferences are per-user");
+  const audiusSource = await A.req("PATCH", "/api/me/prefs", { dashboard: { ...beforeFocus.dashboard, musicSource: "audius" } });
+  assert.equal(audiusSource.status, 200);
+  assert.equal(audiusSource.json.prefs.dashboard.musicSource, "audius", "Audius is a valid optional music source");
+  assert.equal((await B.req("GET", "/api/me")).json.prefs.dashboard.musicSource, "spotify", "Music source preference is per-user");
+  assert.equal((await A.req("PATCH", "/api/me/prefs", { dashboard: { ...beforeFocus.dashboard, musicSource: "unknown-provider" } })).status, 400, "unknown music providers are rejected");
   assert.equal((await A.req("PATCH", "/api/me/prefs", { bogus: 1 })).status, 400);
 });
 await test("profile: name validation, trim, email unchanged", async () => {

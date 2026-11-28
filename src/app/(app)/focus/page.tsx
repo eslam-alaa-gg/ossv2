@@ -9,6 +9,8 @@ import { type Task } from "@/components/task-form";
 import { Badge, Button, Card, EmptyState, Field, cn, useUI } from "@/components/ui";
 import { api, minutesLabel, useFetch } from "@/lib/client";
 import { YouTubeMusicPlayer } from "@/components/youtube-music";
+import { AudiusPlayer } from "@/components/audius";
+import { NowPlayingWidget } from "@/components/spotify";
 
 type Session = { id: string; mode: string; plannedSeconds: number; actualSeconds: number; status: string; startedAt: string; lastResumedAt?: string | null; pausedAt?: string | null; taskTitle?: string | null };
 type FocusData = { todayMinutes: number; weekMinutes: number; totalSessions: number; sessions: Session[]; running: (Session & { serverNow: number }) | null; tasks: { id: string; title: string; priority: Task["priority"] }[] };
@@ -465,7 +467,7 @@ export default function FocusPage() {
         <div className="flex w-full max-w-4xl flex-col items-center">
           {timer}
           <div className="mt-5 flex w-full justify-center">
-            <YouTubeMusicPlayer compact searchOpen={musicSearchOpen} mixerOpen={mixerOpen} onCloseSearch={() => setMusicSearchOpen(false)} onCloseMixer={() => setMixerOpen(false)} />
+            {prefs.dashboard.musicSource === "youtube" ? <YouTubeMusicPlayer compact searchOpen={musicSearchOpen} mixerOpen={mixerOpen} onCloseSearch={() => setMusicSearchOpen(false)} onCloseMixer={() => setMixerOpen(false)} /> : prefs.dashboard.musicSource === "audius" ? <AudiusPlayer compact searchOpen={musicSearchOpen} mixerOpen={mixerOpen} onCloseSearch={() => setMusicSearchOpen(false)} onCloseMixer={() => setMixerOpen(false)} /> : <NowPlayingWidget source={prefs.dashboard.musicSource} />}
           </div>
         </div>
       </div>

@@ -46,7 +46,7 @@ export const themeSchema = z.object({
 export type Prefs = {
   theme: Theme;
   customThemes: { id: string; name: string; theme: Theme }[];
-  dashboard: { widgets: Record<string, boolean>; order: string[]; sizes: Record<string, "compact" | "standard" | "wide">; musicSource: "spotify" | "detection" | "youtube" };
+  dashboard: { widgets: Record<string, boolean>; order: string[]; sizes: Record<string, "compact" | "standard" | "wide">; musicSource: "spotify" | "detection" | "youtube" | "audius" };
   notifications: { inApp: boolean; push: boolean; email: boolean; quietStart: string; quietEnd: string; challengeTime: string; habitTime: string };
   spotify: { ambience: boolean; autoRefresh: boolean };
   waterGoal: number;
@@ -70,7 +70,7 @@ export const DEFAULT_PREFS: Prefs = {
 export const prefSchemas: { [K in keyof Prefs]: z.ZodType<Prefs[K]> } = {
   theme: themeSchema,
   customThemes: z.array(z.object({ id: z.string().max(60), name: z.string().trim().min(1).max(40), theme: themeSchema })).max(20),
-  dashboard: z.object({ widgets: z.record(z.string(), z.boolean()), order: z.array(z.string().max(40)).max(30).optional().default([...WIDGETS]), sizes: z.record(z.string(), z.enum(["compact", "standard", "wide"])).optional().default({}), musicSource: z.enum(["spotify", "detection", "youtube"]).optional().default("spotify") }),
+  dashboard: z.object({ widgets: z.record(z.string(), z.boolean()), order: z.array(z.string().max(40)).max(30).optional().default([...WIDGETS]), sizes: z.record(z.string(), z.enum(["compact", "standard", "wide"])).optional().default({}), musicSource: z.enum(["spotify", "detection", "youtube", "audius"]).optional().default("spotify") }),
   notifications: z.object({ inApp: b, push: b, email: b, quietStart: hhmm, quietEnd: hhmm, challengeTime: hhmm, habitTime: hhmm }),
   spotify: z.object({ ambience: b, autoRefresh: b }),
   waterGoal: z.number().int().min(500).max(10000),

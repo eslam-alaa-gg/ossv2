@@ -27,7 +27,7 @@ export default function DashboardPage() {
   const { run } = useUI();
   const { data, error, loading, reload } = useFetch<Dash>("/api/dashboard");
   const [custom, setCustom] = useState(false);
-  const [youtubeSearchOpen, setYoutubeSearchOpen] = useState(false);
+  const [musicSearchOpen, setMusicSearchOpen] = useState(false);
   const [dragging, setDragging] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState<string | null>(null);
   const w = prefs.dashboard.widgets;
@@ -191,7 +191,7 @@ export default function DashboardPage() {
               </Card>
             )}
           </div>
-          {show("music") && <div {...widgetProps("music")}><div className="mb-3 flex items-center justify-between gap-3"><div className="flex items-center gap-2"><h2 className="text-sm font-medium text-muted">{t("Music")}</h2>{prefs.dashboard.musicSource === "youtube" && <button type="button" onClick={() => setYoutubeSearchOpen(value => !value)} aria-expanded={youtubeSearchOpen} aria-label={t("Search YouTube Music")} className="inline-flex items-center gap-1.5 rounded-full border border-line bg-card/80 px-2.5 py-1.5 text-xs font-medium transition hover:bg-card"><Search className="size-3.5" />{t("Search")}</button>}</div><label className="flex items-center gap-2 text-xs text-muted"><span>{t("Source")}</span><select aria-label={t("Dashboard music source")} value={prefs.dashboard.musicSource} onChange={(e) => { setYoutubeSearchOpen(false); void saveDashboard(order, sizes, w, e.target.value as "spotify" | "detection" | "youtube"); }} className="max-w-36 rounded-lg border border-line bg-[var(--input)] px-2 py-1.5 text-xs"><option value="spotify">Spotify</option><option value="detection">{t("Music Detection")}</option><option value="youtube">YouTube Music</option></select></label></div><NowPlayingWidget source={prefs.dashboard.musicSource} youtubeSearchOpen={youtubeSearchOpen} onCloseYoutubeSearch={() => setYoutubeSearchOpen(false)} /></div>}
+          {show("music") && <div {...widgetProps("music")}><div className="mb-3 flex items-center justify-between gap-3"><div className="flex items-center gap-2"><h2 className="text-sm font-medium text-muted">{t("Music")}</h2>{(prefs.dashboard.musicSource === "youtube" || prefs.dashboard.musicSource === "audius") && <button type="button" onClick={() => setMusicSearchOpen(value => !value)} aria-expanded={musicSearchOpen} aria-label={t(prefs.dashboard.musicSource === "audius" ? "Search Audius" : "Search YouTube Music")} className="inline-flex items-center gap-1.5 rounded-full border border-line bg-card/80 px-2.5 py-1.5 text-xs font-medium transition hover:bg-card"><Search className="size-3.5" />{t("Search")}</button>}</div><label className="flex items-center gap-2 text-xs text-muted"><span>{t("Source")}</span><select aria-label={t("Dashboard music source")} value={prefs.dashboard.musicSource} onChange={(e) => { setMusicSearchOpen(false); void saveDashboard(order, sizes, w, e.target.value as "spotify" | "detection" | "youtube" | "audius"); }} className="max-w-36 rounded-lg border border-line bg-[var(--input)] px-2 py-1.5 text-xs"><option value="spotify">Spotify</option><option value="detection">{t("Music Detection")}</option><option value="youtube">YouTube Music</option><option value="audius">Audius</option></select></label></div><NowPlayingWidget source={prefs.dashboard.musicSource} searchOpen={musicSearchOpen} onCloseSearch={() => setMusicSearchOpen(false)} /></div>}
           </div>
         </>
       )}

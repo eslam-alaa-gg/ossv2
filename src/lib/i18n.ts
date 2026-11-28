@@ -53,6 +53,7 @@ const ar: Record<string, string> = {
   "Search tracks, artists or albums and open the results in YouTube Music. Playback stays in the official YouTube Music app or website.": "ابحث عن الأغاني والفنانين وشغّل نتائج YouTube القابلة للتضمين داخل Ukiyo.",
   "Search music": "ابحث عن الموسيقى",
   "Search YouTube Music": "ابحث في YouTube Music",
+  "Search Audius": "ابحث في Audius",
   "Search on YouTube Music": "البحث على YouTube Music",
   "Open YouTube Music": "فتح YouTube Music",
   "Connect Spotify or pair a device to see what's playing.": "اربط Spotify أو وصّل جهازًا لمشاهدة ما يتم تشغيله.",

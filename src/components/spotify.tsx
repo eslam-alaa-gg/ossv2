@@ -8,6 +8,7 @@ import { api, ApiErr } from "@/lib/client";
 import { useApp } from "./providers";
 import { Button, Card, Progress, Skeleton } from "./ui";
 import { YouTubeMusicPlayer } from "./youtube-music";
+import { AudiusPlayer } from "./audius";
 
 export type NPTrack = {
   id: string;
@@ -259,7 +260,7 @@ type BridgeNowPlaying = {
 };
 
 /** Responsive dashboard music widget; its source is selected in Dashboard preferences. */
-export function NowPlayingWidget({ source = "spotify", youtubeSearchOpen = false, onCloseYoutubeSearch }: { source?: "spotify" | "detection" | "youtube"; youtubeSearchOpen?: boolean; onCloseYoutubeSearch?: () => void }) {
+export function NowPlayingWidget({ source = "spotify", searchOpen = false, onCloseSearch }: { source?: "spotify" | "detection" | "youtube" | "audius"; searchOpen?: boolean; onCloseSearch?: () => void }) {
   const { t: tr } = useApp();
   const { status, np, error, errorCode, loadingStatus, refresh } = useSpotify();
   const progress = useProgress(np);
@@ -295,10 +296,12 @@ export function NowPlayingWidget({ source = "spotify", youtubeSearchOpen = false
     };
   }, [source, spotifyTrack?.id]);
 
+  if (source === "audius") return <AudiusPlayer compact searchOpen={searchOpen} onCloseSearch={onCloseSearch} />;
+
   if (source === "youtube") {
     return (
       <Card className="relative space-y-3">
-        <YouTubeMusicPlayer compact searchOpen={youtubeSearchOpen} onCloseSearch={onCloseYoutubeSearch} spotifyPlaying={!!np && !np.idle && np.playing} />
+        <YouTubeMusicPlayer compact searchOpen={searchOpen} onCloseSearch={onCloseSearch} spotifyPlaying={!!np && !np.idle && np.playing} />
       </Card>
     );
   }
