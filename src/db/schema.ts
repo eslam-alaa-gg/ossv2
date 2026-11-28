@@ -115,6 +115,7 @@ export const flashcardReviews = ossv2.table("flashcard_reviews", {
   reviewedAt: ts("reviewed_at").notNull().defaultNow(),
 }, (t) => ({
   userReviewedIdx: index("flashcard_reviews_user_reviewed_idx").on(t.userId, t.reviewedAt),
+  flashcardIdx: index("flashcard_reviews_flashcard_idx").on(t.flashcardId),
 }));
 
 
