@@ -14,9 +14,13 @@ import { NowPlayingWidget } from "@/components/spotify";
 
 type Session = { id: string; mode: string; plannedSeconds: number; actualSeconds: number; status: string; startedAt: string; lastResumedAt?: string | null; pausedAt?: string | null; taskTitle?: string | null };
 type FocusData = { todayMinutes: number; weekMinutes: number; totalSessions: number; sessions: Session[]; running: (Session & { serverNow: number }) | null; tasks: { id: string; title: string; priority: Task["priority"] }[] };
-type Mode = "focus" | "short_break" | "long_break" | "custom";
-const MODES: { value: Mode; label: string; min: number }[] = [{ value: "focus", label: "Standard Focus", min: 25 }, { value: "short_break", label: "Short Break", min: 5 }, { value: "long_break", label: "Long Break", min: 15 }, { value: "custom", label: "Custom Session", min: 30 }];
-const PRESETS = [15, 25, 45, 60];
+type Mode = "focus" | "short_break" | "long_break" | "custom" | "stopwatch";
+type SessionKind = "focus" | "break" | "stopwatch";
+const MODES: { value: Mode; label: string; min: number }[] = [{ value: "focus", label: "Focus", min: 25 }, { value: "short_break", label: "Short Break", min: 5 }, { value: "long_break", label: "Long Break", min: 15 }, { value: "custom", label: "Custom Focus", min: 30 }, { value: "stopwatch", label: "Stopwatch", min: 0 }];
+const FOCUS_PRESETS = [25, 50, 120];
+const BREAK_PRESETS = [5, 10, 15, 20];
+const MAX_SESSION_MINUTES = 10080;
+const MAX_SESSION_SECONDS = MAX_SESSION_MINUTES * 60;
 type VideoWallpaper = "forest" | "ocean" | "rain" | "sunset" | "cosmos";
 type PhotoWallpaper = "photo-mountains" | "photo-lake" | "photo-coast" | "photo-sunset" | "photo-forest";
 type FocusWallpaper = "none" | VideoWallpaper | PhotoWallpaper;
@@ -72,7 +76,12 @@ export default function FocusPage() {
   const { run, toast } = useUI();
   const { data, reload } = useFetch<FocusData>("/api/focus");
   const [mode, setMode] = useState<Mode>("focus");
+  const [sessionKind, setSessionKind] = useState<SessionKind>("focus");
   const [minutes, setMinutes] = useState(25);
+  const [durationOpen, setDurationOpen] = useState(false);
+  const [durationDays, setDurationDays] = useState(0);
+  const [durationHours, setDurationHours] = useState(0);
+  const [durationMinutes, setDurationMinutes] = useState(25);
   const [taskId, setTaskId] = useState("");
   useEffect(() => { const requestedTask = new URLSearchParams(window.location.search).get("task"); if (requestedTask) setTaskId(requestedTask); }, []);
   const [phase, setPhase] = useState<"idle" | "running" | "paused">("idle");
@@ -145,9 +154,11 @@ export default function FocusPage() {
     if (!data?.running || restored.current || phase !== "idle") return;
     restored.current = true;
     const r = data.running;
-    const elapsed = r.actualSeconds + (r.status === "running" ? Math.max(0, Math.floor((r.serverNow - new Date(r.lastResumedAt ?? r.startedAt).getTime()) / 1000)) : 0);
+    const elapsed = Math.min(r.plannedSeconds, r.actualSeconds + (r.status === "running" ? Math.max(0, Math.floor((r.serverNow - new Date(r.lastResumedAt ?? r.startedAt).getTime()) / 1000)) : 0));
+    const restoredMode = r.mode as Mode;
+    const isStopwatchSession = restoredMode === "stopwatch";
     const left = Math.max(0, r.plannedSeconds - elapsed);
-    setSid(r.id); setPlanned(r.plannedSeconds); setMode(r.mode as Mode); setMinutes(Math.round(r.plannedSeconds / 60)); setRemaining(left); endAt.current = performance.now() + left * 1000; setPhase(r.status === "paused" ? "paused" : "running");
+    setSid(r.id); setPlanned(r.plannedSeconds); setMode(restoredMode); setSessionKind(isStopwatchSession ? "stopwatch" : restoredMode === "short_break" || restoredMode === "long_break" ? "break" : "focus"); setMinutes(Math.round(r.plannedSeconds / 60)); setRemaining(isStopwatchSession ? elapsed : left); endAt.current = isStopwatchSession ? performance.now() - elapsed * 1000 : performance.now() + left * 1000; setPhase(r.status === "paused" ? "paused" : "running");
   }, [data, phase]);
 
   const complete = useCallback(async (id: string) => {
@@ -157,30 +168,49 @@ export default function FocusPage() {
     if (!r) { finishing.current = false; return; }
     toast("success", r.xp ? ` ${t("Focus session complete")} · +${r.xp} XP` : t("Session complete"));
     r.unlocked.forEach((u) => toast("success", t(u)));
-    setPhase("idle"); setSid(null); setRemaining(minutes * 60); finishing.current = false; reload();
+    setPhase("idle"); setSid(null); setRemaining(mode === "stopwatch" ? 0 : minutes * 60); finishing.current = false; reload();
   }, [run, toast, minutes, reload]);
 
   useEffect(() => {
     if (phase !== "running") return;
     const i = setInterval(() => {
+      if (mode === "stopwatch") {
+        const elapsed = Math.min(MAX_SESSION_SECONDS, Math.max(0, Math.floor((performance.now() - endAt.current) / 1000)));
+        setRemaining(elapsed);
+        if (elapsed >= MAX_SESSION_SECONDS && sid) complete(sid);
+        return;
+      }
       const left = Math.max(0, Math.ceil((endAt.current - performance.now()) / 1000));
       setRemaining(left);
       if (left === 0 && sid) complete(sid);
     }, 250);
     return () => clearInterval(i);
-  }, [phase, sid, complete]);
+  }, [phase, sid, complete, mode]);
 
   useEffect(() => {
     const originalTitle = document.title;
-    if (phase === "running") document.title = `${mmss(remaining)} · ${t("Focus")}`;
+    if (phase === "running") document.title = `${mmss(remaining)} · ${t(mode === "stopwatch" ? "Stopwatch" : sessionKind === "break" ? "Break" : "Focus")}`;
     return () => { document.title = originalTitle; };
-  }, [phase, remaining]);
+  }, [phase, remaining, mode, sessionKind]);
 
   useEffect(() => { const h = setTimeout(() => { if (backgroundOverlay !== prefs.focus.overlay) savePrefs({ focus: { ...prefs.focus, overlay: backgroundOverlay } }).catch(() => {}); }, 500); return () => clearTimeout(h); }, [backgroundOverlay]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { const h = () => { if (!document.fullscreenElement) setZen(false); }; document.addEventListener("fullscreenchange", h); return () => document.removeEventListener("fullscreenchange", h); }, []);
 
-  const setDuration = (m: number) => { if (phase !== "idle") return; const v = Math.min(10080, Math.max(1, Math.round(m) || 1)); setMinutes(v); setRemaining(v * 60); setPlanned(v * 60); };
-  const pickMode = (m: Mode) => { if (phase !== "idle") return; setMode(m); setDuration(MODES.find((x) => x.value === m)!.min); };
+  const applyDuration = (m: number, kind: SessionKind = sessionKind) => {
+    if (phase !== "idle") return;
+    const value = Math.min(MAX_SESSION_MINUTES, Math.max(1, Math.round(m) || 1));
+    setMinutes(value); setRemaining(value * 60); setPlanned(value * 60);
+    setDurationDays(Math.floor(value / 1440)); setDurationHours(Math.floor((value % 1440) / 60)); setDurationMinutes(value % 60);
+    if (kind === "break") setMode(value <= 10 ? "short_break" : "long_break");
+    else if (kind === "focus") setMode(value === 25 ? "focus" : "custom");
+  };
+  const setDuration = (m: number) => applyDuration(m);
+  const pickSessionKind = (kind: SessionKind) => {
+    if (phase !== "idle") return;
+    setSessionKind(kind); setDurationOpen(false);
+    if (kind === "stopwatch") { setMode("stopwatch"); setMinutes(MAX_SESSION_MINUTES); setPlanned(MAX_SESSION_SECONDS); setRemaining(0); return; }
+    applyDuration(kind === "break" ? 5 : 25, kind);
+  };
 
   async function uploadFocusBackground(file: File) {
     if (backgroundUploading) return;
@@ -263,13 +293,15 @@ export default function FocusPage() {
     if (starting.current || phase !== "idle") return;
     starting.current = true;
     try {
-      const r = await run(() => api<{ session: Session }>("/api/focus", { body: { mode, minutes, taskId: taskId || null } }));
+      const sessionMinutes = mode === "stopwatch" ? MAX_SESSION_MINUTES : minutes;
+      const r = await run(() => api<{ session: Session }>("/api/focus", { body: { mode, minutes: sessionMinutes, taskId: taskId || null } }));
       if (!r) return;
       finishing.current = false;
       setSid(r.session.id);
-      setPlanned(minutes * 60);
-      setRemaining(minutes * 60);
-      endAt.current = performance.now() + minutes * 60000;
+      setPlanned(sessionMinutes * 60);
+      setRemaining(mode === "stopwatch" ? 0 : sessionMinutes * 60);
+      endAt.current = mode === "stopwatch" ? performance.now() : performance.now() + sessionMinutes * 60000;
+      setDurationOpen(false);
       setPhase("running");
     } finally {
       starting.current = false;
@@ -281,7 +313,7 @@ export default function FocusPage() {
     try {
       const result = await run(() => api<{ session: Session }>(`/api/focus/${sid}`, { body: { action: "pause" } }));
       if (!result) return;
-      setRemaining(Math.max(0, result.session.plannedSeconds - result.session.actualSeconds));
+      setRemaining(mode === "stopwatch" ? result.session.actualSeconds : Math.max(0, result.session.plannedSeconds - result.session.actualSeconds));
       setPhase("paused"); reload();
     } finally { transitioning.current = false; }
   };
@@ -291,7 +323,7 @@ export default function FocusPage() {
     try {
       const result = await run(() => api(`/api/focus/${sid}`, { body: { action: "resume" } }));
       if (!result) return;
-      endAt.current = performance.now() + remaining * 1000; setPhase("running"); reload();
+      endAt.current = mode === "stopwatch" ? performance.now() - remaining * 1000 : performance.now() + remaining * 1000; setPhase("running"); reload();
     } finally { transitioning.current = false; }
   };
   async function end(reset = false): Promise<boolean> {
@@ -299,19 +331,21 @@ export default function FocusPage() {
     transitioning.current = true;
     try {
       if (sid) {
-        const result = await run(() => api(`/api/focus/${sid}`, { body: { action: "end", activeSeconds: Math.max(0, planned - remaining) } }), reset ? undefined : t("Session ended — time so far was recorded"));
+        const action = mode === "stopwatch" && !reset ? "complete" : "end";
+        const activeSeconds = mode === "stopwatch" ? remaining : Math.max(0, planned - remaining);
+        const result = await run(() => api(`/api/focus/${sid}`, { body: { action, activeSeconds } }), reset ? undefined : t("Session ended — time so far was recorded"));
         if (!result) return false;
       }
-      setPhase("idle"); setSid(null); setRemaining(minutes * 60); setPlanned(minutes * 60); reload();
+      setPhase("idle"); setSid(null); setRemaining(mode === "stopwatch" ? 0 : minutes * 60); setPlanned(mode === "stopwatch" ? MAX_SESSION_SECONDS : minutes * 60); reload();
       return true;
     } finally { transitioning.current = false; }
   }
 
   async function skipPhase() {
     if (phase === "idle" || !(await end(true))) return;
-    const nextMode: Mode = mode === "focus" || mode === "custom" ? "short_break" : "focus";
-    const nextMinutes = MODES.find((item) => item.value === nextMode)!.min;
-    setMode(nextMode); setMinutes(nextMinutes); setRemaining(nextMinutes * 60); setPlanned(nextMinutes * 60);
+    const nextKind: SessionKind = sessionKind === "break" ? "focus" : "break";
+    setSessionKind(nextKind);
+    applyDuration(nextKind === "break" ? 5 : 25, nextKind);
   }
 
   async function exitFocus() {
@@ -365,7 +399,7 @@ export default function FocusPage() {
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
   }, []);
-  const pct = planned ? ((planned - remaining) / planned) * 100 : 0;
+  const pct = mode === "stopwatch" ? 0 : planned ? ((planned - remaining) / planned) * 100 : 0;
   const R = 150, C = 2 * Math.PI * R;
   const task = data?.tasks.find((t) => t.id === taskId);
   const timer = (
@@ -420,8 +454,22 @@ export default function FocusPage() {
           <p className="mt-3 text-end text-xs tabular-nums text-faint">{Math.round(pct)}%</p>
         </div>
       )}
-      <div className="mt-6 flex items-center gap-3">
+      {phase === "idle" && <div className="mb-2 flex flex-wrap items-center justify-center gap-2" role="group" aria-label={t("Session type")}>
+        {([{ value: "focus", label: "Focus" }, { value: "break", label: "Break / Rest" }, { value: "stopwatch", label: "Stopwatch" }] as const).map((item) => <button key={item.value} type="button" onClick={() => pickSessionKind(item.value)} aria-pressed={sessionKind === item.value} className={cn("rounded-full border px-4 py-2 text-xs font-medium transition", sessionKind === item.value ? "border-[var(--accent)] bg-[var(--accent)]/15 text-[var(--accent)]" : "border-line bg-card/50 text-muted hover:bg-card")}>{t(item.label)}</button>)}
+      </div>}
+      <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
         {phase === "idle" && <Button variant="primary" className="h-12 px-8 text-base" onClick={start}><Play className="size-5" /> {t("Start")}</Button>}
+        {phase === "idle" && sessionKind !== "stopwatch" && <div className="relative">
+          <Button className="h-12 px-5" onClick={() => setDurationOpen((open) => !open)} aria-expanded={durationOpen} aria-haspopup="dialog"><SlidersHorizontal className="size-4" /> {t("Duration")} <span className="text-xs opacity-70">{minutes >= 1440 ? `${Math.floor(minutes / 1440)}d ${Math.floor((minutes % 1440) / 60)}h` : minutes >= 60 ? `${Math.floor(minutes / 60)}h ${minutes % 60}m` : `${minutes}m`}</span></Button>
+          {durationOpen && <>
+            <button type="button" aria-label={t("Close duration picker")} onClick={() => setDurationOpen(false)} className="fixed inset-0 z-[150] cursor-default" />
+            <div role="dialog" aria-label={t("Choose session duration")} className="absolute bottom-[calc(100%+10px)] left-1/2 z-[151] w-[min(90vw,340px)] -translate-x-1/2 rounded-2xl border border-white/15 bg-[#101622]/95 p-4 text-white shadow-2xl backdrop-blur-3xl" onClick={(event) => event.stopPropagation()}>
+              <div className="mb-3 flex items-center justify-between"><p className="text-sm font-semibold">{t("Choose duration")}</p><button type="button" onClick={() => setDurationOpen(false)} aria-label={t("Close")} className="rounded-lg p-1 text-white/60 hover:bg-white/10"><X className="size-4" /></button></div>
+              <div className="grid grid-cols-3 gap-2">{(sessionKind === "break" ? BREAK_PRESETS : FOCUS_PRESETS).map((preset) => <button key={preset} type="button" onClick={() => { setDuration(preset); setDurationOpen(false); }} aria-pressed={minutes === preset} className={cn("rounded-xl border px-2 py-3 text-xs font-medium", minutes === preset ? "border-white/70 bg-white/15 text-white" : "border-white/10 bg-white/5 text-white/70 hover:bg-white/10")}>{preset === 120 ? t("2 hours") : `${preset} ${t("minutes")}`}</button>)}</div>
+              <div className="mt-4 border-t border-white/10 pt-3"><p className="mb-2 text-xs font-medium text-white/65">{t("Custom duration")}</p><div className="grid grid-cols-3 gap-2">{[{label:"Days",value:durationDays,set:setDurationDays,max:7},{label:"Hours",value:durationHours,set:setDurationHours,max:23},{label:"Minutes",value:durationMinutes,set:setDurationMinutes,max:59}].map((part) => <label key={part.label} className="min-w-0 text-[11px] text-white/60">{t(part.label)}<input type="number" inputMode="numeric" min={0} max={part.max} value={part.value} onChange={(event) => part.set(Math.min(part.max, Math.max(0, Number(event.target.value) || 0)))} className="mt-1 w-full rounded-lg border border-white/10 bg-black/30 px-2 py-2 text-center text-sm text-white outline-none focus:border-white/40" /></label>)}</div><p className="mt-2 text-[10px] text-white/40">{t("Maximum duration: 7 days.")}</p><Button variant="primary" className="mt-3 w-full" disabled={durationDays * 1440 + durationHours * 60 + durationMinutes < 1 || durationDays * 1440 + durationHours * 60 + durationMinutes > MAX_SESSION_MINUTES} onClick={() => { setDuration(durationDays * 1440 + durationHours * 60 + durationMinutes); setDurationOpen(false); }}>{t("Apply duration")}</Button></div>
+            </div>
+          </>}
+        </div>}
         {phase === "running" && <Button className="h-12 px-6" onClick={pause}><Pause className="size-5" /> {t("Pause")}</Button>}
         {phase === "paused" && <Button variant="primary" className="h-12 px-6" onClick={resume}><Play className="size-5" /> {t("Resume")}</Button>}
         {phase !== "idle" && <Button className="h-12" onClick={() => end(false)}><Square className="size-4" /> {t("End")}</Button>}
@@ -448,12 +496,8 @@ export default function FocusPage() {
               <select className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/25 px-3 py-2.5 text-sm text-white" value={taskId} onChange={(e) => setTaskId(e.target.value)} disabled={phase !== "idle"}><option value="">{t("No task — general focus")}</option>{data?.tasks.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}</select>
             </label>
             <p className="mb-2 text-xs font-medium text-white/65">{t("Focus Room theme")}</p><div className="grid grid-cols-3 gap-2">{FOCUS_THEME_PRESETS.map(item => <button key={item.id} type="button" onClick={() => void savePrefs({ focus: { ...prefs.focus, themePreset: item.id } })} aria-pressed={prefs.focus.themePreset === item.id} className={cn("flex items-center gap-2 rounded-xl border p-2 text-[11px]", prefs.focus.themePreset === item.id ? "border-white/70 bg-white/15" : "border-white/10 bg-white/5 text-white/65")}><span className="size-3 shrink-0 rounded-full" style={{ background: item.accent }} />{t(item.name)}</button>)}</div>
-            <p className="mb-2 text-xs font-medium text-white/65">{t("Focus mode")}</p>
-            <div className="grid grid-cols-2 gap-2">{MODES.map(m => <button key={m.value} type="button" disabled={phase !== "idle"} onClick={() => pickMode(m.value)} aria-pressed={mode === m.value} className={cn("rounded-xl border px-3 py-2.5 text-xs transition", mode === m.value ? "border-white/70 bg-white/15 text-white" : "border-white/10 bg-white/5 text-white/65 hover:bg-white/10")}>{t(m.label)}</button>)}</div>
             <p className="mb-2 mt-4 text-xs font-medium text-white/65">{t("Timer style")}</p>
             <div className="grid grid-cols-3 gap-2">{[{value:"ring",label:"Ring"},{value:"digital",label:"Digital"},{value:"minimal",label:"Minimal"},{value:"bar",label:"Progress bar"},{value:"orbit",label:"Orbit"}].map(item => <button key={item.value} type="button" onClick={() => void selectTimerStyle(item.value as TimerStyle)} aria-pressed={timerStyle === item.value} className={cn("rounded-xl border px-2 py-2 text-xs", timerStyle === item.value ? "border-white/70 bg-white/15" : "border-white/10 bg-white/5 text-white/65")}>{t(item.label)}</button>)}</div>
-            {(mode === "focus" || mode === "custom") && <><p className="mb-2 mt-4 text-xs font-medium text-white/65">{t("Duration")}</p><div className="flex flex-wrap gap-2">{PRESETS.map(p => <button key={p} type="button" disabled={phase !== "idle"} onClick={() => setDuration(p)} aria-pressed={minutes === p} className={cn("rounded-full border px-3 py-2 text-xs", minutes === p ? "border-white/70 bg-white/15" : "border-white/10 bg-white/5 text-white/65")}>{p} {t("min")}</button>)}
-              <label className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/65">{t("Custom")}<input type="number" min={1} max={10080} disabled={phase !== "idle"} value={minutes} onChange={e => setDuration(Number(e.target.value))} className="w-16 bg-transparent text-center text-white outline-none" />{t("min")}</label></div></>}
             <div className="mt-4 border-t border-white/10 pt-3"><p className="mb-2 text-xs font-medium text-white/65">{t("Readability overlay")} · {backgroundOverlay}%</p><input type="range" min={0} max={80} step={5} value={backgroundOverlay} onChange={e => setBackgroundOverlay(Number(e.target.value))} className="w-full" aria-label={t("Readability overlay")} /></div>
             <a href="/themes" className="mt-4 block text-center text-xs text-white/60 underline underline-offset-4">{t("Open Theme Studio")}</a>
           </div>}
