@@ -74,7 +74,7 @@ export const prefSchemas: { [K in keyof Prefs]: z.ZodType<Prefs[K]> } = {
   notifications: z.object({ inApp: b, push: b, email: b, quietStart: hhmm, quietEnd: hhmm, challengeTime: hhmm, habitTime: hhmm }),
   spotify: z.object({ ambience: b, autoRefresh: b }),
   waterGoal: z.number().int().min(500).max(10000),
-  focus: z.object({ sound: z.string().max(20), volume: z.number().min(0).max(1), preset: z.number().int().min(1).max(240), themePreset: z.enum(["midnight", "ocean", "forest", "rose", "sunrise", "mono"]).default("midnight"), background: z.enum(["none", "forest", "ocean", "rain", "sunset", "cosmos", "photo-mountains", "photo-lake", "photo-coast", "photo-sunset", "photo-forest"]).default("none"), timerStyle: z.enum(["ring", "digital", "minimal", "bar", "orbit"]).default("ring"), overlay: z.number().min(0).max(80).default(45) }),
+  focus: z.object({ sound: z.string().max(20), volume: z.number().min(0).max(1), preset: z.number().int().min(1).max(10080), themePreset: z.enum(["midnight", "ocean", "forest", "rose", "sunrise", "mono"]).default("midnight"), background: z.enum(["none", "forest", "ocean", "rain", "sunset", "cosmos", "photo-mountains", "photo-lake", "photo-coast", "photo-sunset", "photo-forest"]).default("none"), timerStyle: z.enum(["ring", "digital", "minimal", "bar", "orbit"]).default("ring"), overlay: z.number().min(0).max(80).default(45) }),
   onboarding: z.object({ goals: z.array(z.string().max(60)).max(20), habits: z.array(z.string().max(60)).max(20) }),
 };
 
