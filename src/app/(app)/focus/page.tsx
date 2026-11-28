@@ -424,7 +424,7 @@ export default function FocusPage() {
       {backgroundImage ? (
         <img src={backgroundImage} alt="" className="absolute inset-0 h-full w-full object-cover object-center" aria-hidden />
       ) : backgroundScene !== "none" ? (
-        <div className="absolute inset-0"><FocusWallpaperLayer scene={backgroundScene} failed={wallpaperVideoFailed || !!prefs.theme.reducedMotion} onError={() => setWallpaperVideoFailed(true)} /></div>
+        <div className="absolute inset-0"><FocusWallpaperLayer scene={backgroundScene} failed={wallpaperVideoFailed} onError={() => setWallpaperVideoFailed(true)} /></div>
       ) : <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_35%,#1b2638_0%,#080d17_55%,#030509_100%)]" />}
       <div className="absolute inset-0 bg-black/35" style={{ opacity: backgroundOverlay / 100 }} aria-hidden />
       <div className="absolute inset-x-0 top-0 z-40 flex items-center justify-end gap-2 p-3 pt-[max(.75rem,env(safe-area-inset-top))] sm:p-5">
