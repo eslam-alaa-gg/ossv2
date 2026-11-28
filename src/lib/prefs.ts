@@ -50,7 +50,7 @@ export type Prefs = {
   notifications: { inApp: boolean; push: boolean; email: boolean; quietStart: string; quietEnd: string; challengeTime: string; habitTime: string };
   spotify: { ambience: boolean; autoRefresh: boolean };
   waterGoal: number;
-  focus: { sound: string; volume: number; preset: number; themePreset: "midnight" | "ocean" | "forest" | "rose" | "sunrise" | "mono"; background: "none" | "forest" | "ocean" | "rain" | "sunset" | "cosmos" | "photo-mountains" | "photo-lake" | "photo-coast" | "photo-sunset" | "photo-forest"; timerStyle: "ring" | "digital" | "minimal" | "bar" | "orbit"; overlay: number };
+  focus: { sound: string; volume: number; preset: number; themePreset: "midnight" | "ocean" | "forest" | "rose" | "sunrise" | "mono"; background: "none" | "aurora" | "forest" | "ocean" | "rain" | "sunset" | "cosmos"; timerStyle: "ring" | "digital" | "minimal" | "bar" | "orbit"; overlay: number };
   onboarding: { goals: string[]; habits: string[] };
 };
 
@@ -74,7 +74,7 @@ export const prefSchemas: { [K in keyof Prefs]: z.ZodType<Prefs[K]> } = {
   notifications: z.object({ inApp: b, push: b, email: b, quietStart: hhmm, quietEnd: hhmm, challengeTime: hhmm, habitTime: hhmm }),
   spotify: z.object({ ambience: b, autoRefresh: b }),
   waterGoal: z.number().int().min(500).max(10000),
-  focus: z.object({ sound: z.string().max(20), volume: z.number().min(0).max(1), preset: z.number().int().min(1).max(10080), themePreset: z.enum(["midnight", "ocean", "forest", "rose", "sunrise", "mono"]).default("midnight"), background: z.enum(["none", "forest", "ocean", "rain", "sunset", "cosmos", "photo-mountains", "photo-lake", "photo-coast", "photo-sunset", "photo-forest"]).default("none"), timerStyle: z.enum(["ring", "digital", "minimal", "bar", "orbit"]).default("ring"), overlay: z.number().min(0).max(80).default(45) }),
+  focus: z.object({ sound: z.string().max(20), volume: z.number().min(0).max(1), preset: z.number().int().min(1).max(10080), themePreset: z.enum(["midnight", "ocean", "forest", "rose", "sunrise", "mono"]).default("midnight"), background: z.enum(["none", "aurora", "forest", "ocean", "rain", "sunset", "cosmos"]).default("none"), timerStyle: z.enum(["ring", "digital", "minimal", "bar", "orbit"]).default("ring"), overlay: z.number().min(0).max(80).default(45) }),
   onboarding: z.object({ goals: z.array(z.string().max(60)).max(20), habits: z.array(z.string().max(60)).max(20) }),
 };
 
@@ -98,6 +98,19 @@ export function parsePrefs(raw: unknown): Prefs {
       };
     } else if (isObj(val) && isObj(DEFAULT_PREFS[k])) {
       val = { ...(DEFAULT_PREFS[k] as object), ...val };
+      if (k === "focus") {
+        const focus = val as Record<string, unknown>;
+        const legacyBackgrounds: Record<string, string> = {
+          "photo-mountains": "aurora",
+          "photo-lake": "ocean",
+          "photo-coast": "ocean",
+          "photo-sunset": "sunset",
+          "photo-forest": "forest",
+        };
+        if (typeof focus.background === "string" && legacyBackgrounds[focus.background]) {
+          focus.background = legacyBackgrounds[focus.background];
+        }
+      }
       if (k === "dashboard") {
         const dashboard = val as Record<string, unknown>;
         const widgets = isObj(dashboard.widgets) ? dashboard.widgets : {};

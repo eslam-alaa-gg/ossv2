@@ -48,6 +48,18 @@ let taskA, noteA, goalA, habitA, msA;
 
 console.log(`LIFE OS e2e against ${BASE}`);
 
+await test("six bundled Focus Zone wallpapers are served as local animated SVG assets", async () => {
+  for (const scene of ["aurora", "forest", "ocean", "rain", "sunset", "cosmos"]) {
+    const response = await fetch(`${BASE}/focus-wallpapers/${scene}.svg`);
+    assert.equal(response.status, 200, `${scene} wallpaper should be served locally`);
+    assert.match(response.headers.get("content-type") || "", /image\/svg\+xml/i);
+    const svg = await response.text();
+    assert.match(svg, /<svg\b/);
+    assert.match(svg, /animation:/, `${scene} should include its own animation`);
+  }
+});
+
+
 await test("signup A and B", async () => {
   for (const [c, e, n] of [[A, emailA, "Alice Test"], [B, emailB, "Bob Test"]]) {
     const r = await c.req("POST", "/api/auth/signup", { email: e, password: pw, displayName: n, timezone: "UTC" });

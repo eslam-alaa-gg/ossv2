@@ -256,6 +256,7 @@ export function YouTubeMusicPlayer({ compact = false, searchOpen = true, searchP
         role={videoExpanded ? "dialog" : undefined}
         aria-modal={videoExpanded ? true : undefined}
         aria-label={ar ? "مشغل YouTube الرسمي" : "Official YouTube player"}
+        onClick={(event) => { if (videoExpanded && event.target === event.currentTarget) closeVideoWindow(); }}
         className={videoExpanded
           ? "fixed inset-0 z-[140] flex items-center justify-center bg-black/90 p-3 backdrop-blur-md sm:p-6"
           : "mt-4 w-full overflow-hidden rounded-2xl border border-white/15 bg-[#0b111c] text-white shadow-xl"}
