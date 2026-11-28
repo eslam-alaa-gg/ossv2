@@ -2,7 +2,7 @@ import { ApiError, handle } from "@/lib/server/api";
 import { clientIp, rateLimit, requireUser } from "@/lib/server/auth";
 
 export const dynamic = "force-dynamic";
-type AudiusTrack = { id?: string | number; title?: string; duration?: number; user?: { name?: string }; artwork?: Record<string, string | undefined> | null };
+type AudiusTrack = { id?: string | number; title?: string; duration?: number; is_streamable?: boolean; user?: { name?: string }; artwork?: Record<string, string | undefined> | null };
 
 function safeArtwork(value: unknown): string | null {
   if (typeof value !== "string") return null;
@@ -26,7 +26,7 @@ export const GET = handle(async (req) => {
   const results = (Array.isArray(payload.data) ? payload.data : []).flatMap((track) => {
     const id = track.id === undefined ? "" : String(track.id);
     const title = typeof track.title === "string" ? track.title.trim() : "";
-    if (!/^[A-Za-z0-9_-]{1,128}$/.test(id) || !title) return [];
+    if (!/^[A-Za-z0-9_-]{1,128}$/.test(id) || !title || track.is_streamable === false) return [];
     return [{
       id, title: title.slice(0, 500), artist: (track.user?.name ?? "Unknown artist").slice(0, 300),
       artwork: safeArtwork(track.artwork?.["480x480"] ?? track.artwork?.["150x150"] ?? track.artwork?.["1000x1000"]),
