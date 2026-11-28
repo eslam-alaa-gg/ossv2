@@ -259,7 +259,7 @@ type BridgeNowPlaying = {
 };
 
 /** Responsive dashboard music widget; its source is selected in Dashboard preferences. */
-export function NowPlayingWidget({ source = "spotify" }: { source?: "spotify" | "detection" | "youtube" }) {
+export function NowPlayingWidget({ source = "spotify", youtubeSearchOpen = false, onCloseYoutubeSearch }: { source?: "spotify" | "detection" | "youtube"; youtubeSearchOpen?: boolean; onCloseYoutubeSearch?: () => void }) {
   const { t: tr } = useApp();
   const { status, np, error, errorCode, loadingStatus, refresh } = useSpotify();
   const progress = useProgress(np);
@@ -297,8 +297,8 @@ export function NowPlayingWidget({ source = "spotify" }: { source?: "spotify" | 
 
   if (source === "youtube") {
     return (
-      <Card className="space-y-3">
-        <YouTubeMusicPlayer compact spotifyPlaying={!!np && !np.idle && np.playing} />
+      <Card className="relative space-y-3">
+        <YouTubeMusicPlayer compact searchOpen={youtubeSearchOpen} onCloseSearch={onCloseYoutubeSearch} spotifyPlaying={!!np && !np.idle && np.playing} />
       </Card>
     );
   }
