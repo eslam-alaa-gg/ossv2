@@ -615,6 +615,7 @@ const ar: Record<string, string> = {
   "Reset": "إعادة ضبط",
   "Start": "بدء",
   "Break / Rest": "استراحة / راحة",
+  "Custom Focus": "تركيز مخصص",
   "Break": "استراحة",
   "Stopwatch": "ساعة إيقاف",
   "Session type": "نوع الجلسة",
