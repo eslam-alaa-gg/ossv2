@@ -460,7 +460,7 @@ export default function FocusPage() {
       <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
         {phase === "idle" && <Button variant="primary" className="h-12 px-8 text-base" onClick={start}><Play className="size-5" /> {t("Start")}</Button>}
         {phase === "idle" && sessionKind !== "stopwatch" && <div className="relative">
-          <Button className="h-12 px-5" onClick={() => setDurationOpen((open) => !open)} aria-expanded={durationOpen} aria-haspopup="dialog"><SlidersHorizontal className="size-4" /> {t("Duration")} <span className="text-xs opacity-70">{minutes >= 1440 ? `${Math.floor(minutes / 1440)}d ${Math.floor((minutes % 1440) / 60)}h` : minutes >= 60 ? `${Math.floor(minutes / 60)}h ${minutes % 60}m` : `${minutes}m`}</span></Button>
+          <Button className="h-12 px-5" onClick={() => setDurationOpen((open) => !open)} aria-expanded={durationOpen} aria-haspopup="dialog"><SlidersHorizontal className="size-4" /> {t("Duration")} <span className="text-xs opacity-70">{minutes >= 1440 ? `${Math.floor(minutes / 1440)}d ${Math.floor((minutes % 1440) / 60)}h ${minutes % 60}m` : minutes >= 60 ? `${Math.floor(minutes / 60)}h ${minutes % 60}m` : `${minutes}m`}</span></Button>
           {durationOpen && <>
             <button type="button" aria-label={t("Close duration picker")} onClick={() => setDurationOpen(false)} className="fixed inset-0 z-[150] cursor-default" />
             <div role="dialog" aria-label={t("Choose session duration")} className="absolute bottom-[calc(100%+10px)] left-1/2 z-[151] w-[min(90vw,340px)] -translate-x-1/2 rounded-2xl border border-white/15 bg-[#101622]/95 p-4 text-white shadow-2xl backdrop-blur-3xl" onClick={(event) => event.stopPropagation()}>
