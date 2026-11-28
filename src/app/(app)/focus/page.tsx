@@ -218,7 +218,7 @@ export default function FocusPage() {
   }
 
   function selectLocalVideo(file: File) {
-    const supported = file.type.startsWith("video/") || /\\.(mp4|webm|mov|m4v|ogv)$/i.test(file.name);
+    const supported = file.type.startsWith("video/") || [".mp4", ".webm", ".mov", ".m4v", ".ogv"].some((extension) => file.name.toLowerCase().endsWith(extension));
     if (!supported) {
       setVideoMessage(t("Choose an MP4, WebM or MOV video file."));
       return;
