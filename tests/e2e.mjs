@@ -512,14 +512,18 @@ await test("Focus stopwatch persists, pauses, resumes and can be completed witho
   const session = created.json.session;
   assert.equal(session.mode, "stopwatch");
   assert.equal(session.plannedSeconds, 604800);
+  const restored = (await A.req("GET", "/api/focus")).json.running;
+  assert.equal(restored.mode, "stopwatch", "the active stopwatch is recoverable from the API after reload");
 
   const paused = await A.req("POST", `/api/focus/${session.id}`, { action: "pause" });
   assert.equal(paused.status, 200, paused.text);
   assert.equal(paused.json.session.status, "paused");
   const resumed = await A.req("POST", `/api/focus/${session.id}`, { action: "resume" });
   assert.equal(resumed.status, 200, resumed.text);
+  await new Promise((resolve) => setTimeout(resolve, 1100));
   const pausedAgain = await A.req("POST", `/api/focus/${session.id}`, { action: "pause" });
   assert.equal(pausedAgain.status, 200, pausedAgain.text);
+  assert.ok(pausedAgain.json.session.actualSeconds >= 1, "stopwatch records elapsed active seconds");
 
   const completed = await A.req("POST", `/api/focus/${session.id}`, { action: "complete" });
   assert.equal(completed.status, 200, completed.text);
