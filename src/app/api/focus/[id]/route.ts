@@ -50,18 +50,20 @@ export const POST = handle<{ id: string }>(async (req, { id }) => {
   if (!isRunning && !isPaused) throw new ApiError(409, "This session is already finished.");
 
   if (input.action === "complete") {
-    if (isPaused || activeSeconds < session.plannedSeconds - 5) {
+    const isStopwatch = session.mode === "stopwatch";
+    if (!isStopwatch && (isPaused || activeSeconds < session.plannedSeconds - 5)) {
       throw new ApiError(400, "This session hasn't accumulated its full active duration yet.");
     }
+    const completedSeconds = isStopwatch ? activeSeconds : session.plannedSeconds;
     const [updated] = await db.update(focusSessions)
-      .set({ status: "completed", endedAt: now, pausedAt: null, actualSeconds: session.plannedSeconds })
-      .where(and(eq(focusSessions.id, session.id), eq(focusSessions.status, "running")))
+      .set({ status: "completed", endedAt: now, pausedAt: null, actualSeconds: completedSeconds })
+      .where(and(eq(focusSessions.id, session.id), eq(focusSessions.status, session.status)))
       .returning();
     if (!updated) throw new ApiError(409, "This session is already finished.");
     let xp = 0;
     let unlocked: string[] = [];
-    if ((session.mode === "focus" || session.mode === "custom") && session.plannedSeconds >= 300) {
-      xp = await award(auth.id, "focus", session.id, Math.min(60, Math.floor(session.plannedSeconds / 60)), "Focus session");
+    if ((session.mode === "focus" || session.mode === "custom" || isStopwatch) && completedSeconds >= 300) {
+      xp = await award(auth.id, "focus", session.id, Math.min(60, Math.floor(completedSeconds / 60)), "Focus session");
       unlocked = await evaluateAchievements(auth.id, auth.tz, auth.user.dailyGoal);
     }
     return { xp, unlocked, session: updated };
