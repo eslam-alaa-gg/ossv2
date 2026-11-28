@@ -169,7 +169,7 @@ export default function FocusPage() {
     toast("success", r.xp ? ` ${t("Focus session complete")} · +${r.xp} XP` : t("Session complete"));
     r.unlocked.forEach((u) => toast("success", t(u)));
     setPhase("idle"); setSid(null); setRemaining(mode === "stopwatch" ? 0 : minutes * 60); finishing.current = false; reload();
-  }, [run, toast, minutes, reload]);
+  }, [run, toast, minutes, mode, reload]);
 
   useEffect(() => {
     if (phase !== "running") return;
@@ -342,7 +342,7 @@ export default function FocusPage() {
   }
 
   async function skipPhase() {
-    if (phase === "idle" || !(await end(true))) return;
+    if (phase === "idle" || sessionKind === "stopwatch" || !(await end(true))) return;
     const nextKind: SessionKind = sessionKind === "break" ? "focus" : "break";
     setSessionKind(nextKind);
     applyDuration(nextKind === "break" ? 5 : 25, nextKind);
