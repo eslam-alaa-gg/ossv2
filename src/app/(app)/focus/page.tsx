@@ -1,8 +1,7 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
 import { ImagePlus, Keyboard, Maximize2, Minimize2, Palette, Pause, Play, RotateCcw, Search, SlidersHorizontal, Square, Trash2, Video, X } from "lucide-react";
-import { PRESETS as THEME_PRESETS } from "@/lib/theme";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { useApp } from "@/components/providers";
 import { type Task } from "@/components/task-form";
 import { Badge, Button, Card, EmptyState, Field, cn, useUI } from "@/components/ui";
@@ -13,45 +12,22 @@ type Session = { id: string; mode: string; plannedSeconds: number; actualSeconds
 type FocusData = { todayMinutes: number; weekMinutes: number; totalSessions: number; sessions: Session[]; running: (Session & { serverNow: number }) | null; tasks: { id: string; title: string; priority: Task["priority"] }[] };
 type Mode = "focus" | "short_break" | "long_break" | "custom";
 const MODES: { value: Mode; label: string; min: number }[] = [{ value: "focus", label: "Standard Focus", min: 25 }, { value: "short_break", label: "Short Break", min: 5 }, { value: "long_break", label: "Long Break", min: 15 }, { value: "custom", label: "Custom Session", min: 30 }];
-const PRESETS = [15, 25, 45, 60];
-type VideoWallpaper = "forest" | "ocean" | "rain" | "sunset" | "cosmos";
-type PhotoWallpaper = "photo-mountains" | "photo-lake" | "photo-coast" | "photo-sunset" | "photo-forest";
-type FocusWallpaper = "none" | VideoWallpaper | PhotoWallpaper;
+const PRESETS = [25, 50, 120];
+type LiveWallpaper = "forest" | "ocean" | "rain" | "sunset" | "cosmos" | "aurora";
+type FocusWallpaper = "none" | LiveWallpaper;
 type TimerStyle = "ring" | "digital" | "minimal" | "bar" | "orbit";
-const WALLPAPER_VIDEO_URLS: Record<VideoWallpaper, string> = {
-  forest: "https://assets.mixkit.co/videos/preview/mixkit-waterfall-in-forest-2213-large.mp4",
-  ocean: "https://assets.mixkit.co/videos/preview/mixkit-waves-coming-to-the-beach-5016-large.mp4",
-  rain: "https://assets.mixkit.co/videos/preview/mixkit-window-on-a-rainy-day-2846-large.mp4",
-  sunset: "https://assets.mixkit.co/videos/preview/mixkit-sunset-behind-the-skyline-on-the-beach-over-the-sea-51445-large.mp4",
-  cosmos: "https://assets.mixkit.co/videos/preview/mixkit-stars-in-space-background-1610-large.mp4",
-};
-const WALLPAPERS: { id: Exclude<FocusWallpaper, "none">; label: string; hint: string }[] = [
-  { id: "forest", label: "Misty Forest", hint: "Soft green light and drifting fog" },
-  { id: "ocean", label: "Ocean Drift", hint: "Deep blue waves and moving light" },
-  { id: "rain", label: "Rainy Window", hint: "Quiet rain and blurred city lights" },
-  { id: "sunset", label: "Golden Hour", hint: "Warm sunset clouds and soft glow" },
-  { id: "cosmos", label: "Deep Space", hint: "Slow stars and violet nebula" },
+const WALLPAPERS: { id: LiveWallpaper; label: string; hint: string }[] = [
+  { id: "forest", label: "Misty Forest", hint: "Slow forest mist and soft green light" },
+  { id: "ocean", label: "Ocean Drift", hint: "Deep blue waves and moving reflections" },
+  { id: "rain", label: "Rainy Window", hint: "Gentle rain and distant city glow" },
+  { id: "sunset", label: "Golden Hour", hint: "Warm sunset clouds and a slow golden glow" },
+  { id: "cosmos", label: "Deep Space", hint: "Drifting stars and a quiet violet nebula" },
+  { id: "aurora", label: "Northern Lights", hint: "Soft aurora ribbons moving across a night sky" },
 ];
-const PHOTO_WALLPAPERS: { id: PhotoWallpaper; label: string; image: string }[] = [
-  { id: "photo-mountains", label: "Mountain Escape", image: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1200&auto=format&fit=crop&q=82" },
-  { id: "photo-lake", label: "Quiet Lake", image: "https://images.unsplash.com/photo-1470770841072-f978cf4d019e?w=1200&auto=format&fit=crop&q=82" },
-  { id: "photo-coast", label: "Ocean Calm", image: "https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=1200&auto=format&fit=crop&q=82" },
-  { id: "photo-sunset", label: "Soft Sunset", image: "https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?w=1200&auto=format&fit=crop&q=82" },
-  { id: "photo-forest", label: "Forest Path", image: "https://images.unsplash.com/photo-1448375240586-882707db888b?w=1200&auto=format&fit=crop&q=82" },
-];
-const mmss = (s: number) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+const mmss = (s: number) => { const total = Math.max(0, Math.floor(s)); const days = Math.floor(total / 86400); const hours = Math.floor((total % 86400) / 3600); const minutes = Math.floor((total % 3600) / 60); const seconds = total % 60; if (days) return `${days}d ${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`; if (hours) return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`; return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`; };
 
-function FocusWallpaperLayer({ scene, failed, onError }: { scene: Exclude<FocusWallpaper, "none">; failed: boolean; onError: () => void }) {
-  const photo = PHOTO_WALLPAPERS.find((item) => item.id === scene);
-  if (photo) return <div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: `url("${photo.image}")` }} aria-hidden />;
-  return (
-    <div className={`focus-wallpaper focus-wallpaper-${scene}`} aria-hidden>
-      {!failed && <video key={scene} autoPlay muted loop playsInline preload="metadata" tabIndex={-1} onError={onError} className="absolute inset-0 size-full object-cover">
-        <source src={WALLPAPER_VIDEO_URLS[scene as VideoWallpaper]} type="video/mp4" />
-      </video>}
-      <div className="absolute inset-0 bg-black/25" />
-    </div>
-  );
+function FocusWallpaperLayer({ scene }: { scene: Exclude<FocusWallpaper, "none"> }) {
+  return <div className={`focus-wallpaper focus-wallpaper-${scene}`} aria-hidden />;
 }
 
 export default function FocusPage() {
@@ -60,6 +36,10 @@ export default function FocusPage() {
   const { data, reload } = useFetch<FocusData>("/api/focus");
   const [mode, setMode] = useState<Mode>("focus");
   const [minutes, setMinutes] = useState(25);
+  const [durationOpen, setDurationOpen] = useState(false);
+  const [durationDays, setDurationDays] = useState(0);
+  const [durationHours, setDurationHours] = useState(0);
+  const [durationMinutes, setDurationMinutes] = useState(25);
   const [taskId, setTaskId] = useState("");
   useEffect(() => { const requestedTask = new URLSearchParams(window.location.search).get("task"); if (requestedTask) setTaskId(requestedTask); }, []);
   const [phase, setPhase] = useState<"idle" | "running" | "paused">("idle");
@@ -73,11 +53,13 @@ export default function FocusPage() {
   const [musicSearchOpen, setMusicSearchOpen] = useState(false);
   const [mixerOpen, setMixerOpen] = useState(false);
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
+  const [backgroundVideoUrl, setBackgroundVideoUrl] = useState<string | null>(null);
+  const [backgroundVideoName, setBackgroundVideoName] = useState<string | null>(null);
+  const [videoMessage, setVideoMessage] = useState("");
   const [backgroundScene, setBackgroundScene] = useState<FocusWallpaper>(prefs.focus.background);
   const [backgroundOverlay, setBackgroundOverlay] = useState(prefs.focus.overlay);
-  const [wallpaperVideoFailed, setWallpaperVideoFailed] = useState(false);
   const [timerStyle, setTimerStyle] = useState<TimerStyle>(prefs.focus.timerStyle);
-  useEffect(() => { setBackgroundScene(prefs.focus.background); setTimerStyle(prefs.focus.timerStyle); setBackgroundOverlay(prefs.focus.overlay); setWallpaperVideoFailed(false); }, [prefs.focus.background, prefs.focus.timerStyle, prefs.focus.overlay]);
+  useEffect(() => { setBackgroundScene(prefs.focus.background); setTimerStyle(prefs.focus.timerStyle); setBackgroundOverlay(prefs.focus.overlay); }, [prefs.focus.background, prefs.focus.timerStyle, prefs.focus.overlay]);
   const [imageMessage, setImageMessage] = useState("");
   const endAt = useRef(0);
   const finishing = useRef(false);
@@ -124,6 +106,9 @@ export default function FocusPage() {
   useEffect(() => () => {
     if (backgroundImage?.startsWith("blob:")) URL.revokeObjectURL(backgroundImage);
   }, [backgroundImage]);
+  useEffect(() => () => {
+    if (backgroundVideoUrl?.startsWith("blob:")) URL.revokeObjectURL(backgroundVideoUrl);
+  }, [backgroundVideoUrl]);
 
   // restore a session that is still running on the server (e.g. after reload)
   useEffect(() => {
@@ -164,7 +149,7 @@ export default function FocusPage() {
   useEffect(() => { const h = setTimeout(() => { if (backgroundOverlay !== prefs.focus.overlay) savePrefs({ focus: { ...prefs.focus, overlay: backgroundOverlay } }).catch(() => {}); }, 500); return () => clearTimeout(h); }, [backgroundOverlay]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { const h = () => { if (!document.fullscreenElement) setZen(false); }; document.addEventListener("fullscreenchange", h); return () => document.removeEventListener("fullscreenchange", h); }, []);
 
-  const setDuration = (m: number) => { if (phase !== "idle") return; const v = Math.min(240, Math.max(1, Math.round(m) || 1)); setMinutes(v); setRemaining(v * 60); setPlanned(v * 60); };
+  const setDuration = (m: number) => { if (phase !== "idle") return; const v = Math.min(10080, Math.max(1, Math.round(m) || 1)); setMinutes(v); setRemaining(v * 60); setPlanned(v * 60); setDurationDays(Math.floor(v / 1440)); setDurationHours(Math.floor((v % 1440) / 60)); setDurationMinutes(v % 60); };
   const pickMode = (m: Mode) => { if (phase !== "idle") return; setMode(m); setDuration(MODES.find((x) => x.value === m)!.min); };
 
   async function uploadFocusBackground(file: File) {
@@ -196,13 +181,16 @@ export default function FocusPage() {
       const form = new FormData();
       const mime = result.type === "image/webp" ? "image/webp" : "image/jpeg";
       form.append("file", new File([result], mime === "image/webp" ? "focus-background.webp" : "focus-background.jpg", { type: mime }));
-      const response = await fetch("/api/me/focus-background", { method: "POST", body: form });
+      const response = await fetch("/api/me/focus-background", { method: "POST", body: form, cache: "no-store" });
       if (!response.ok) {
         const payload = await response.json().catch(() => null);
         throw new Error(payload?.error || t("Image upload failed."));
       }
-      setBackgroundImage(URL.createObjectURL(result));
-      setImageMessage(t("Background image saved to your account. It appears in the Focus Room and immersive focus mode."));
+      setBackgroundImage((previous) => {
+        if (previous?.startsWith("blob:")) URL.revokeObjectURL(previous);
+        return URL.createObjectURL(result!);
+      });
+      setImageMessage(t("Background image saved to your account and applied. It will appear in immersive Focus mode."));
     } catch (e) {
       setImageMessage(e instanceof Error ? e.message : t("Image upload failed."));
     } finally {
@@ -211,7 +199,7 @@ export default function FocusPage() {
   }
   async function removeFocusBackground() {
     try {
-      const response = await fetch("/api/me/focus-background", { method: "DELETE" });
+      const response = await fetch("/api/me/focus-background", { method: "DELETE", cache: "no-store" });
       if (!response.ok) throw new Error(t("Could not remove the background."));
       setBackgroundImage(null);
       setImageMessage(t("Background image removed from your account."));
@@ -229,9 +217,27 @@ export default function FocusPage() {
     }
   }
 
+  function selectLocalVideo(file: File) {
+    const supported = file.type.startsWith("video/") || [".mp4", ".webm", ".mov", ".m4v", ".ogv"].some((extension) => file.name.toLowerCase().endsWith(extension));
+    if (!supported) {
+      setVideoMessage(t("Choose an MP4, WebM or MOV video file."));
+      return;
+    }
+    const localUrl = URL.createObjectURL(file);
+    setBackgroundVideoUrl(localUrl);
+    setBackgroundVideoName(file.name);
+    setVideoMessage(t("Video loaded from this device. It is not uploaded or saved to your account."));
+  }
+
+  function removeLocalVideo() {
+    setBackgroundVideoUrl(null);
+    setBackgroundVideoName(null);
+    setVideoMessage("");
+  }
+
   async function selectWallpaper(id: FocusWallpaper) {
+    removeLocalVideo();
     setBackgroundScene(id);
-    setWallpaperVideoFailed(false);
     try {
       await savePrefs({ focus: { ...prefs.focus, background: id, timerStyle, overlay: backgroundOverlay } });
     } catch {
@@ -252,6 +258,7 @@ export default function FocusPage() {
       setRemaining(minutes * 60);
       endAt.current = performance.now() + minutes * 60000;
       setPhase("running");
+      setDurationOpen(false);
     } finally {
       starting.current = false;
     }
@@ -299,6 +306,15 @@ export default function FocusPage() {
     if (phase !== "idle" && !(await end(false))) return;
     if (zen) await toggleZen();
   }
+  function closeFloatingPanels() {
+    setThemeOpen(false);
+    setBackgroundOpen(false);
+    setMusicSearchOpen(false);
+    setMixerOpen(false);
+    setShortcutsOpen(false);
+    setDurationOpen(false);
+  }
+
   async function toggleZen() {
     if (!zen) {
       try {
@@ -401,8 +417,8 @@ export default function FocusPage() {
           <p className="mt-3 text-end text-xs tabular-nums text-faint">{Math.round(pct)}%</p>
         </div>
       )}
-      <div className="mt-6 flex items-center gap-3">
-        {phase === "idle" && <Button variant="primary" className="h-12 px-8 text-base" onClick={start}><Play className="size-5" /> {t("Start")}</Button>}
+      <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+        {phase === "idle" && <><Button variant="primary" className="h-12 px-8 text-base" onClick={start}><Play className="size-5" /> {t("Start")}</Button><div className="relative"><Button className="h-12 px-5" onClick={() => setDurationOpen(v => !v)} aria-expanded={durationOpen} aria-haspopup="dialog"><SlidersHorizontal className="size-4" /> {t("Duration")} <span className="text-xs opacity-70">{minutes >= 1440 ? `${Math.floor(minutes / 1440)}d ${Math.floor((minutes % 1440) / 60)}h` : minutes >= 60 ? `${Math.floor(minutes / 60)}h ${minutes % 60}m` : `${minutes}m`}</span></Button>{durationOpen && <div role="dialog" aria-label={t("Choose session duration")} className="absolute bottom-[calc(100%+10px)] left-1/2 z-[160] w-[min(90vw,340px)] -translate-x-1/2 rounded-2xl border border-white/15 bg-[#101622]/95 p-4 text-white shadow-2xl backdrop-blur-3xl"><div className="mb-3 flex items-center justify-between"><p className="text-sm font-semibold">{t("Choose duration")}</p><button type="button" onClick={() => setDurationOpen(false)} aria-label={t("Close")} className="rounded-lg p-1 text-white/60 hover:bg-white/10"><X className="size-4" /></button></div><div className="grid grid-cols-3 gap-2">{PRESETS.map(p => <button key={p} type="button" onClick={() => { setDuration(p); setDurationOpen(false); }} aria-pressed={minutes === p} className={cn("rounded-xl border px-2 py-3 text-xs font-medium", minutes === p ? "border-white/70 bg-white/15 text-white" : "border-white/10 bg-white/5 text-white/70 hover:bg-white/10")}>{p === 120 ? "2 hours" : `${p} minutes`}</button>)}</div><div className="mt-4 border-t border-white/10 pt-3"><p className="mb-2 text-xs font-medium text-white/65">{t("Custom duration")}</p><div className="grid grid-cols-3 gap-2">{[{label:"Days",value:durationDays,set:setDurationDays,max:7},{label:"Hours",value:durationHours,set:setDurationHours,max:23},{label:"Minutes",value:durationMinutes,set:setDurationMinutes,max:59}].map(part => <label key={part.label} className="min-w-0 text-[11px] text-white/60">{t(part.label)}<input type="number" inputMode="numeric" min={0} max={part.max} value={part.value} onChange={e => part.set(Math.min(part.max, Math.max(0, Number(e.target.value) || 0)))} className="mt-1 w-full rounded-lg border border-white/10 bg-black/30 px-2 py-2 text-center text-sm text-white outline-none focus:border-white/40" /></label>)}</div><p className="mt-2 text-[10px] text-white/40">{t("Maximum duration: 7 days.")}</p><Button variant="primary" className="mt-3 w-full" disabled={durationDays * 1440 + durationHours * 60 + durationMinutes < 1} onClick={() => { setDuration(durationDays * 1440 + durationHours * 60 + durationMinutes); setDurationOpen(false); }}>{t("Apply duration")}</Button></div></div>}</div></>}
         {phase === "running" && <Button className="h-12 px-6" onClick={pause}><Pause className="size-5" /> {t("Pause")}</Button>}
         {phase === "paused" && <Button variant="primary" className="h-12 px-6" onClick={resume}><Play className="size-5" /> {t("Resume")}</Button>}
         {phase !== "idle" && <Button className="h-12" onClick={() => end(false)}><Square className="size-4" /> {t("End")}</Button>}
@@ -413,12 +429,14 @@ export default function FocusPage() {
   );
 
   if (zen) return (
-    <main className="fixed inset-0 z-[9999] isolate h-[100dvh] w-screen overflow-hidden bg-[#05070c] text-white">
-      {backgroundImage ? (
-        <img src={backgroundImage} alt="" className="absolute inset-0 h-full w-full object-cover object-center" aria-hidden />
+    <main style={{ "--accent": "#a78bfa", "--accent-rgb": "167,139,250", "--input": "rgba(255,255,255,.14)", "--muted": "rgba(255,255,255,.65)", "--faint": "rgba(255,255,255,.42)" } as CSSProperties} className="fixed inset-0 z-[9999] isolate h-[100dvh] w-screen overflow-hidden bg-[#05070c] text-white">
+      {backgroundVideoUrl ? (
+        <video key={backgroundVideoUrl} src={backgroundVideoUrl} autoPlay muted loop playsInline preload="auto" tabIndex={-1} onError={() => setVideoMessage(t("This video format could not be played by your browser. Try MP4 (H.264) or WebM."))} onClick={closeFloatingPanels} className="absolute inset-0 h-full w-full object-cover object-center" aria-hidden />
+      ) : backgroundImage ? (
+        <img src={backgroundImage} alt="" onClick={closeFloatingPanels} className="absolute inset-0 h-full w-full object-cover object-center" aria-hidden />
       ) : backgroundScene !== "none" ? (
-        <div className="absolute inset-0"><FocusWallpaperLayer scene={backgroundScene} failed={wallpaperVideoFailed || !!prefs.theme.reducedMotion} onError={() => setWallpaperVideoFailed(true)} /></div>
-      ) : <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_35%,#1b2638_0%,#080d17_55%,#030509_100%)]" />}
+        <div className="absolute inset-0" onClick={closeFloatingPanels}><FocusWallpaperLayer scene={backgroundScene} /></div>
+      ) : <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_35%,#1b2638_0%,#080d17_55%,#030509_100%)]" onClick={closeFloatingPanels} />}
       <div className="absolute inset-0 bg-black/35" style={{ opacity: backgroundOverlay / 100 }} aria-hidden />
       <div className="absolute inset-x-0 top-0 z-40 flex items-center justify-end gap-2 p-3 pt-[max(.75rem,env(safe-area-inset-top))] sm:p-5">
         <div className="relative">
@@ -428,43 +446,47 @@ export default function FocusPage() {
             <label className="mb-3 block text-xs text-white/65">{t("Focus on a task (optional)")}
               <select className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/25 px-3 py-2.5 text-sm text-white" value={taskId} onChange={(e) => setTaskId(e.target.value)} disabled={phase !== "idle"}><option value="">{t("No task — general focus")}</option>{data?.tasks.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}</select>
             </label>
-            <p className="mb-2 text-xs font-medium text-white/65">{t("Theme")}</p><div className="grid grid-cols-3 gap-2">{THEME_PRESETS.map(item => <button key={item.id} type="button" onClick={() => void savePrefs({ theme: { ...prefs.theme, preset: item.id, accent: item.accent } })} aria-pressed={prefs.theme.preset === item.id} className={cn("flex items-center gap-2 rounded-xl border p-2 text-[11px]", prefs.theme.preset === item.id ? "border-white/70 bg-white/15" : "border-white/10 bg-white/5 text-white/65")}><span className="size-3 shrink-0 rounded-full" style={{background:item.accent}} />{t(item.name)}</button>)}</div>
-            <div className="mt-3 grid grid-cols-3 gap-2">{(["dark","light","system"] as const).map(value => <button key={value} type="button" onClick={() => void savePrefs({theme:{...prefs.theme,mode:value}})} aria-pressed={prefs.theme.mode===value} className={cn("rounded-lg border px-2 py-2 text-xs capitalize",prefs.theme.mode===value?"border-white/70 bg-white/15":"border-white/10 bg-white/5 text-white/65")}>{t(value==="system"?"System":value==="dark"?"Dark":"Light")}</button>)}</div>
+            <div className="mb-3 rounded-xl border border-white/10 bg-white/[.04] p-3"><p className="text-xs font-semibold text-white/85">{t("Focus appearance")}</p><p className="mt-1 text-[11px] leading-relaxed text-white/50">{t("These settings affect Focus Zone only. Your website theme stays unchanged.")}</p></div>
             <p className="mb-2 text-xs font-medium text-white/65">{t("Focus mode")}</p>
             <div className="grid grid-cols-2 gap-2">{MODES.map(m => <button key={m.value} type="button" disabled={phase !== "idle"} onClick={() => pickMode(m.value)} aria-pressed={mode === m.value} className={cn("rounded-xl border px-3 py-2.5 text-xs transition", mode === m.value ? "border-white/70 bg-white/15 text-white" : "border-white/10 bg-white/5 text-white/65 hover:bg-white/10")}>{t(m.label)}</button>)}</div>
             <p className="mb-2 mt-4 text-xs font-medium text-white/65">{t("Timer style")}</p>
             <div className="grid grid-cols-3 gap-2">{[{value:"ring",label:"Ring"},{value:"digital",label:"Digital"},{value:"minimal",label:"Minimal"},{value:"bar",label:"Progress bar"},{value:"orbit",label:"Orbit"}].map(item => <button key={item.value} type="button" onClick={() => void selectTimerStyle(item.value as TimerStyle)} aria-pressed={timerStyle === item.value} className={cn("rounded-xl border px-2 py-2 text-xs", timerStyle === item.value ? "border-white/70 bg-white/15" : "border-white/10 bg-white/5 text-white/65")}>{t(item.label)}</button>)}</div>
-            {(mode === "focus" || mode === "custom") && <><p className="mb-2 mt-4 text-xs font-medium text-white/65">{t("Duration")}</p><div className="flex flex-wrap gap-2">{PRESETS.map(p => <button key={p} type="button" disabled={phase !== "idle"} onClick={() => setDuration(p)} aria-pressed={minutes === p} className={cn("rounded-full border px-3 py-2 text-xs", minutes === p ? "border-white/70 bg-white/15" : "border-white/10 bg-white/5 text-white/65")}>{p} {t("min")}</button>)}
-              <label className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/65">{t("Custom")}<input type="number" min={1} max={240} disabled={phase !== "idle"} value={minutes} onChange={e => setDuration(Number(e.target.value))} className="w-12 bg-transparent text-center text-white outline-none" />{t("min")}</label></div></>}
             <div className="mt-4 border-t border-white/10 pt-3"><p className="mb-2 text-xs font-medium text-white/65">{t("Readability overlay")} · {backgroundOverlay}%</p><input type="range" min={0} max={80} step={5} value={backgroundOverlay} onChange={e => setBackgroundOverlay(Number(e.target.value))} className="w-full" aria-label={t("Readability overlay")} /></div>
-            <a href="/themes" className="mt-4 block text-center text-xs text-white/60 underline underline-offset-4">{t("Open Theme Studio")}</a>
           </div>}
         </div>
-        <button type="button" onClick={() => { setMusicSearchOpen(v => !v); setThemeOpen(false); setBackgroundOpen(false); setMixerOpen(false); setShortcutsOpen(false); }} aria-label={t("Search music")} aria-expanded={musicSearchOpen} className="grid size-9 sm:size-10 place-items-center rounded-xl sm:rounded-2xl border border-white/15 bg-black/25 text-white shadow-lg backdrop-blur-2xl transition hover:bg-white/15"><Search className="size-5" /></button>
+        <button type="button" onClick={() => { setMusicSearchOpen(v => { if (v) setMixerOpen(false); return !v; }); setThemeOpen(false); setBackgroundOpen(false); setShortcutsOpen(false); }} aria-label={t("Search music")} aria-expanded={musicSearchOpen} className="grid size-9 sm:size-10 place-items-center rounded-xl sm:rounded-2xl border border-white/15 bg-black/25 text-white shadow-lg backdrop-blur-2xl transition hover:bg-white/15"><Search className="size-5" /></button>
         <div className="relative">
           <button type="button" onClick={() => { setBackgroundOpen(v => !v); setThemeOpen(false); setMusicSearchOpen(false); setMixerOpen(false); setShortcutsOpen(false); }} aria-label={t("Focus background")} aria-expanded={backgroundOpen} className="grid size-9 sm:size-10 place-items-center rounded-xl sm:rounded-2xl border border-white/15 bg-black/25 text-white shadow-lg backdrop-blur-2xl transition hover:bg-white/15"><Video className="size-5" /></button>
           {backgroundOpen && <div role="dialog" aria-label={t("Focus background")} className="absolute end-0 top-[calc(100%+10px)] max-h-[min(78dvh,650px)] w-[min(92vw,370px)] overflow-y-auto rounded-3xl border border-white/15 bg-[#101622]/92 p-3 text-white shadow-2xl backdrop-blur-3xl">
             <div className="mb-3 flex items-center justify-between"><h2 className="text-sm font-semibold">{t("Focus background")}</h2><button type="button" onClick={() => setBackgroundOpen(false)} aria-label={t("Close")} className="rounded-xl p-2 text-white/65 hover:bg-white/10"><X className="size-4" /></button></div>
-            <p className="mb-2 text-[11px] text-white/55">{t("Choose one of five looping video wallpapers. Your selection is saved to your account.")}</p>
-            <div className="grid grid-cols-2 gap-2">{WALLPAPERS.map(w => <button key={w.id} type="button" onClick={() => void selectWallpaper(w.id)} aria-pressed={backgroundScene === w.id} className={cn("overflow-hidden rounded-xl border text-start", backgroundScene === w.id ? "border-white/80" : "border-white/10")}><div className={`focus-wallpaper-preview focus-wallpaper-${w.id}`} /><span className="block px-2 py-2 text-xs">{t(w.label)}</span></button>)}
+            <p className="mb-2 text-[11px] text-white/55">{t("Keep the animated CSS scenes, or use a video file downloaded to this device. Device videos are never uploaded or saved to your account.")}</p>
+            <p className="mb-2 mt-3 text-[11px] font-semibold text-white/75">{t("CSS animated scenes")}</p>
+            <div className="grid grid-cols-2 gap-2">{WALLPAPERS.map(w => <button key={w.id} type="button" onClick={() => void selectWallpaper(w.id)} aria-pressed={backgroundScene === w.id} className={cn("overflow-hidden rounded-xl border text-start", backgroundScene === w.id ? "border-white/80" : "border-white/10")}><div className={`focus-wallpaper-preview focus-wallpaper-${w.id}`} /><span className="block px-2 py-2 text-xs">{t(w.label)}</span><span className="block px-2 pb-2 text-[10px] text-white/45">{t(w.hint)}</span></button>)}
               <button type="button" onClick={() => void selectWallpaper("none")} aria-pressed={backgroundScene === "none"} className="rounded-xl border border-white/10 py-5 text-xs text-white/65">{t("No wallpaper")}</button></div>
-            <p className="mb-2 mt-4 text-[11px] font-semibold uppercase tracking-wider text-white/55">{t("Wallpaper library")}</p>
-            <div className="grid grid-cols-2 gap-2">{PHOTO_WALLPAPERS.map(w => <button key={w.id} type="button" onClick={() => void selectWallpaper(w.id)} aria-pressed={backgroundScene === w.id} className={cn("overflow-hidden rounded-xl border text-start", backgroundScene === w.id ? "border-white/80" : "border-white/10")}><div className="h-16 bg-cover bg-center" style={{backgroundImage:`url("${w.image}")`}}/><span className="block px-2 py-2 text-xs">{t(w.label)}</span></button>)}</div>
+            <section className="mt-4 rounded-2xl border border-white/10 bg-white/[.04] p-3">
+              <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-white/85"><Video className="size-4" />{t("Video wallpaper from your device")}</div>
+              <p className="mb-3 text-[11px] leading-relaxed text-white/55">{t("Download a wallpaper, then choose the file here. It plays directly from your device at its original quality. Nothing is uploaded to OSSv2 or stored in your account or database.")}</p>
+              <label className="flex h-10 cursor-pointer items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/10 text-xs hover:bg-white/15"><ImagePlus className="size-4" />{t("Choose a video file")}<input type="file" accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov,.m4v,.ogv" className="sr-only" onChange={e => { const file = e.target.files?.[0]; if (file) selectLocalVideo(file); e.currentTarget.value = ""; }} /></label>
+              {backgroundVideoName && <div className="mt-2 flex items-center justify-between gap-2 rounded-lg bg-black/20 px-2.5 py-2"><span className="min-w-0 truncate text-[11px] text-white/75">{backgroundVideoName}</span><button type="button" onClick={removeLocalVideo} className="shrink-0 text-[11px] text-white/60 hover:text-white">{t("Remove video")}</button></div>}
+              {videoMessage && <p role="status" className="mt-2 text-[11px] text-white/65">{videoMessage}</p>}
+              <p className="mb-1 mt-3 text-[10px] text-white/45">{t("Get videos from a source that permits downloading and reuse:")}</p>
+              <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px]"><a href="https://www.mylivewallpapers.com/" target="_blank" rel="noopener noreferrer" className="text-white/75 underline underline-offset-2">{t("MyLiveWallpapers")}</a><a href="https://wallsflow.com/" target="_blank" rel="noopener noreferrer" className="text-white/75 underline underline-offset-2">{t("Wallsflow")}</a><a href="https://unsplash.com/videos" target="_blank" rel="noopener noreferrer" className="text-white/75 underline underline-offset-2">{t("Unsplash Videos")}</a></div>
+              <p className="mt-2 text-[10px] leading-relaxed text-white/40">{t("The downloaded file stays in your device storage. Select it again after refreshing or reopening Focus Zone; the app does not keep a copy.")}</p>
+            </section>
             <label className="mt-3 flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/10 text-xs"><ImagePlus className="size-4" />{t("Upload background image")}<input type="file" accept="image/*" className="sr-only" onChange={e => {const file=e.target.files?.[0];if(file)void uploadFocusBackground(file);e.currentTarget.value="";}} /></label>
             {imageMessage && <p role="status" className="mt-2 text-xs text-white/65">{imageMessage}</p>}
             {backgroundImage && <button type="button" onClick={removeFocusBackground} className="mt-2 flex items-center gap-1.5 text-xs text-white/55"><Trash2 className="size-3.5" />{t("Remove background image")}</button>}
           </div>}
         </div>
-        <button type="button" onClick={() => { setMixerOpen(v => !v); setThemeOpen(false); setBackgroundOpen(false); setMusicSearchOpen(false); setShortcutsOpen(false); }} aria-label={t("Music mixer")} aria-expanded={mixerOpen} className="grid size-9 sm:size-10 place-items-center rounded-xl sm:rounded-2xl border border-white/15 bg-black/25 text-white shadow-lg backdrop-blur-2xl transition hover:bg-white/15"><SlidersHorizontal className="size-5" /></button>
-        <button type="button" onClick={() => { setShortcutsOpen(v => !v); setThemeOpen(false); setBackgroundOpen(false); setMusicSearchOpen(false); setMixerOpen(false); }} aria-label={t("Keyboard shortcuts")} aria-expanded={shortcutsOpen} className="grid size-9 sm:size-10 place-items-center rounded-xl sm:rounded-2xl border border-white/15 bg-black/25 text-white shadow-lg backdrop-blur-2xl transition hover:bg-white/15"><Keyboard className="size-5" /></button>
+        <button type="button" onClick={() => { setShortcutsOpen(v => !v); setThemeOpen(false); setBackgroundOpen(false); setMusicSearchOpen(false); setMixerOpen(false); }} aria-label={t("Keyboard shortcuts")} aria-expanded={shortcutsOpen} className="hidden xl:grid size-9 sm:size-10 place-items-center rounded-xl sm:rounded-2xl border border-white/15 bg-black/25 text-white shadow-lg backdrop-blur-2xl transition hover:bg-white/15"><Keyboard className="size-5" /></button>
         <button type="button" onClick={() => void toggleZen()} aria-label={t("Exit fullscreen focus")} className="grid size-9 sm:size-10 place-items-center rounded-xl sm:rounded-2xl border border-white/15 bg-black/25 text-white shadow-lg backdrop-blur-2xl transition hover:bg-white/15"><Minimize2 className="size-5" /></button>
       </div>
       {shortcutsOpen && <div role="dialog" aria-label={t("Keyboard shortcuts")} className="absolute right-3 top-16 z-40 w-[min(90vw,300px)] rounded-2xl border border-white/15 bg-[#101622]/90 p-4 text-xs text-white shadow-2xl backdrop-blur-3xl"><div className="mb-2 flex items-center justify-between"><p className="font-semibold">{t("Keyboard shortcuts")}</p><button type="button" onClick={() => setShortcutsOpen(false)} aria-label={t("Close")}><X className="size-4" /></button></div><ul className="space-y-2"><li className="flex justify-between"><kbd className="kbd">Space</kbd>{t("Start / pause")}</li><li className="flex justify-between"><kbd className="kbd">F</kbd>{t("Immersive mode")}</li><li className="flex justify-between"><kbd className="kbd">S</kbd>{t("Skip phase")}</li><li className="flex justify-between"><kbd className="kbd">E</kbd>{t("End session and exit")}</li><li className="flex justify-between"><kbd className="kbd">Esc</kbd>{t("Exit immersive mode")}</li></ul></div>}
-      <div className="relative z-10 flex h-full w-full flex-col items-center justify-start overflow-y-auto px-3 pb-[max(1rem,env(safe-area-inset-bottom))] pt-16 sm:justify-center sm:px-8 sm:pt-20">
-        <div className="flex w-full max-w-4xl flex-col items-center">
+      <div className="relative z-10 flex h-full w-full flex-col items-center justify-start overflow-y-auto px-3 pb-[max(1rem,env(safe-area-inset-bottom))] pt-16 sm:justify-center sm:px-8 sm:pt-20" onClick={(event) => { if (event.target === event.currentTarget) closeFloatingPanels(); }}>
+        <div className="flex w-full max-w-4xl flex-col items-center" onClick={(event) => { if (event.target === event.currentTarget) closeFloatingPanels(); }}>
           {timer}
           <div className="mt-5 flex w-full justify-center">
-            <YouTubeMusicPlayer compact searchOpen={musicSearchOpen} mixerOpen={mixerOpen} onCloseSearch={() => setMusicSearchOpen(false)} onCloseMixer={() => setMixerOpen(false)} />
+            <YouTubeMusicPlayer compact searchOpen={musicSearchOpen} mixerOpen={mixerOpen} onCloseSearch={() => { setMusicSearchOpen(false); setMixerOpen(false); }} onToggleMixer={() => setMixerOpen(v => !v)} />
           </div>
         </div>
       </div>
