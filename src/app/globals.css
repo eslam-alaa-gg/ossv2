@@ -269,3 +269,29 @@ html[dir="rtl"] .app-topbar { direction: rtl; }
   .app-topbar .header-icon-btn { width: 2.25rem; height: 2.25rem; }
   .app-topbar .avatar-ring img, .app-topbar img { max-width: 2.15rem; }
 }
+
+/* Focus Zone live wallpapers do not inherit the website's in-app motion toggle. OS-level reduced motion remains respected. */
+html[data-motion="off"] .focus-wallpaper,
+html[data-motion="off"] .focus-wallpaper-preview {
+  animation: focusWallpaperDrift 34s ease-in-out infinite alternate !important;
+}
+html[data-motion="off"] .focus-wallpaper::before,
+html[data-motion="off"] .focus-wallpaper-preview::before {
+  animation: focusWallpaperGlow 26s ease-in-out infinite alternate !important;
+}
+html[data-motion="off"] .focus-wallpaper::after,
+html[data-motion="off"] .focus-wallpaper-preview::after {
+  animation: focusWallpaperGlow 38s ease-in-out infinite alternate-reverse !important;
+}
+html[data-motion="off"] .focus-wallpaper-rain::before,
+html[data-motion="off"] .focus-wallpaper-preview.focus-wallpaper-rain::before {
+  animation: focusRainFall 1.8s linear infinite !important;
+}
+html[data-motion="off"] .focus-wallpaper-cosmos::before,
+html[data-motion="off"] .focus-wallpaper-preview.focus-wallpaper-cosmos::before {
+  animation: focusStars 48s linear infinite !important;
+}
+html[data-motion="off"] .focus-wallpaper-aurora::before,
+html[data-motion="off"] .focus-wallpaper-preview.focus-wallpaper-aurora::before {
+  animation: focusAuroraWave 19s ease-in-out infinite alternate !important;
+}
