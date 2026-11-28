@@ -10,7 +10,7 @@ export const POST = handle<{ id: string }>(async (req, { id }) => {
   const auth = await requireUser();
   const input = await body(req, z.object({
     action: z.enum(["complete", "end", "pause", "resume"]),
-    activeSeconds: z.number().int().min(0).max(14400).optional(),
+    activeSeconds: z.number().int().min(0).max(604800).optional(),
   }));
   const [session] = await db.select().from(focusSessions)
     .where(and(eq(focusSessions.id, uuidParam(id)), eq(focusSessions.userId, auth.id)))
