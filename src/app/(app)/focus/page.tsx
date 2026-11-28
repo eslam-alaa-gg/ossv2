@@ -53,6 +53,9 @@ export default function FocusPage() {
   const [musicSearchOpen, setMusicSearchOpen] = useState(false);
   const [mixerOpen, setMixerOpen] = useState(false);
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
+  const [backgroundVideoUrl, setBackgroundVideoUrl] = useState<string | null>(null);
+  const [backgroundVideoName, setBackgroundVideoName] = useState<string | null>(null);
+  const [videoMessage, setVideoMessage] = useState("");
   const [backgroundScene, setBackgroundScene] = useState<FocusWallpaper>(prefs.focus.background);
   const [backgroundOverlay, setBackgroundOverlay] = useState(prefs.focus.overlay);
   const [timerStyle, setTimerStyle] = useState<TimerStyle>(prefs.focus.timerStyle);
@@ -103,6 +106,9 @@ export default function FocusPage() {
   useEffect(() => () => {
     if (backgroundImage?.startsWith("blob:")) URL.revokeObjectURL(backgroundImage);
   }, [backgroundImage]);
+  useEffect(() => () => {
+    if (backgroundVideoUrl?.startsWith("blob:")) URL.revokeObjectURL(backgroundVideoUrl);
+  }, [backgroundVideoUrl]);
 
   // restore a session that is still running on the server (e.g. after reload)
   useEffect(() => {
@@ -211,7 +217,26 @@ export default function FocusPage() {
     }
   }
 
+  function selectLocalVideo(file: File) {
+    const supported = file.type.startsWith("video/") || /\\.(mp4|webm|mov|m4v|ogv)$/i.test(file.name);
+    if (!supported) {
+      setVideoMessage(t("Choose an MP4, WebM or MOV video file."));
+      return;
+    }
+    const localUrl = URL.createObjectURL(file);
+    setBackgroundVideoUrl(localUrl);
+    setBackgroundVideoName(file.name);
+    setVideoMessage(t("Video loaded from this device. It is not uploaded or saved to your account."));
+  }
+
+  function removeLocalVideo() {
+    setBackgroundVideoUrl(null);
+    setBackgroundVideoName(null);
+    setVideoMessage("");
+  }
+
   async function selectWallpaper(id: FocusWallpaper) {
+    removeLocalVideo();
     setBackgroundScene(id);
     try {
       await savePrefs({ focus: { ...prefs.focus, background: id, timerStyle, overlay: backgroundOverlay } });
@@ -405,7 +430,9 @@ export default function FocusPage() {
 
   if (zen) return (
     <main style={{ "--accent": "#a78bfa", "--accent-rgb": "167,139,250", "--input": "rgba(255,255,255,.14)", "--muted": "rgba(255,255,255,.65)", "--faint": "rgba(255,255,255,.42)" } as CSSProperties} className="fixed inset-0 z-[9999] isolate h-[100dvh] w-screen overflow-hidden bg-[#05070c] text-white">
-      {backgroundImage ? (
+      {backgroundVideoUrl ? (
+        <video key={backgroundVideoUrl} src={backgroundVideoUrl} autoPlay muted loop playsInline preload="auto" tabIndex={-1} onError={() => setVideoMessage(t("This video format could not be played by your browser. Try MP4 (H.264) or WebM."))} onClick={closeFloatingPanels} className="absolute inset-0 h-full w-full object-cover object-center" aria-hidden />
+      ) : backgroundImage ? (
         <img src={backgroundImage} alt="" onClick={closeFloatingPanels} className="absolute inset-0 h-full w-full object-cover object-center" aria-hidden />
       ) : backgroundScene !== "none" ? (
         <div className="absolute inset-0" onClick={closeFloatingPanels}><FocusWallpaperLayer scene={backgroundScene} /></div>
@@ -432,9 +459,20 @@ export default function FocusPage() {
           <button type="button" onClick={() => { setBackgroundOpen(v => !v); setThemeOpen(false); setMusicSearchOpen(false); setMixerOpen(false); setShortcutsOpen(false); }} aria-label={t("Focus background")} aria-expanded={backgroundOpen} className="grid size-9 sm:size-10 place-items-center rounded-xl sm:rounded-2xl border border-white/15 bg-black/25 text-white shadow-lg backdrop-blur-2xl transition hover:bg-white/15"><Video className="size-5" /></button>
           {backgroundOpen && <div role="dialog" aria-label={t("Focus background")} className="absolute end-0 top-[calc(100%+10px)] max-h-[min(78dvh,650px)] w-[min(92vw,370px)] overflow-y-auto rounded-3xl border border-white/15 bg-[#101622]/92 p-3 text-white shadow-2xl backdrop-blur-3xl">
             <div className="mb-3 flex items-center justify-between"><h2 className="text-sm font-semibold">{t("Focus background")}</h2><button type="button" onClick={() => setBackgroundOpen(false)} aria-label={t("Close")} className="rounded-xl p-2 text-white/65 hover:bg-white/10"><X className="size-4" /></button></div>
-            <p className="mb-2 text-[11px] text-white/55">{t("Choose one of six animated Focus wallpapers. Your selection is saved to your account.")}</p>
+            <p className="mb-2 text-[11px] text-white/55">{t("Keep the animated CSS scenes, or use a video file downloaded to this device. Device videos are never uploaded or saved to your account.")}</p>
+            <p className="mb-2 mt-3 text-[11px] font-semibold text-white/75">{t("CSS animated scenes")}</p>
             <div className="grid grid-cols-2 gap-2">{WALLPAPERS.map(w => <button key={w.id} type="button" onClick={() => void selectWallpaper(w.id)} aria-pressed={backgroundScene === w.id} className={cn("overflow-hidden rounded-xl border text-start", backgroundScene === w.id ? "border-white/80" : "border-white/10")}><div className={`focus-wallpaper-preview focus-wallpaper-${w.id}`} /><span className="block px-2 py-2 text-xs">{t(w.label)}</span><span className="block px-2 pb-2 text-[10px] text-white/45">{t(w.hint)}</span></button>)}
               <button type="button" onClick={() => void selectWallpaper("none")} aria-pressed={backgroundScene === "none"} className="rounded-xl border border-white/10 py-5 text-xs text-white/65">{t("No wallpaper")}</button></div>
+            <section className="mt-4 rounded-2xl border border-white/10 bg-white/[.04] p-3">
+              <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-white/85"><Video className="size-4" />{t("Video wallpaper from your device")}</div>
+              <p className="mb-3 text-[11px] leading-relaxed text-white/55">{t("Download a wallpaper, then choose the file here. It plays directly from your device at its original quality. Nothing is uploaded to OSSv2 or stored in your account or database.")}</p>
+              <label className="flex h-10 cursor-pointer items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/10 text-xs hover:bg-white/15"><ImagePlus className="size-4" />{t("Choose a video file")}<input type="file" accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov,.m4v,.ogv" className="sr-only" onChange={e => { const file = e.target.files?.[0]; if (file) selectLocalVideo(file); e.currentTarget.value = ""; }} /></label>
+              {backgroundVideoName && <div className="mt-2 flex items-center justify-between gap-2 rounded-lg bg-black/20 px-2.5 py-2"><span className="min-w-0 truncate text-[11px] text-white/75">{backgroundVideoName}</span><button type="button" onClick={removeLocalVideo} className="shrink-0 text-[11px] text-white/60 hover:text-white">{t("Remove video")}</button></div>}
+              {videoMessage && <p role="status" className="mt-2 text-[11px] text-white/65">{videoMessage}</p>}
+              <p className="mb-1 mt-3 text-[10px] text-white/45">{t("Get videos from a source that permits downloading and reuse:")}</p>
+              <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px]"><a href="https://www.mylivewallpapers.com/" target="_blank" rel="noopener noreferrer" className="text-white/75 underline underline-offset-2">{t("MyLiveWallpapers")}</a><a href="https://wallsflow.com/" target="_blank" rel="noopener noreferrer" className="text-white/75 underline underline-offset-2">{t("Wallsflow")}</a><a href="https://unsplash.com/videos" target="_blank" rel="noopener noreferrer" className="text-white/75 underline underline-offset-2">{t("Unsplash Videos")}</a></div>
+              <p className="mt-2 text-[10px] leading-relaxed text-white/40">{t("The downloaded file stays in your device storage. Select it again after refreshing or reopening Focus Zone; the app does not keep a copy.")}</p>
+            </section>
             <label className="mt-3 flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/10 text-xs"><ImagePlus className="size-4" />{t("Upload background image")}<input type="file" accept="image/*" className="sr-only" onChange={e => {const file=e.target.files?.[0];if(file)void uploadFocusBackground(file);e.currentTarget.value="";}} /></label>
             {imageMessage && <p role="status" className="mt-2 text-xs text-white/65">{imageMessage}</p>}
             {backgroundImage && <button type="button" onClick={removeFocusBackground} className="mt-2 flex items-center gap-1.5 text-xs text-white/55"><Trash2 className="size-3.5" />{t("Remove background image")}</button>}
