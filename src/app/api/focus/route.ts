@@ -40,7 +40,7 @@ export const GET = handle(async () => {
 
 export const POST = handle(async (req) => {
   const a = await requireUser();
-  const d = await body(req, z.object({ mode: z.enum(["focus", "short_break", "long_break", "custom"]), minutes: z.number().int().min(1).max(240), taskId: z.string().uuid().nullable().default(null) }));
+  const d = await body(req, z.object({ mode: z.enum(["focus", "short_break", "long_break", "custom"]), minutes: z.number().int().min(1).max(10080), taskId: z.string().uuid().nullable().default(null) }));
   if (d.taskId) await ownTask(a, d.taskId);
   // Serialize session starts per user and keep closing the previous session
   // plus creating the replacement atomic. This prevents concurrent starts from
