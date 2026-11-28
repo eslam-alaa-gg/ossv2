@@ -295,10 +295,18 @@ export function NowPlayingWidget({ source = "spotify" }: { source?: "spotify" | 
     };
   }, [source, spotifyTrack?.id]);
 
+  const [youtubeSearchOpen, setYoutubeSearchOpen] = useState(false);
+
   if (source === "youtube") {
     return (
-      <Card className="space-y-3">
-        <YouTubeMusicPlayer compact spotifyPlaying={!!np && !np.idle && np.playing} />
+      <Card className="relative space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-sm font-medium text-muted">{tr("Music")}</h2>
+          <button type="button" onClick={() => setYoutubeSearchOpen(value => !value)} aria-expanded={youtubeSearchOpen} aria-label={tr("Search YouTube Music")} className="inline-flex items-center gap-2 rounded-full border border-line bg-card/80 px-3 py-2 text-xs font-medium transition hover:bg-card">
+            <Music2 className="size-4" /> {tr("Search")}
+          </button>
+        </div>
+        <YouTubeMusicPlayer compact searchOpen={youtubeSearchOpen} onCloseSearch={() => setYoutubeSearchOpen(false)} spotifyPlaying={!!np && !np.idle && np.playing} />
       </Card>
     );
   }
