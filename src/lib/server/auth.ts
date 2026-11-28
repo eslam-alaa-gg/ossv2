@@ -126,5 +126,12 @@ export function rateLimit(key: string, max: number, windowMs: number) {
 }
 export async function clientIp(): Promise<string> {
   const h = await headers();
-  return h.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
+  // Prefer the platform-provided single-hop address. When running behind a
+  // conventional proxy chain, use the last forwarded address (closest hop)
+  // rather than the left-most client-supplied value.
+  const realIp = h.get("x-real-ip")?.trim();
+  if (realIp) return realIp;
+  const forwarded = h.get("x-forwarded-for");
+  const chain = forwarded?.split(",").map((value) => value.trim()).filter(Boolean);
+  return chain?.at(-1) || "local";
 }
