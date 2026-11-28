@@ -24,6 +24,7 @@ export function AudiusPlayer({ compact = false, searchOpen = true, mixerOpen = f
   const ar = lang === "ar";
   const audio = useRef<HTMLAudioElement>(null);
   const request = useRef(0);
+  const playRequest = useRef(0);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<AudiusTrack[]>([]);
   const [selected, setSelected] = useState<AudiusTrack | null>(null);
@@ -44,6 +45,7 @@ export function AudiusPlayer({ compact = false, searchOpen = true, mixerOpen = f
 
   useEffect(() => () => {
     request.current += 1;
+    playRequest.current += 1;
     if (audio.current) { audio.current.pause(); audio.current.removeAttribute("src"); audio.current.load(); }
   }, []);
 
@@ -66,17 +68,22 @@ export function AudiusPlayer({ compact = false, searchOpen = true, mixerOpen = f
 
   const choose = async (track: AudiusTrack) => {
     if (!isAudiusTrack(track) || !audio.current) return;
+    const playId = ++playRequest.current;
     setLoadingTrack(track.id); setError(""); setPlaying(false);
     try {
       const data = await api<{ streamUrl: string }>("/api/audius/stream?id=" + encodeURIComponent(track.id));
+      if (playId !== playRequest.current || !audio.current) return;
       const stream = new URL(data.streamUrl);
       if (stream.protocol !== "https:") throw new Error("Audius returned an invalid audio stream.");
       audio.current.src = stream.toString(); audio.current.load();
       setSelected(track); setCurrentTime(0); setDuration(track.duration || 0);
-      await audio.current.play(); setPlaying(true);
+      await audio.current.play();
+      if (playId === playRequest.current) setPlaying(true);
     } catch (e) {
-      setError(e instanceof Error ? e.message : (ar ? "تعذر تشغيل هذه الأغنية." : "This track could not be played."));
-    } finally { setLoadingTrack(null); }
+      if (playId === playRequest.current) setError(e instanceof Error ? e.message : (ar ? "تعذر تشغيل هذه الأغنية." : "This track could not be played."));
+    } finally {
+      if (playId === playRequest.current) setLoadingTrack(null);
+    }
   };
 
   const move = (direction: -1 | 1) => {
