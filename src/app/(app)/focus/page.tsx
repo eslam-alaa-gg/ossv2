@@ -2,7 +2,7 @@
 /* eslint-disable @next/next/no-img-element */
 import { ImagePlus, Keyboard, Maximize2, Minimize2, Palette, Pause, Play, RotateCcw, Search, SlidersHorizontal, Square, Trash2, Video, X } from "lucide-react";
 import type { CSSProperties } from "react";
-import { PRESETS as FOCUS_THEME_PRESETS } from "@/lib/theme";
+import { FOCUS_THEME_PRESETS } from "@/lib/focus-theme";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useApp } from "@/components/providers";
 import { type Task } from "@/components/task-form";
