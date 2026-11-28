@@ -353,6 +353,7 @@ export default function FocusPage() {
     if (zen) await toggleZen();
   }
   async function toggleZen() {
+    setDurationOpen(false);
     if (!zen) {
       try {
         if (!document.fullscreenElement && document.documentElement.requestFullscreen) await document.documentElement.requestFullscreen();
@@ -367,11 +368,11 @@ export default function FocusPage() {
   }
 
   const keyboardActions = useRef({
-    phase, zen, shortcutsOpen, start: () => {}, pause: () => {}, resume: () => {}, skipPhase: () => {}, exitFocus: () => {}, closeShortcuts: () => {}, toggleZen: () => {},
+    phase, zen, shortcutsOpen, durationOpen, start: () => {}, pause: () => {}, resume: () => {}, skipPhase: () => {}, exitFocus: () => {}, closeShortcuts: () => {}, closeDuration: () => {}, toggleZen: () => {},
   });
   useEffect(() => {
     keyboardActions.current = {
-      phase, zen, shortcutsOpen, start: () => { void start(); }, pause, resume, skipPhase: () => { void skipPhase(); }, exitFocus: () => { void exitFocus(); }, closeShortcuts: () => setShortcutsOpen(false), toggleZen: () => { void toggleZen(); },
+      phase, zen, shortcutsOpen, durationOpen, start: () => { void start(); }, pause, resume, skipPhase: () => { void skipPhase(); }, exitFocus: () => { void exitFocus(); }, closeShortcuts: () => setShortcutsOpen(false), closeDuration: () => setDurationOpen(false), toggleZen: () => { void toggleZen(); },
     };
   });
   useEffect(() => {
@@ -381,7 +382,9 @@ export default function FocusPage() {
       if (target instanceof HTMLElement && target.closest("button, a") && event.key !== "Escape") return;
       if (event.altKey || event.ctrlKey || event.metaKey) return;
       const actions = keyboardActions.current;
-      if (event.key === "Escape" && actions.shortcutsOpen) {
+      if (event.key === "Escape" && actions.durationOpen) {
+        actions.closeDuration();
+      } else if (event.key === "Escape" && actions.shortcutsOpen) {
         actions.closeShortcuts();
       } else if (event.code === "Space") {
         event.preventDefault();
