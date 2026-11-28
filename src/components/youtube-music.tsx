@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { Music2, Search, SkipBack, SkipForward, Play, Pause, Volume2, VolumeX } from "lucide-react";
+import { Music2, Search, SkipBack, SkipForward, Play, Pause, Volume2, VolumeX, X, Video } from "lucide-react";
 import { useApp } from "@/components/providers";
 import { api } from "@/lib/client";
 
@@ -82,6 +82,7 @@ export function YouTubeMusicPlayer({ compact = false, searchOpen = true, mixerOp
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Video[]>([]);
   const [selected, setSelected] = useState<Video | null>(null);
+  const [videoWindowOpen, setVideoWindowOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [hydrated, setHydrated] = useState(false);
@@ -121,7 +122,8 @@ export function YouTubeMusicPlayer({ compact = false, searchOpen = true, mixerOp
   }, [hydrated, selected, results]);
 
   useEffect(() => {
-    if (!selected) {
+    if (!selected || !videoWindowOpen) {
+      player.current?.pauseVideo();
       player.current?.destroy();
       player.current = null;
       setPlayerReady(false);
@@ -174,7 +176,7 @@ export function YouTubeMusicPlayer({ compact = false, searchOpen = true, mixerOp
       player.current?.destroy();
       player.current = null;
     };
-  }, [selected?.id, ar]);
+  }, [selected?.id, videoWindowOpen, ar]);
 
   useEffect(() => {
     if (!playing || !playerReady || !player.current) return;
@@ -219,9 +221,18 @@ export function YouTubeMusicPlayer({ compact = false, searchOpen = true, mixerOp
   const toggleMute = () => { if (!player.current) { mutedRef.current = !mutedRef.current; setMuted(mutedRef.current); return; } if (muted || player.current.isMuted()) { player.current.unMute(); player.current.setVolume(Math.max(1, volume)); mutedRef.current = false; setMuted(false); } else { player.current.mute(); mutedRef.current = true; setMuted(true); } };
   const formatTime = (value: number) => `${Math.floor(value / 60)}:${String(Math.floor(value % 60)).padStart(2, "0")}`;
   const togglePlayback = () => {
+    if (!videoWindowOpen) {
+      setVideoWindowOpen(true);
+      return;
+    }
     if (!playerReady || !player.current) return;
     if (playing) player.current.pauseVideo();
     else player.current.playVideo();
+  };
+  const closeVideoWindow = () => {
+    player.current?.pauseVideo();
+    setPlaying(false);
+    setVideoWindowOpen(false);
   };
 
   return (
@@ -235,9 +246,19 @@ export function YouTubeMusicPlayer({ compact = false, searchOpen = true, mixerOp
         {!results.length && !loading && !error && <p className="py-5 text-center text-xs text-white/40">{ar ? "اكتب اسم أغنية أو فنان لعرض النتائج." : "Search for a song or artist to see results."}</p>}
       </div>}
       {selected && <div className="w-full rounded-[1.6rem] border border-white/15 bg-white/[.075] p-3 text-white shadow-[0_18px_60px_rgba(0,0,0,.3)] backdrop-blur-3xl sm:p-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center"><div className="flex min-w-0 flex-1 items-center gap-3"><img src={selected.thumbnail} alt="" className="size-14 shrink-0 rounded-xl object-cover shadow-lg" /><div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{selected.title}</p><p className="mt-1 truncate text-xs text-white/50">{selected.channel}</p><p className="mt-1 text-[10px] text-white/35">{playing ? (ar ? "يعمل الآن" : "Now playing") : (ar ? "متوقف مؤقتًا" : "Paused")}</p></div></div><div className="flex shrink-0 items-center justify-center gap-2"><button type="button" onClick={() => move(-1)} disabled={results.findIndex(item => item.id === selected.id) <= 0} aria-label={ar ? "السابق" : "Previous"} className="grid size-10 place-items-center rounded-full border border-white/10 bg-white/[.07] transition hover:bg-white/15 disabled:opacity-30"><SkipBack className="size-4" /></button><button type="button" onClick={togglePlayback} disabled={!playerReady} aria-label={playing ? "Pause" : "Play"} className="grid size-11 place-items-center rounded-full bg-white text-slate-950 shadow-lg transition hover:scale-105 disabled:opacity-40">{playing ? <Pause className="size-5" /> : <Play className="size-5" />}</button><button type="button" onClick={() => move(1)} disabled={results.findIndex(item => item.id === selected.id) < 0 || results.findIndex(item => item.id === selected.id) >= results.length - 1} aria-label={ar ? "التالي" : "Next"} className="grid size-10 place-items-center rounded-full border border-white/10 bg-white/[.07] transition hover:bg-white/15 disabled:opacity-30"><SkipForward className="size-4" /></button></div></div>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center"><div className="flex min-w-0 flex-1 items-center gap-3"><img src={selected.thumbnail} alt="" className="size-14 shrink-0 rounded-xl object-cover shadow-lg" /><div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{selected.title}</p><p className="mt-1 truncate text-xs text-white/50">{selected.channel}</p><p className="mt-1 text-[10px] text-white/35">{playing ? (ar ? "يعمل الآن" : "Now playing") : (ar ? "متوقف مؤقتًا" : "Paused")}</p></div></div><div className="flex shrink-0 items-center justify-center gap-2"><button type="button" onClick={() => move(-1)} disabled={results.findIndex(item => item.id === selected.id) <= 0} aria-label={ar ? "السابق" : "Previous"} className="grid size-10 place-items-center rounded-full border border-white/10 bg-white/[.07] transition hover:bg-white/15 disabled:opacity-30"><SkipBack className="size-4" /></button><button type="button" onClick={togglePlayback} disabled={videoWindowOpen && !playerReady} aria-label={playing ? "Pause" : (ar ? "فتح مشغل الفيديو وبدء التشغيل" : "Open video player and play")} className="grid size-11 place-items-center rounded-full bg-white text-slate-950 shadow-lg transition hover:scale-105 disabled:opacity-40">{playing ? <Pause className="size-5" /> : <Play className="size-5" />}</button><button type="button" onClick={() => move(1)} disabled={results.findIndex(item => item.id === selected.id) < 0 || results.findIndex(item => item.id === selected.id) >= results.length - 1} aria-label={ar ? "التالي" : "Next"} className="grid size-10 place-items-center rounded-full border border-white/10 bg-white/[.07] transition hover:bg-white/15 disabled:opacity-30"><SkipForward className="size-4" /></button></div></div>
         <div className="mt-3 flex items-center gap-2 text-[10px] tabular-nums text-white/40"><span>{formatTime(currentTime)}</span><input type="range" min={0} max={Math.max(1,duration)} step={1} value={Math.min(currentTime,duration || 0)} onChange={e => seek(Number(e.target.value))} aria-label={ar ? "تقدم الأغنية" : "Track progress"} className="min-w-0 flex-1 accent-white" /><span>{formatTime(duration)}</span></div>
-        <div className="mt-3 flex justify-center"><div className="h-[200px] w-[200px] overflow-hidden rounded-2xl border border-white/10 bg-black/50 shadow-xl"><div ref={playerMount} className="h-full w-full" aria-label={ar ? "مشغل YouTube الرسمي" : "Official YouTube player"} /></div></div>
+        <div className="mt-3 flex items-center justify-between gap-2"><span className="text-[10px] text-white/40">{ar ? "الصوت من YouTube" : "Audio via YouTube"}</span><button type="button" onClick={() => setVideoWindowOpen(true)} className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[.07] px-3 py-1.5 text-[11px] text-white/75 transition hover:bg-white/15"><Video className="size-3.5" />{ar ? "فتح الفيديو" : "Open video"}</button></div>
+      </div>}
+      {videoWindowOpen && selected && <div role="dialog" aria-modal="true" aria-label={ar ? "نافذة فيديو YouTube" : "YouTube video window"} className="fixed inset-0 z-[140] flex items-center justify-center bg-black/80 p-3 backdrop-blur-md sm:p-6">
+        <div className="w-full max-w-3xl overflow-hidden rounded-2xl border border-white/15 bg-[#0b111c] text-white shadow-2xl">
+          <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
+            <div className="min-w-0"><p className="truncate text-sm font-semibold">{selected.title}</p><p className="truncate text-xs text-white/45">{selected.channel}</p></div>
+            <button type="button" onClick={closeVideoWindow} aria-label={ar ? "إغلاق الفيديو وإيقاف الصوت" : "Close video and stop audio"} className="grid size-9 shrink-0 place-items-center rounded-full bg-white/10 hover:bg-white/20"><X className="size-4" /></button>
+          </div>
+          <div className="mx-auto aspect-video w-full max-h-[75dvh] bg-black"><div ref={playerMount} className="size-full" aria-label={ar ? "مشغل YouTube الرسمي" : "Official YouTube player"} /></div>
+          <p className="px-4 py-2 text-[10px] text-white/45">{ar ? "سيستمر التشغيل أثناء بقاء نافذة الفيديو مفتوحة. إغلاقها يوقف التشغيل." : "Playback continues while this video window is open. Closing it stops playback."}</p>
+        </div>
       </div>}
       {spotifyPlaying && <p className="text-[10px] text-amber-300">{ar ? "Spotify يعمل أيضًا؛ أوقفه يدويًا لتجنب تشغيل مصدرين معًا." : "Spotify is also playing; pause it manually to avoid overlapping audio."}</p>}
     </section>
