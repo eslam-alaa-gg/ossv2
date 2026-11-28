@@ -1,7 +1,6 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
 import { ImagePlus, Keyboard, Maximize2, Minimize2, Palette, Pause, Play, RotateCcw, Search, SlidersHorizontal, Square, Trash2, Video, X } from "lucide-react";
-import { PRESETS as THEME_PRESETS } from "@/lib/theme";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useApp } from "@/components/providers";
 import { type Task } from "@/components/task-form";
@@ -13,7 +12,7 @@ type Session = { id: string; mode: string; plannedSeconds: number; actualSeconds
 type FocusData = { todayMinutes: number; weekMinutes: number; totalSessions: number; sessions: Session[]; running: (Session & { serverNow: number }) | null; tasks: { id: string; title: string; priority: Task["priority"] }[] };
 type Mode = "focus" | "short_break" | "long_break" | "custom";
 const MODES: { value: Mode; label: string; min: number }[] = [{ value: "focus", label: "Standard Focus", min: 25 }, { value: "short_break", label: "Short Break", min: 5 }, { value: "long_break", label: "Long Break", min: 15 }, { value: "custom", label: "Custom Session", min: 30 }];
-const PRESETS = [15, 25, 45, 60];
+const PRESETS = [25, 50, 120];
 type VideoWallpaper = "forest" | "ocean" | "rain" | "sunset" | "cosmos";
 type PhotoWallpaper = "photo-mountains" | "photo-lake" | "photo-coast" | "photo-sunset" | "photo-forest";
 type FocusWallpaper = "none" | VideoWallpaper | PhotoWallpaper;
@@ -39,7 +38,7 @@ const PHOTO_WALLPAPERS: { id: PhotoWallpaper; label: string; image: string }[] =
   { id: "photo-sunset", label: "Soft Sunset", image: "https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?w=1200&auto=format&fit=crop&q=82" },
   { id: "photo-forest", label: "Forest Path", image: "https://images.unsplash.com/photo-1448375240586-882707db888b?w=1200&auto=format&fit=crop&q=82" },
 ];
-const mmss = (s: number) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+const mmss = (s: number) => { const total = Math.max(0, Math.floor(s)); const days = Math.floor(total / 86400); const hours = Math.floor((total % 86400) / 3600); const minutes = Math.floor((total % 3600) / 60); const seconds = total % 60; if (days) return `${days}d ${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`; if (hours) return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`; return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`; };
 
 function FocusWallpaperLayer({ scene, failed, onError }: { scene: Exclude<FocusWallpaper, "none">; failed: boolean; onError: () => void }) {
   const photo = PHOTO_WALLPAPERS.find((item) => item.id === scene);
@@ -60,6 +59,10 @@ export default function FocusPage() {
   const { data, reload } = useFetch<FocusData>("/api/focus");
   const [mode, setMode] = useState<Mode>("focus");
   const [minutes, setMinutes] = useState(25);
+  const [durationOpen, setDurationOpen] = useState(false);
+  const [durationDays, setDurationDays] = useState(0);
+  const [durationHours, setDurationHours] = useState(0);
+  const [durationMinutes, setDurationMinutes] = useState(25);
   const [taskId, setTaskId] = useState("");
   useEffect(() => { const requestedTask = new URLSearchParams(window.location.search).get("task"); if (requestedTask) setTaskId(requestedTask); }, []);
   const [phase, setPhase] = useState<"idle" | "running" | "paused">("idle");
@@ -164,7 +167,7 @@ export default function FocusPage() {
   useEffect(() => { const h = setTimeout(() => { if (backgroundOverlay !== prefs.focus.overlay) savePrefs({ focus: { ...prefs.focus, overlay: backgroundOverlay } }).catch(() => {}); }, 500); return () => clearTimeout(h); }, [backgroundOverlay]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { const h = () => { if (!document.fullscreenElement) setZen(false); }; document.addEventListener("fullscreenchange", h); return () => document.removeEventListener("fullscreenchange", h); }, []);
 
-  const setDuration = (m: number) => { if (phase !== "idle") return; const v = Math.min(240, Math.max(1, Math.round(m) || 1)); setMinutes(v); setRemaining(v * 60); setPlanned(v * 60); };
+  const setDuration = (m: number) => { if (phase !== "idle") return; const v = Math.min(10080, Math.max(1, Math.round(m) || 1)); setMinutes(v); setRemaining(v * 60); setPlanned(v * 60); setDurationDays(Math.floor(v / 1440)); setDurationHours(Math.floor((v % 1440) / 60)); setDurationMinutes(v % 60); };
   const pickMode = (m: Mode) => { if (phase !== "idle") return; setMode(m); setDuration(MODES.find((x) => x.value === m)!.min); };
 
   async function uploadFocusBackground(file: File) {
@@ -255,6 +258,7 @@ export default function FocusPage() {
       setRemaining(minutes * 60);
       endAt.current = performance.now() + minutes * 60000;
       setPhase("running");
+      setDurationOpen(false);
     } finally {
       starting.current = false;
     }
@@ -404,8 +408,8 @@ export default function FocusPage() {
           <p className="mt-3 text-end text-xs tabular-nums text-faint">{Math.round(pct)}%</p>
         </div>
       )}
-      <div className="mt-6 flex items-center gap-3">
-        {phase === "idle" && <Button variant="primary" className="h-12 px-8 text-base" onClick={start}><Play className="size-5" /> {t("Start")}</Button>}
+      <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+        {phase === "idle" && <><Button variant="primary" className="h-12 px-8 text-base" onClick={start}><Play className="size-5" /> {t("Start")}</Button><div className="relative"><Button className="h-12 px-5" onClick={() => setDurationOpen(v => !v)} aria-expanded={durationOpen} aria-haspopup="dialog"><SlidersHorizontal className="size-4" /> {t("Duration")} <span className="text-xs opacity-70">{minutes >= 1440 ? `${Math.floor(minutes / 1440)}d ${Math.floor((minutes % 1440) / 60)}h` : minutes >= 60 ? `${Math.floor(minutes / 60)}h ${minutes % 60}m` : `${minutes}m`}</span></Button>{durationOpen && <div role="dialog" aria-label={t("Choose session duration")} className="absolute bottom-[calc(100%+10px)] left-1/2 z-[160] w-[min(90vw,340px)] -translate-x-1/2 rounded-2xl border border-white/15 bg-[#101622]/95 p-4 text-white shadow-2xl backdrop-blur-3xl"><div className="mb-3 flex items-center justify-between"><p className="text-sm font-semibold">{t("Choose duration")}</p><button type="button" onClick={() => setDurationOpen(false)} aria-label={t("Close")} className="rounded-lg p-1 text-white/60 hover:bg-white/10"><X className="size-4" /></button></div><div className="grid grid-cols-3 gap-2">{PRESETS.map(p => <button key={p} type="button" onClick={() => { setDuration(p); setDurationOpen(false); }} aria-pressed={minutes === p} className={cn("rounded-xl border px-2 py-3 text-xs font-medium", minutes === p ? "border-white/70 bg-white/15 text-white" : "border-white/10 bg-white/5 text-white/70 hover:bg-white/10")}>{p === 120 ? "2 hours" : `${p} minutes`}</button>)}</div><div className="mt-4 border-t border-white/10 pt-3"><p className="mb-2 text-xs font-medium text-white/65">{t("Custom duration")}</p><div className="grid grid-cols-3 gap-2">{[{label:"Days",value:durationDays,set:setDurationDays,max:7},{label:"Hours",value:durationHours,set:setDurationHours,max:23},{label:"Minutes",value:durationMinutes,set:setDurationMinutes,max:59}].map(part => <label key={part.label} className="min-w-0 text-[11px] text-white/60">{t(part.label)}<input type="number" inputMode="numeric" min={0} max={part.max} value={part.value} onChange={e => part.set(Math.min(part.max, Math.max(0, Number(e.target.value) || 0)))} className="mt-1 w-full rounded-lg border border-white/10 bg-black/30 px-2 py-2 text-center text-sm text-white outline-none focus:border-white/40" /></label>)}</div><p className="mt-2 text-[10px] text-white/40">{t("Maximum duration: 7 days.")}</p><Button variant="primary" className="mt-3 w-full" disabled={durationDays * 1440 + durationHours * 60 + durationMinutes < 1} onClick={() => { setDuration(durationDays * 1440 + durationHours * 60 + durationMinutes); setDurationOpen(false); }}>{t("Apply duration")}</Button></div></div>}</div></>}
         {phase === "running" && <Button className="h-12 px-6" onClick={pause}><Pause className="size-5" /> {t("Pause")}</Button>}
         {phase === "paused" && <Button variant="primary" className="h-12 px-6" onClick={resume}><Play className="size-5" /> {t("Resume")}</Button>}
         {phase !== "idle" && <Button className="h-12" onClick={() => end(false)}><Square className="size-4" /> {t("End")}</Button>}
@@ -431,16 +435,12 @@ export default function FocusPage() {
             <label className="mb-3 block text-xs text-white/65">{t("Focus on a task (optional)")}
               <select className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/25 px-3 py-2.5 text-sm text-white" value={taskId} onChange={(e) => setTaskId(e.target.value)} disabled={phase !== "idle"}><option value="">{t("No task — general focus")}</option>{data?.tasks.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}</select>
             </label>
-            <p className="mb-2 text-xs font-medium text-white/65">{t("Theme")}</p><div className="grid grid-cols-3 gap-2">{THEME_PRESETS.map(item => <button key={item.id} type="button" onClick={() => void savePrefs({ theme: { ...prefs.theme, preset: item.id, accent: item.accent } })} aria-pressed={prefs.theme.preset === item.id} className={cn("flex items-center gap-2 rounded-xl border p-2 text-[11px]", prefs.theme.preset === item.id ? "border-white/70 bg-white/15" : "border-white/10 bg-white/5 text-white/65")}><span className="size-3 shrink-0 rounded-full" style={{background:item.accent}} />{t(item.name)}</button>)}</div>
-            <div className="mt-3 grid grid-cols-3 gap-2">{(["dark","light","system"] as const).map(value => <button key={value} type="button" onClick={() => void savePrefs({theme:{...prefs.theme,mode:value}})} aria-pressed={prefs.theme.mode===value} className={cn("rounded-lg border px-2 py-2 text-xs capitalize",prefs.theme.mode===value?"border-white/70 bg-white/15":"border-white/10 bg-white/5 text-white/65")}>{t(value==="system"?"System":value==="dark"?"Dark":"Light")}</button>)}</div>
+            <div className="mb-3 rounded-xl border border-white/10 bg-white/[.04] p-3"><p className="text-xs font-semibold text-white/85">{t("Focus appearance")}</p><p className="mt-1 text-[11px] leading-relaxed text-white/50">{t("These settings affect Focus Zone only. Your website theme stays unchanged.")}</p></div>
             <p className="mb-2 text-xs font-medium text-white/65">{t("Focus mode")}</p>
             <div className="grid grid-cols-2 gap-2">{MODES.map(m => <button key={m.value} type="button" disabled={phase !== "idle"} onClick={() => pickMode(m.value)} aria-pressed={mode === m.value} className={cn("rounded-xl border px-3 py-2.5 text-xs transition", mode === m.value ? "border-white/70 bg-white/15 text-white" : "border-white/10 bg-white/5 text-white/65 hover:bg-white/10")}>{t(m.label)}</button>)}</div>
             <p className="mb-2 mt-4 text-xs font-medium text-white/65">{t("Timer style")}</p>
             <div className="grid grid-cols-3 gap-2">{[{value:"ring",label:"Ring"},{value:"digital",label:"Digital"},{value:"minimal",label:"Minimal"},{value:"bar",label:"Progress bar"},{value:"orbit",label:"Orbit"}].map(item => <button key={item.value} type="button" onClick={() => void selectTimerStyle(item.value as TimerStyle)} aria-pressed={timerStyle === item.value} className={cn("rounded-xl border px-2 py-2 text-xs", timerStyle === item.value ? "border-white/70 bg-white/15" : "border-white/10 bg-white/5 text-white/65")}>{t(item.label)}</button>)}</div>
-            {(mode === "focus" || mode === "custom") && <><p className="mb-2 mt-4 text-xs font-medium text-white/65">{t("Duration")}</p><div className="flex flex-wrap gap-2">{PRESETS.map(p => <button key={p} type="button" disabled={phase !== "idle"} onClick={() => setDuration(p)} aria-pressed={minutes === p} className={cn("rounded-full border px-3 py-2 text-xs", minutes === p ? "border-white/70 bg-white/15" : "border-white/10 bg-white/5 text-white/65")}>{p} {t("min")}</button>)}
-              <label className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/65">{t("Custom")}<input type="number" min={1} max={240} disabled={phase !== "idle"} value={minutes} onChange={e => setDuration(Number(e.target.value))} className="w-12 bg-transparent text-center text-white outline-none" />{t("min")}</label></div></>}
             <div className="mt-4 border-t border-white/10 pt-3"><p className="mb-2 text-xs font-medium text-white/65">{t("Readability overlay")} · {backgroundOverlay}%</p><input type="range" min={0} max={80} step={5} value={backgroundOverlay} onChange={e => setBackgroundOverlay(Number(e.target.value))} className="w-full" aria-label={t("Readability overlay")} /></div>
-            <a href="/themes" className="mt-4 block text-center text-xs text-white/60 underline underline-offset-4">{t("Open Theme Studio")}</a>
           </div>}
         </div>
         <button type="button" onClick={() => { setMusicSearchOpen(v => !v); setThemeOpen(false); setBackgroundOpen(false); setMixerOpen(false); setShortcutsOpen(false); }} aria-label={t("Search music")} aria-expanded={musicSearchOpen} className="grid size-9 sm:size-10 place-items-center rounded-xl sm:rounded-2xl border border-white/15 bg-black/25 text-white shadow-lg backdrop-blur-2xl transition hover:bg-white/15"><Search className="size-5" /></button>
