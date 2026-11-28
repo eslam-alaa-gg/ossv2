@@ -220,6 +220,12 @@ await test("preferences are per-user and validated", async () => {
   assert.equal(ok.status, 200);
   assert.equal((await A.req("GET", "/api/me")).json.prefs.theme.accent, "#2dd4bf");
   assert.equal((await B.req("GET", "/api/me")).json.prefs.theme.accent, "#8b7cff", "B unaffected");
+  const beforeFocus = (await A.req("GET", "/api/me")).json.prefs;
+  const focusUpdate = await A.req("PATCH", "/api/me/prefs", { focus: { ...beforeFocus.focus, themePreset: "ocean" } });
+  assert.equal(focusUpdate.status, 200);
+  assert.equal(focusUpdate.json.prefs.focus.themePreset, "ocean", "Focus palette is persisted independently");
+  assert.equal(focusUpdate.json.prefs.theme.accent, "#2dd4bf", "changing Focus palette does not change website Theme Studio");
+  assert.equal((await B.req("GET", "/api/me")).json.prefs.focus.themePreset, "midnight", "Focus palette is per-user");
   const spotifyPrefs = await A.req("PATCH", "/api/me/prefs", { spotify: { ambience: false, autoRefresh: false } });
   assert.equal(spotifyPrefs.status, 200);
   assert.deepEqual(spotifyPrefs.json.prefs.spotify, { ambience: false, autoRefresh: false });
