@@ -196,8 +196,8 @@ export default function FocusPage() {
   useEffect(() => { const h = setTimeout(() => { if (backgroundOverlay !== prefs.focus.overlay) savePrefs({ focus: { ...prefs.focus, overlay: backgroundOverlay } }).catch(() => {}); }, 500); return () => clearTimeout(h); }, [backgroundOverlay]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { const h = () => { if (!document.fullscreenElement) setZen(false); }; document.addEventListener("fullscreenchange", h); return () => document.removeEventListener("fullscreenchange", h); }, []);
 
-  const applyDuration = (m: number, kind: SessionKind = sessionKind) => {
-    if (phase !== "idle") return;
+  const applyDuration = (m: number, kind: SessionKind = sessionKind, allowActiveTransition = false) => {
+    if (phase !== "idle" && !allowActiveTransition) return;
     const value = Math.min(MAX_SESSION_MINUTES, Math.max(1, Math.round(m) || 1));
     setMinutes(value); setRemaining(value * 60); setPlanned(value * 60);
     setDurationDays(Math.floor(value / 1440)); setDurationHours(Math.floor((value % 1440) / 60)); setDurationMinutes(value % 60);
@@ -345,7 +345,9 @@ export default function FocusPage() {
     if (phase === "idle" || sessionKind === "stopwatch" || !(await end(true))) return;
     const nextKind: SessionKind = sessionKind === "break" ? "focus" : "break";
     setSessionKind(nextKind);
-    applyDuration(nextKind === "break" ? 5 : 25, nextKind);
+    // end(true) schedules the idle state update, but this callback still closes over
+    // the previous phase. Allow this one intentional transition to apply its preset.
+    applyDuration(nextKind === "break" ? 5 : 25, nextKind, true);
   }
 
   async function exitFocus() {
