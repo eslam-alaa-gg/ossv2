@@ -131,6 +131,7 @@ const ar: Record<string, string> = {
   "Custom font removed.": "تمت إزالة الخط المخصص.",
   "Focus theme": "مظهر التركيز",
   "Theme": "المظهر",
+  "Focus Room theme": "مظهر غرفة التركيز",
   "Wallpaper library": "مكتبة الخلفيات",
   "Mountain Escape": "قمم الجبال",
   "Quiet Lake": "بحيرة هادئة",
